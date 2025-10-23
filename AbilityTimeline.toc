@@ -1,0 +1,58 @@
+## Interface: 110200
+## Title: AbilityTimeline
+## Version: @project-version@
+## Notes: Adds Rio score to the group finder and allows for sorting
+## SavedVariables: AbilityTimeline
+## Author: Jods
+## X-Curse-Project-ID: 
+## X-Wago-ID: 
+## OptionalDeps: Ace3, DevTool
+## AddonCompartmentFunc: AbilityTimeline_AddonCompartmentFunction
+## IconTexture: Interface\AddOns\AbilityTimeline\Files\AbilityTimeline.tga
+## Category-enUS: Dungeons & Raids
+## Category-deDE: Dungeons & Schlachtzüge
+## Category-esES: Mazmorras y bandas
+## Category-esMX: Calabozos y bandas
+## Category-frFR: Donjons et raids
+## Category-itIT: Spedizioni e incursioni
+## Category-koKR: 던전 및 공격대
+## Category-ptBR: Masmorras e Raides
+## Category-ruRU: Подземелья и рейды
+## Category-zhCN: 地下城和团队副本
+## Category-zhTW: 地城與團隊
+
+#Libs
+embeds.xml
+
+# Locales
+Locales\enUS.lua
+Locales\deDE.lua
+Locales\esES.lua
+Locales\itIT.lua
+Locales\frFR.lua
+Locales\esMX.lua
+Locales\koKR.lua
+Locales\ptBR.lua
+Locales\ruRU.lua
+Locales\zhCN.lua
+Locales\zhTW.lua
+ 
+Locales\Locales.lua
+
+#templates
+Templates\AbilityTimelineIcon.xml
+Templates\AtEditorSpellIcon.lua
+Templates\AtTimingsEditorTimelineFrame.lua
+Templates\AtTimingsEditorDataFrame.lua
+Templates\ATTimingsEditorContainer.lua
+
+#data
+Data\encounters.lua
+
+# Core
+Options\Options.lua
+Options\TimingEditor.lua
+Main.lua
+AbilityTimeline.lua
+
+
