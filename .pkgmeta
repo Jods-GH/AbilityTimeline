@@ -1,4 +1,4 @@
-package-as: BetterAbilityTimeline
+package-as: AbilityTimeline
 
 externals:
     Libs/LibStub: https://repos.curseforge.com/wow/libstub/trunk

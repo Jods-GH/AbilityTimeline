@@ -4,8 +4,8 @@
 ## Notes: Adds Rio score to the group finder and allows for sorting
 ## SavedVariables: AbilityTimeline
 ## Author: Jods
-## X-Curse-Project-ID: 
-## X-Wago-ID: 
+## X-Curse-Project-ID: 1365171
+## X-Wago-ID: qGYMWpGg
 ## OptionalDeps: Ace3, DevTool
 ## AddonCompartmentFunc: AbilityTimeline_AddonCompartmentFunction
 ## IconTexture: Interface\AddOns\AbilityTimeline\Files\AbilityTimeline.tga
