@@ -49,6 +49,9 @@ Templates\ATTimingsEditorContainer.lua
 #data
 Data\encounters.lua
 
+#plugins
+plugins\TextHighlight.lua
+
 # Core
 Options\Options.lua
 Options\TimingEditor.lua
