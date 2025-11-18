@@ -19,6 +19,16 @@ local updateTimelineEditorFrame = function(dungeonId, encounterNumber)
             type = value.type,
         })
     end
+    frame.leftContent:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
+    frame.leftContent:SetBackdropBorderColor(0.25, 0.25, 0.25, 0.9)
+    frame.leftContent:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 16,
+        edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    })
     return frame
 end
 
@@ -31,20 +41,11 @@ end
 
 private.closeTimingsEditor = function()
     -- Close the timing editor
-    print("Closing timing editor")
-    local frame = private.getTimingsEditorFrame()
+    print("Closing timing editor in function")
+    local frame = private.TIMINGS_EDITOR_WINDOW
+    if not frame then print('frame notfound') DevTools_Dump(private.TIMINGS_EDITOR_WINDOW) return end
     frame:Release()
     private.TIMINGS_EDITOR_WINDOW = nil
-end
-
-local createTimelineDataFrame = function(frame)
-    print("Creating Timeline Data Frame inside Timings Editor Frame")
-    local dataFrame = AceGUI:Create("AtTimingsEditorScrollContainer")
-    dataFrame.frame:SetWidth(frame.content:GetWidth())
-    dataFrame.frame:SetHeight(frame.content:GetHeight())
-    frame:AddChild(dataFrame)
-    DevTool:AddData(dataFrame, "AT_TIMELINE_DATA_FRAME")
-    return dataFrame
 end
 
 local createTimingsEditorFrame = function()
@@ -56,10 +57,10 @@ end
 
 private.getTimingsEditorFrame = function()
     if not private.TIMINGS_EDITOR_WINDOW then
+        print("Timings Editor Frame does not exist, creating new one")
         local frame = createTimingsEditorFrame()
         return frame
     end
     print("Returning existing Timings Editor Frame")
-    DevTools_Dump(private.TIMINGS_EDITOR_WINDOW)
     return private.TIMINGS_EDITOR_WINDOW
 end

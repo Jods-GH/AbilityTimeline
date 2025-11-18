@@ -47,11 +47,10 @@ local function Constructor()
 	
     frame.SpellIcon = AceGUI:Create("Icon")
 	frame.SpellIcon:SetImageSize(variables.IconSize.width, variables.IconSize.height)
-    frame.SpellIcon:SetPoint("TOPLEFT", frame, "TOPLEFT")
-    frame.SpellIcon:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT")
+    frame.SpellIcon:SetPoint("LEFT", frame, "LEFT")
 	frame.SpellName = AceGUI:Create("Label")
-	frame.SpellName:SetPoint("TOPLEFT", frame.SpellIcon.frame, "TOPRIGHT")
-    frame.SpellName:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+	frame.SpellName:SetPoint("LEFT", frame.SpellIcon.frame, "RIGHT")
+    frame.SpellName:SetPoint("RIGHT", frame, "RIGHT")
 
 
 	---@class AtEditorSpellIcon : AceGUIWidget

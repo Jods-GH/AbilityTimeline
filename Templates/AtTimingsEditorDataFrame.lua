@@ -22,14 +22,18 @@ local variables = {
 
 ---@param self AtTimingsEditorDataFrame
 local function OnAcquire(self)
-    self.container:OnAcquire()
+
+    self.frame:Show()
+    self.container.frame:Show()
+    DevTool:AddData(self, "AT_TIMINGS_EDITOR_DATA_FRAME_ONACQUIRE")
 end
 
 ---@param self AtTimingsEditorDataFrame
 local function OnRelease(self)
-    self.container:OnRelease()
+    self.container:Release()
     for k, v in pairs(self.items) do
-        v:Release()
+        DevTools_Dump(v)
+        v.spellContainer:Release()
     end
     self.items = {}
     
@@ -38,14 +42,11 @@ end
 local ITEMS = {}
 
 local function AddItem(self, item)
-    local b = CreateFrame("Button", nil, self.leftContent, "UIPanelButtonTemplate")
     local spellContainer = AceGUI:Create("AtEditorSpellIcon")
     spellContainer:SetAbility(item.spellicon, item.spellname)
     local i = #self.items
     spellContainer.frame:SetSize(variables.FrameLeftSize - 20, 30)
     spellContainer.frame:SetPoint("TOPLEFT", self.leftContent, "TOPLEFT", 10, -10 - (i) * 36)
-    
-    DevTool:AddData(spellContainer, "AT_TIMINGS_EDITOR_SPELL_ICON_" .. i)
 
     local row = CreateFrame("Frame", nil, self.rightContent)
     row:SetSize(1400, 34)
@@ -54,8 +55,24 @@ local function AddItem(self, item)
     t:SetPoint("LEFT", row, "LEFT", 4, 0)
     t:SetText(item.rowText)
 
+    local separator = CreateFrame("Frame", nil, self.rightContent, "BackdropTemplate")
+    separator:SetPoint("LEFT",  self.rightContent, "LEFT",  0, -10 - (i + 1) * 36)
+    separator:SetPoint("RIGHT", self.rightContent, "RIGHT", 0, -10 - (i + 1) * 36)
+    separator:SetHeight(20)
+    separator:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background" })
+    separator:SetBackdropColor(0.2,0.2,0.2,0.9)
+    separator:SetFrameLevel(self.rightContent:GetFrameLevel() + 50)
+    separator:Show()
+
+
+
     -- Function to add an item to the data frame
-    table.insert(ITEMS, item)
+    table.insert(ITEMS, {
+        spellContainer = spellContainer,
+        row = row,
+        separator = separator,
+        data = item,
+    })
 end
 
 
@@ -76,8 +93,8 @@ local function Constructor()
     content:SetSize(variables.FrameLeftSize + variables.FrameRightSize, 1200) -- content height bigger than visible to allow vertical scroll
     vscroll:SetScrollChild(content)
 
-    -- LEFT column (fixed width). Build your button list here.
-    local left = CreateFrame("Frame", Type .."_Left", content)
+    -- LEFT column (fixed width). 
+    local left = CreateFrame("Frame", Type .."_Left", content , "BackdropTemplate")
     left:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
     left:SetSize(variables.FrameLeftSize, content:GetHeight())
 
@@ -125,6 +142,7 @@ local function Constructor()
 		OnRelease = OnRelease,
         AddItem = AddItem,
 		frame = main,
+        content = content,
 		type = Type,
 		count = count,
         container = container,
