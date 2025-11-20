@@ -7,7 +7,6 @@ private.TEXT_HIGHLIGHT_MARGIN = 10
 private.HIGHLIGHT_TEXTS = {}
 
 private.evaluateTextPositions = function()
-   print("Evaluating text highlight positions")
    local visibleIcons = 0
    table.sort(private.HIGHLIGHT_TEXTS, function(a, b) return a.eventInfo.duration < b.eventInfo.duration end)
    for i, frame in ipairs(private.HIGHLIGHT_TEXTS) do
@@ -24,13 +23,12 @@ end
 
 private.createTextHighlight = function(eventInfo)
     local frame = CreateFrame("Frame", "HIGHLIGHT_TEXT_"..eventInfo.id, private.TEXT_HIGHLIGHT_FRAME) -- TODO CHANGE THIS TO ICON POOL with template
-    print("HIGHLIGHT TEXT for event " .. eventInfo.id)
     local yOffset = (private.TEXT_HIGHLIGHT_HEIGHT + private.TEXT_HIGHLIGHT_MARGIN) * (#private.HIGHLIGHT_TEXTS)
     frame.yOffset = yOffset
     frame.eventInfo = eventInfo
     frame.text = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
     frame.text:SetWidth(private.TEXT_HIGHLIGHT_WIDTH)
-    frame.text:SetFormattedText("%s in %i", C_Spell.GetSpellName(eventInfo.tooltipSpellID), eventInfo.duration)
+    frame.text:SetFormattedText("%s in %i", eventInfo.spellName, eventInfo.duration)
     frame.text:SetWordWrap(false)
     frame.text:SetPoint("CENTER", frame, "CENTER")
     frame:SetScript("OnUpdate", function(self)
@@ -47,7 +45,7 @@ private.createTextHighlight = function(eventInfo)
             end
             private.evaluateTextPositions()
         else
-            self.text:SetFormattedText("%s in %i", C_Spell.GetSpellName(eventInfo.tooltipSpellID), math.ceil(remainingDuration))
+            self.text:SetFormattedText("%s in %i", eventInfo.spellName, math.ceil(remainingDuration))
         end
     end)
     frame:SetWidth(private.TEXT_HIGHLIGHT_WIDTH)
