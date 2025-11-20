@@ -114,6 +114,7 @@ local SetEventInfo = function(self, eventInfo)
 	self.frame.frameIsMoving = false
 	self.frame:SetScript("OnUpdate", function(self)
 		local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(self.eventInfo.id)
+		local timeRemaining = C_EncounterTimeline.GetEventTimeRemaining(self.eventInfo.id)
 		if not timeElapsed or timeElapsed < 0 then timeElapsed = self.eventInfo.duration end
 
 		local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, moveHeight)
@@ -127,11 +128,19 @@ local SetEventInfo = function(self, eventInfo)
 			self.frameIsMoving = isMoving
 		end
 		self:SetPoint("CENTER", private.TIMELINE_FRAME, "BOTTOM", xPos, yPos)
-		for tick, time in ipairs(TIMELINE_TICKS) do
+		for tick, time in ipairs(private.TIMELINE_TICKS) do
 			local inRange = (eventInfo.duration - timeElapsed - time)
 			if inRange < 0.01 and inRange > -0.01 then -- this is not gonna work if fps are to low
 			-- self.IconContainer.HighlightAnimation:Play()
 				PlayHighlight(self)
+			end
+		end
+
+		for time, color in pairs(private.TIMER_COLORS) do
+			-- TODO this requires some refactor of how we display cooldowns to actually use a fontstring we can change the color for
+			if (timeRemaining<= time) then
+				self.Cooldown:SetTextColor(color[1], color[2], color[3])
+				break
 			end
 		end
 		local inBigIconRange = (eventInfo.duration - timeElapsed - BIGICON_THRESHHOLD_TIME)

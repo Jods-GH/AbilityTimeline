@@ -13,7 +13,7 @@ private.ENCOUNTER_TIMELINE_EVENT_ADDED = function(self, eventInfo, initialState)
    private.createTimelineIcon(eventInfo)
 end
 
-TIMELINE_TICKS                         = { 5 }
+private.TIMELINE_TICKS                         = { 5 }
 AT_THRESHHOLD                          = 0.8
 AT_THRESHHOLD_TIME                     = 10
 TIMELINE_DIRECTIONS                    = {
@@ -22,7 +22,10 @@ TIMELINE_DIRECTIONS                    = {
 }
 TIMELINE_DIRECTION                     = TIMELINE_DIRECTIONS.VERTICAL
 ICON_MARGIN                            = 5
-
+private.TIMER_COLORS = {
+   [3] = {1, 0, 0},
+   [5] = {1, 1, 0},
+}
 
 BIGICON_THRESHHOLD_TIME    = 5
 
@@ -103,16 +106,16 @@ private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED = function(self, eventID)
          local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
          frame.Cooldown:Resume()
          frame:SetPoint("CENTER", private.TIMELINE_FRAME, "CENTER")
-         frame:SetScript("OnUpdate", function(self)
-            local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(eventID)
-            if not timeElapsed or timeElapsed < 0 then timeElapsed = eventInfo.duration end
-            local y = (timeElapsed / eventInfo.duration) * private.TIMELINE_FRAME:GetHeight() - frame:GetHeight() / 2
-            frame:SetPoint("CENTER", private.TIMELINE_FRAME, "TOP", 0, -y)
-         end)
-         if frame.SpellName then
-            frame.SpellName:Hide()
-            frame.SpellName = nil
-         end
+         -- frame:SetScript("OnUpdate", function(self)
+         --    local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(eventID)
+         --    if not timeElapsed or timeElapsed < 0 then timeElapsed = eventInfo.duration end
+         --    local y = (timeElapsed / eventInfo.duration) * private.TIMELINE_FRAME:GetHeight() - frame:GetHeight() / 2
+         --    frame:SetPoint("CENTER", private.TIMELINE_FRAME, "TOP", 0, -y)
+         -- end)
+         -- if frame.SpellName then
+         --    frame.SpellName:Hide()
+         --    frame.SpellName = nil
+         -- end
          frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
          frame.SpellName:SetPoint("RIGHT", frame, "LEFT", -10, 0)
          frame.SpellName:SetText(eventInfo.spellName)
@@ -231,7 +234,7 @@ private.createTimelineFrame = function()
 
    local moveHeight = private.TIMELINE_FRAME:GetHeight() * 0.8
    local left, bottom, width, height = private.TIMELINE_FRAME:GetBoundsRect()
-   for i, tick in ipairs(TIMELINE_TICKS) do
+   for i, tick in ipairs(private.TIMELINE_TICKS) do
       local tickLine = private.TIMELINE_FRAME:CreateTexture(nil, "ARTWORK")
       local tickPosition = (tick / AT_THRESHHOLD_TIME) * moveHeight
       tickLine:SetColorTexture(1, 1, 1, 1)
