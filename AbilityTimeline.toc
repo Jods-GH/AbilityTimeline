@@ -1,4 +1,4 @@
-## Interface: 110200
+## Interface: 120000
 ## Title: AbilityTimeline
 ## Version: @project-version@
 ## Notes: Adds Rio score to the group finder and allows for sorting
@@ -40,17 +40,18 @@ Locales\zhTW.lua
 Locales\Locales.lua
 
 #templates
-Templates\AbilityTimelineIcon.xml
 Templates\AtEditorSpellIcon.lua
 Templates\AtTimingsEditorTimelineFrame.lua
 Templates\AtTimingsEditorDataFrame.lua
 Templates\ATTimingsEditorContainer.lua
+Templates\AtAbilitySpellIcon.lua
 
 #data
 Data\encounters.lua
 
 #plugins
 plugins\TextHighlight.lua
+plugins\BigIcon.lua
 
 # Core
 Options\Options.lua

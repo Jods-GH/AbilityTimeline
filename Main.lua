@@ -48,11 +48,11 @@ local function createTestBars(duration)
 
     local eventinfo = {
         duration = duration,
-        tooltipSpellID = spellId,
+        maxQueueDuration = duration + 5,
+        overrideName = "Test Spell",
+        spellID = spellId,
         iconFileID = iconId,
-        priority = 0,
-        role = 2,
-        dispelType = 3,
+        severity = 1,
         paused = false
 
     }
