@@ -1,20 +1,18 @@
 local addonName, private = ...
 
-private.TEXT_HIGHLIGHT_WIDTH = 400
-private.TEXT_HIGHLIGHT_HEIGHT = 30
-private.TEXT_HIGHLIGHT_MARGIN = 10
-
 private.HIGHLIGHT_TEXTS = {}
-
+private.TEXT_HIGHLIGHT_TEXT_HEIGHT = 20
+private.TEXT_HIGHLIGHT_MARGIN = 5
+private.TEXT_HIGHLIGHT_TEXT_WIDTH = 300
 private.evaluateTextPositions = function()
    local visibleIcons = 0
    table.sort(private.HIGHLIGHT_TEXTS, function(a, b) return a.eventInfo.duration < b.eventInfo.duration end)
    for i, frame in ipairs(private.HIGHLIGHT_TEXTS) do
       if frame and frame:IsShown() then
-         local yOffset = (private.TEXT_HIGHLIGHT_HEIGHT + private.TEXT_HIGHLIGHT_MARGIN) * (visibleIcons)
+         local yOffset = (private.TEXT_HIGHLIGHT_TEXT_HEIGHT + private.TEXT_HIGHLIGHT_MARGIN) * (visibleIcons)
          if frame.yOffset ~=  yOffset then
             frame.yOffset = yOffset
-            frame:SetPoint("BOTTOM", private.TEXT_HIGHLIGHT_FRAME, "BOTTOM", 0, yOffset)
+            frame:SetPoint("BOTTOM", private.TEXT_HIGHLIGHT_FRAME.frame, "BOTTOM", 0, yOffset)
          end
          visibleIcons = visibleIcons + 1
       end
@@ -22,12 +20,12 @@ private.evaluateTextPositions = function()
 end
 
 private.createTextHighlight = function(eventInfo)
-    local frame = CreateFrame("Frame", "HIGHLIGHT_TEXT_"..eventInfo.id, private.TEXT_HIGHLIGHT_FRAME) -- TODO CHANGE THIS TO ICON POOL with template
-    local yOffset = (private.TEXT_HIGHLIGHT_HEIGHT + private.TEXT_HIGHLIGHT_MARGIN) * (#private.HIGHLIGHT_TEXTS)
+    local frame = CreateFrame("Frame", "HIGHLIGHT_TEXT_"..eventInfo.id, private.TEXT_HIGHLIGHT_FRAME.frame) -- TODO CHANGE THIS TO ICON POOL with template
+    local yOffset = (private.TEXT_HIGHLIGHT_TEXT_HEIGHT + private.TEXT_HIGHLIGHT_MARGIN) * (#private.HIGHLIGHT_TEXTS)
     frame.yOffset = yOffset
     frame.eventInfo = eventInfo
     frame.text = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-    frame.text:SetWidth(private.TEXT_HIGHLIGHT_WIDTH)
+    frame.text:SetWidth(private.TEXT_HIGHLIGHT_TEXT_WIDTH)
     frame.text:SetFormattedText("%s in %i", eventInfo.spellName, eventInfo.duration)
     frame.text:SetWordWrap(false)
     frame.text:SetPoint("CENTER", frame, "CENTER")
@@ -48,9 +46,9 @@ private.createTextHighlight = function(eventInfo)
             self.text:SetFormattedText("%s in %i", eventInfo.spellName, math.ceil(remainingDuration))
         end
     end)
-    frame:SetWidth(private.TEXT_HIGHLIGHT_WIDTH)
-    frame:SetHeight(private.TEXT_HIGHLIGHT_HEIGHT)
-    frame:SetPoint("BOTTOM", private.TEXT_HIGHLIGHT_FRAME, "BOTTOM", 0, yOffset)
+    frame:SetWidth(private.TEXT_HIGHLIGHT_TEXT_WIDTH)
+    frame:SetHeight(private.TEXT_HIGHLIGHT_TEXT_HEIGHT)
+    frame:SetPoint("BOTTOM", private.TEXT_HIGHLIGHT_FRAME.frame, "BOTTOM", 0, yOffset)
     frame:EnableMouse(true)
     frame:Show()
     table.insert(private.HIGHLIGHT_TEXTS, frame)

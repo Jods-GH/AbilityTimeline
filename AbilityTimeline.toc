@@ -45,6 +45,9 @@ Templates\AtTimingsEditorTimelineFrame.lua
 Templates\AtTimingsEditorDataFrame.lua
 Templates\ATTimingsEditorContainer.lua
 Templates\AtAbilitySpellIcon.lua
+Templates\AtTimelineFrame.lua
+Templates\AtBigIconFrame.lua
+Templates\AtTextHighlightFrame.lua
 
 #data
 Data\encounters.lua

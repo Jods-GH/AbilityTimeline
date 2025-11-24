@@ -1,10 +1,9 @@
 local addonName, private = ...
 local AceGUI = LibStub("AceGUI-3.0")
-local LibEditMode = LibStub("LibEditMode")
 
 local activeFrames                     = {}
 private.ENCOUNTER_TIMELINE_EVENT_ADDED = function(self, eventInfo, initialState)
-   if not private.TIMELINE_FRAME:IsVisible() then
+   if not private.TIMELINE_FRAME.frame:IsVisible() then
       private.handleFrame(true)
    end
    private.createTimelineIcon(eventInfo)
@@ -85,7 +84,7 @@ private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED = function(self, eventID)
       if frame then
          local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
          frame.Cooldown:Pause()
-         frame:SetPoint("LEFT", private.TIMELINE_FRAME, "RIGHT", 10, 0)
+         frame:SetPoint("LEFT", private.TIMELINE_FRAME.frame, "RIGHT", 10, 0)
          if frame.SpellName then
             frame.SpellName:Hide()
             frame.SpellName = nil
@@ -99,7 +98,7 @@ private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED = function(self, eventID)
       if frame then
          local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
          frame.Cooldown:Resume()
-         frame:SetPoint("CENTER", private.TIMELINE_FRAME, "CENTER")
+         frame:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "CENTER")
          -- frame:SetScript("OnUpdate", function(self)
          --    local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(eventID)
          --    if not timeElapsed or timeElapsed < 0 then timeElapsed = eventInfo.duration end
@@ -132,7 +131,7 @@ private.evaluateIconPositions = function()
          local xOffset = (private.BIG_ICON_SIZE + private.BIG_ICON_MARGIN) * (visibleIcons)
          if frame.xOffset ~= xOffset then
             frame.xOffset = xOffset
-            frame:SetPoint("LEFT", private.BIGICON_FRAME, "LEFT", xOffset, 0)
+            frame:SetPoint("LEFT", private.BIGICON_FRAME.frame, "LEFT", xOffset, 0)
          end
          visibleIcons = visibleIcons + 1
       end
@@ -197,148 +196,28 @@ private.ENCOUNTER_TIMELINE_EVENT_REMOVED = function()
    end
 end
 
-local resetIconFrame = function(pool, frame)
-   frame.IconContainer.HighlightAnimation:Stop();
-   frame:SetScript("OnUpdate", nil)
-   frame:SetAlpha(1)
-end
-
-private.createIconPool = function()
-   if not private.ICON_POOL then
-      private.ICON_POOL = CreateFramePool("Frame", private.TIMELINE_FRAME, "AbilityTimelineIconTemplate", resetIconFrame)
-   end
-end
-
-local defaultPosition = {
-	point = 'CENTER',
-	x = 0,
-	y = 0,
-}
-local function onPositionChanged(frame, layoutName, point, x, y)
-	-- from here you can save the position into a savedvariable
-   private.db.profile.timeline_frame[layoutName] = private.db.profile.timeline_frame[layoutName] or {}
-   private.db.profile.timeline_frame[layoutName].x = x
-   private.db.profile.timeline_frame[layoutName].y = y
-   private.db.profile.timeline_frame[layoutName].point = point
-end
-
-LibEditMode:RegisterCallback('layout', function(layoutName)
-   print("LibEditMode layout changed to " .. layoutName)
-	-- this will be called every time the Edit Mode layout is changed (which also happens at login),
-	-- use it to load the saved button position from savedvariables and position it
-	if not  private.db.profile.timeline_frame then
-		private.db.profile.timeline_frame = {}
-	end
-	if not private.db.profile.timeline_frame[layoutName] then
-		private.db.profile.timeline_frame[layoutName] = CopyTable(defaultPosition)
-	end
-
-	private.TIMELINE_FRAME:ClearAllPoints()
-	private.TIMELINE_FRAME:SetPoint(private.db.profile.timeline_frame[layoutName].point, private.db.profile.timeline_frame[layoutName].x, private.db.profile.timeline_frame[layoutName].y)
-end)
-
-
 
 private.createTimelineFrame = function()
-   private.TIMELINE_FRAME = CreateFrame("Frame", "AbilityTimelineFrame", UIParent, "BackdropTemplate")
-   private.TIMELINE_FRAME:SetWidth(60)
-   private.TIMELINE_FRAME:SetHeight(500)
-
-   if private.db.profile.timeline_frame_x_position and private.db.profile.timeline_frame_y_position then
-      private.TIMELINE_FRAME:SetPoint("BOTTOM", UIParent, "BOTTOM", private.db.profile.timeline_frame_x_position, private.db.profile.timeline_frame_y_position)
-   else
-      private.TIMELINE_FRAME:SetPoint("CENTER")
-   end
-   DevTool:AddData(LibEditMode, "LibEditMode")
-   LibEditMode:AddFrame(private.TIMELINE_FRAME, onPositionChanged, defaultPosition, "Ability Timeline")
-
---    LibEditMode:AddFrameSettings(private.TIMELINE_FRAME, {
--- 	{
--- 		name = 'X Position',
--- 		kind = LibEditMode.SettingType.Slider,
--- 		default = 1,
--- 		get = function(layoutName)
--- 			return private.db.profile.timeline_frame[layoutName].x
--- 		end,
--- 		set = function(layoutName, value)
--- 			onPositionChanged(private.TIMELINE_FRAME, layoutName, private.db.profile.timeline_frame[layoutName].point, value, private.db.profile.timeline_frame[layoutName].y)
--- 		end,
--- 		minValue = 0,
--- 		maxValue = UIParent:GetWidth(),
--- 		valueStep = 1,
--- 	}
--- })
-
-   private.TIMELINE_FRAME:SetFrameStrata("BACKGROUND")
-   private.TIMELINE_FRAME:SetBackdrop({
-      bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-      tile = true,
-      tileSize = 32,
-      edgeSize = 32,
-      insets = { left = 11, right = 12, top = 12, bottom = 11 }
-   })
-   private.TIMELINE_FRAME:SetBackdropColor(0, 0, 0, 1)
-   private.TIMELINE_FRAME.Ticks = {}
-   
-
-   local moveHeight = private.TIMELINE_FRAME:GetHeight()
-   local left, bottom, width, height = private.TIMELINE_FRAME:GetBoundsRect()
-   for i, tick in ipairs(private.TIMELINE_TICKS) do
-      local tickLine = private.TIMELINE_FRAME:CreateTexture(nil, "ARTWORK")
-      local tickPosition = (tick / private.AT_THRESHHOLD_TIME ) * moveHeight
-      print("Creating tick at position ".. (tick / private.AT_THRESHHOLD_TIME ) .." for position" .. tickPosition .. " for tick " .. tick)
-      tickLine:SetColorTexture(1, 1, 1, 1)
-      tickLine:SetHeight(1)
-      tickLine:SetPoint("LEFT", private.TIMELINE_FRAME, "BOTTOMLEFT", 0, tickPosition)
-      tickLine:SetPoint("RIGHT", private.TIMELINE_FRAME, "BOTTOMRIGHT", 0, tickPosition)
-      local tickText = private.TIMELINE_FRAME:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-      tickText:SetPoint("LEFT", tickLine, "RIGHT", 5, 0)
-      tickText:SetText(tick .. "s")
-      tickLine.tickText = tickText
-      private.TIMELINE_FRAME.Ticks[i] = tickLine
-   end
-
-   private.TIMELINE_FRAME.moveHeight = moveHeight
-   private.TIMELINE_FRAME:Hide()
-   private.TIMELINE_FRAME:EnableMouse(true)
-   -- private.TIMELINE_FRAME:SetMovable(true)
-   -- private.TIMELINE_FRAME:RegisterForDrag("LeftButton")
-   -- private.TIMELINE_FRAME:SetScript("OnDragStart", function(self) self:StartMoving() end)
-   -- private.TIMELINE_FRAME:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() 
-   --    local left, bottom, width, height = self:GetBoundsRect()
-   --    private.db.profile.timeline_frame_x_position = left + (width / 2) - (UIParent:GetWidth() / 2)
-   --    private.db.profile.timeline_frame_y_position = bottom
-   -- end)
-   DevTool:AddData(private.TIMELINE_FRAME, "AT_TIMELINE_FRAME")
-   private.createIconPool()
+   private.TIMELINE_FRAME = AceGUI:Create("AtTimelineFrame")
 
 
-   private.BIGICON_FRAME = CreateFrame("Frame", "AbilityTimelineBigIconFrame", UIParent)
-   private.BIGICON_FRAME:SetPoint("TOP", private.TIMELINE_FRAME, "BOTTOM", 30, -10)
-   private.BIGICON_FRAME:SetWidth(private.BIG_ICON_SIZE)
-   private.BIGICON_FRAME:SetHeight(private.BIG_ICON_SIZE)
-   private.BIGICON_FRAME:Show()
-   DevTool:AddData(private.BIGICON_FRAME, "AT_BIGICON_FRAME")
+   private.BIGICON_FRAME = AceGUI:Create("AtBigIconFrame")
 
 
-   private.TEXT_HIGHLIGHT_FRAME = CreateFrame("Frame", "AbilityTimelineTextHighlightFrame", UIParent)
-   private.TEXT_HIGHLIGHT_FRAME:SetPoint("CENTER", UIParent, "CENTER")
-   private.TEXT_HIGHLIGHT_FRAME:SetWidth(private.TEXT_HIGHLIGHT_WIDTH)
-   private.TEXT_HIGHLIGHT_FRAME:SetHeight(private.TEXT_HIGHLIGHT_HEIGHT)
-   private.TEXT_HIGHLIGHT_FRAME:Show()
+   private.TEXT_HIGHLIGHT_FRAME = AceGUI:Create("AtTextHighlightFrame")
 
    DevTool:AddData(private.TEXT_HIGHLIGHT_FRAME, "AT_TEXT_HIGHLIGHT_FRAME")
 end
 
 private.handleFrame = function(show)
    if show then
-      if not private.TIMELINE_FRAME then
+      if not private.TIMELINE_FRAME.frame then
          private.createTimelineFrame()
       end
-      private.TIMELINE_FRAME:Show()
+      private.TIMELINE_FRAME.frame:Show()
    else
-      if private.TIMELINE_FRAME then
-         private.TIMELINE_FRAME:Hide()
+      if private.TIMELINE_FRAME.frame then
+         private.TIMELINE_FRAME.frame:Hide()
       end
    end
 end

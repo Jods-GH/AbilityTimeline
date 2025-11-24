@@ -5,7 +5,7 @@ private.BIG_ICON_MARGIN = 10
 private.ICON_ZOOM = 0.7
 private.BIG_ICON_COOLDOWN_SCALE = 2
 private.createBigIcon = function(eventInfo)
-   local frame = CreateFrame("Frame", "BIGICON"..eventInfo.id, private.BIGICON_FRAME) -- TODO CHANGE THIS TO ICON POOL with template
+   local frame = CreateFrame("Frame", "BIGICON"..eventInfo.id, private.BIGICON_FRAME.frame) -- TODO CHANGE THIS TO ICON POOL with template
    frame.eventInfo = eventInfo
    frame.Cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
    frame.Cooldown:SetDrawSwipe(true)
@@ -25,7 +25,7 @@ private.createBigIcon = function(eventInfo)
       private.evaluateIconPositions()
    end)
    local xOffset = (private.BIG_ICON_SIZE + private.BIG_ICON_MARGIN) * (#private.BIG_ICONS)
-   frame:SetPoint("LEFT", private.BIGICON_FRAME, "LEFT", xOffset, 0)
+   frame:SetPoint("LEFT", private.BIGICON_FRAME.frame, "LEFT", xOffset, 0)
    frame.xOffset = xOffset
    frame:SetSize(private.BIG_ICON_SIZE, private.BIG_ICON_SIZE)
    --frame:SetCooldown(GetTime(),eventInfo.duration - C_EncounterTimeline.GetEventTimeElapsed(eventInfo.id))
