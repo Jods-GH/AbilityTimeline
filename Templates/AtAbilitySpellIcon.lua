@@ -13,12 +13,10 @@ local variables = {
 ---@param self AtAbilitySpellIcon
 local function OnAcquire(self)
 	DevTool:AddData(self.frame, "AT_ABILITY_SPELL_ICON_FRAME_ACQUIRED")
-	print("Acquiring AtAbilitySpellIcon")
 end
 
 ---@param self AtAbilitySpellIcon
 local function OnRelease(self)
-	print("Releasing AtAbilitySpellIcon for event " .. self.eventInfo.id)
 	self.frame.eventInfo = nil
 	self.frame.SpellIcon:SetImage(nil)
 	self.frame.SpellName:SetText("")
@@ -27,11 +25,11 @@ local function OnRelease(self)
 end
 
 local getRawIconPosition          = function(iconSize, moveHeight, remainingDuration)
-   if not (remainingDuration < AT_THRESHHOLD_TIME) then
+   if not (remainingDuration < private.AT_THRESHHOLD_TIME ) then
       -- We are out of range of the moving timeline
       return 0, moveHeight + (iconSize / 2), false
    end
-   local y = ((remainingDuration) / AT_THRESHHOLD_TIME) * moveHeight + (iconSize / 2)
+   local y = ((remainingDuration) / private.AT_THRESHHOLD_TIME ) * moveHeight + (iconSize / 2)
    return 0, y, true
 end
 -- TODO FIX THIS
@@ -44,7 +42,7 @@ local calculateOffset             = function(iconSize, timelineHeight, sourceEve
    local shorterConflictingEvents = 0
    local sourceEventInfo = C_EncounterTimeline.GetEventInfo(sourceEventID)
    local sourceRemainingTime = sourceEventInfo.duration - sourceTimeElapsed
-   local sourceRemainingTimeInThreshold = sourceRemainingTime < AT_THRESHHOLD_TIME
+   local sourceRemainingTimeInThreshold = sourceRemainingTime < private.AT_THRESHHOLD_TIME 
    local sourceState = C_EncounterTimeline.GetEventState(sourceEventID)
    local sourceUpperXBound = rawSourcePosX + (iconSize / 2) + ICON_MARGIN
    local sourceLowerXBound = rawSourcePosX - (iconSize / 2) - ICON_MARGIN
@@ -84,11 +82,11 @@ local calculateOffset             = function(iconSize, timelineHeight, sourceEve
 end
 
 local calculateIconPosition       = function(self, timeElapsed, moveHeight)
-   local x, y, isMoving = getRawIconPosition(self:GetHeight(), moveHeight, self.eventInfo.duration - timeElapsed)
-   if self.eventInfo.duration - timeElapsed > AT_THRESHHOLD_TIME then
+   local x, y, isMoving = getRawIconPosition(variables.IconSize.height, moveHeight, self.eventInfo.duration - timeElapsed)
+   if self.eventInfo.duration - timeElapsed > private.AT_THRESHHOLD_TIME  then
       -- only add offset for waiting icons
-      local xOffset, yOffset = calculateOffset(self:GetHeight(), moveHeight, self.eventInfo.id, timeElapsed, x, y)
-      return x + xOffset, y + yOffset, isMoving
+      local xOffset, yOffset = calculateOffset(variables.IconSize.height, moveHeight, self.eventInfo.id, timeElapsed, x, y)
+	  return x + xOffset, y + yOffset, isMoving
    end
    return x, y, isMoving
 end
@@ -110,14 +108,13 @@ local SetEventInfo = function(self, eventInfo)
 	self.frame.Cooldown:SetCooldown(GetTime(), eventInfo.duration)
 
 	-- OnUpdate we want to update the position of the icon based on elapsed time
-	local moveHeight = private.TIMELINE_FRAME:GetHeight() * 0.8
 	self.frame.frameIsMoving = false
 	self.frame:SetScript("OnUpdate", function(self)
 		local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(self.eventInfo.id)
 		local timeRemaining = C_EncounterTimeline.GetEventTimeRemaining(self.eventInfo.id)
 		if not timeElapsed or timeElapsed < 0 then timeElapsed = self.eventInfo.duration end
 
-		local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, moveHeight)
+		local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, private.TIMELINE_FRAME.moveHeight)
 		if self.frameIsMoving ~= isMoving then
 			if isMoving then
 				--self.TrailAnimation:Play()
@@ -139,7 +136,7 @@ local SetEventInfo = function(self, eventInfo)
 		for time, color in pairs(private.TIMER_COLORS) do
 			-- TODO this requires some refactor of how we display cooldowns to actually use a fontstring we can change the color for
 			if (timeRemaining<= time) then
-				self.Cooldown:SetTextColor(color[1], color[2], color[3])
+				--self.Cooldown:SetTextColor(color[1], color[2], color[3])
 				break
 			end
 		end
@@ -153,7 +150,7 @@ end
 
 local function Constructor()
 	local count = AceGUI:GetNextWidgetNum(Type)
-    local frame = CreateFrame("Frame", Type .. count, UIParent)
+    local frame = CreateFrame("Frame", Type .. count, private.TIMELINE_FRAME)
     frame:SetSize(variables.IconSize.width, variables.IconSize.height)
 	
 	-- spell icon
@@ -188,9 +185,6 @@ local function Constructor()
 	frame.Cooldown:SetDrawSwipe(false)
 	frame.Cooldown:SetDrawEdge(false)
 	frame.Cooldown:SetAllPoints(frame)
-	
-	frame:Show()
-
 
 	---@class AtAbilitySpellIcon : AceGUIWidget
 	local widget = {

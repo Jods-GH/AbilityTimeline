@@ -14,8 +14,8 @@ private.ENCOUNTER_TIMELINE_EVENT_ADDED = function(self, eventInfo, initialState)
 end
 
 private.TIMELINE_TICKS                         = { 5 }
-AT_THRESHHOLD                          = 0.8
-AT_THRESHHOLD_TIME                     = 10
+private.AT_THRESHHOLD                          = 0.8
+private.AT_THRESHHOLD_TIME                     = 10
 TIMELINE_DIRECTIONS                    = {
    VERTICAL = "VERTICAL",
    HORIZONTAL = "HORIZONTAL"
@@ -232,11 +232,12 @@ private.createTimelineFrame = function()
    private.TIMELINE_FRAME.Ticks = {}
    
 
-   local moveHeight = private.TIMELINE_FRAME:GetHeight() * 0.8
+   local moveHeight = private.TIMELINE_FRAME:GetHeight()
    local left, bottom, width, height = private.TIMELINE_FRAME:GetBoundsRect()
    for i, tick in ipairs(private.TIMELINE_TICKS) do
       local tickLine = private.TIMELINE_FRAME:CreateTexture(nil, "ARTWORK")
-      local tickPosition = (tick / AT_THRESHHOLD_TIME) * moveHeight
+      local tickPosition = (tick / private.AT_THRESHHOLD_TIME ) * moveHeight
+      print("Creating tick at position ".. (tick / private.AT_THRESHHOLD_TIME ) .." for position" .. tickPosition .. " for tick " .. tick)
       tickLine:SetColorTexture(1, 1, 1, 1)
       tickLine:SetHeight(1)
       tickLine:SetPoint("LEFT", private.TIMELINE_FRAME, "BOTTOMLEFT", 0, tickPosition)
@@ -247,6 +248,8 @@ private.createTimelineFrame = function()
       tickLine.tickText = tickText
       private.TIMELINE_FRAME.Ticks[i] = tickLine
    end
+
+   private.TIMELINE_FRAME.moveHeight = moveHeight
    private.TIMELINE_FRAME:Show()
    private.TIMELINE_FRAME:EnableMouse(true)
    private.TIMELINE_FRAME:SetMovable(true)
