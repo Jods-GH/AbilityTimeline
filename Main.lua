@@ -26,6 +26,9 @@ function AbilityTimeline:OnInitialize()
     AceConfigDialog:AddToBlizOptions(appName, appName)
     self:RegisterChatCommand("at", "SlashCommand")
     self:RegisterChatCommand("AT", "SlashCommand")
+    if not private.TIMELINE_FRAME then
+      private.createTimelineFrame()
+    end
 end
 
 function AbilityTimeline:OnEnable()

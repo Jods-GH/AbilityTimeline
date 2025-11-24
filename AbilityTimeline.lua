@@ -1,12 +1,9 @@
 local addonName, private = ...
 local AceGUI = LibStub("AceGUI-3.0")
-
+local LibEditMode = LibStub("LibEditMode")
 
 local activeFrames                     = {}
 private.ENCOUNTER_TIMELINE_EVENT_ADDED = function(self, eventInfo, initialState)
-   if not private.TIMELINE_FRAME then
-      private.createTimelineFrame()
-   end
    if not private.TIMELINE_FRAME:IsVisible() then
       private.handleFrame(true)
    end
@@ -21,7 +18,6 @@ TIMELINE_DIRECTIONS                    = {
    HORIZONTAL = "HORIZONTAL"
 }
 TIMELINE_DIRECTION                     = TIMELINE_DIRECTIONS.VERTICAL
-ICON_MARGIN                            = 5
 private.TIMER_COLORS = {
    [3] = {1, 0, 0},
    [5] = {1, 1, 0},
@@ -62,7 +58,7 @@ private.createTimelineIcon = function(eventInfo)
    -- frame.border:SetVertexColor(DebuffTypeColor[eventInfo.dispelType])
 end
 
-ENCOUNTER_STATES           = {
+private.ENCOUNTER_STATES           = {
    Active = 0,
    Paused = 1,
    Finished = 2,
@@ -79,11 +75,12 @@ end
 
 private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED = function(self, eventID)
    local newState = C_EncounterTimeline.GetEventState(eventID)
-   if newState == ENCOUNTER_STATES.Finished then
+   print("Event " .. eventID .. " changed state to " .. newState)
+   if newState == private.ENCOUNTER_STATES.Finished then
       removeFrame(eventID, 'PlayFinishAnimation')
-   elseif newState == ENCOUNTER_STATES.Canceled then
+   elseif newState == private.ENCOUNTER_STATES.Canceled then
       removeFrame(eventID, 'PlayCancelAnimation')
-   elseif newState == ENCOUNTER_STATES.Paused then
+   elseif newState == private.ENCOUNTER_STATES.Paused then
       local frame = activeFrames[eventID]
       if frame then
          local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
@@ -97,7 +94,7 @@ private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED = function(self, eventID)
          frame.SpellName:SetPoint("LEFT", frame, "RIGHT", 10, 0)
          frame.SpellName:SetText(eventInfo.spellName)
       end
-   elseif newState == ENCOUNTER_STATES.Active then
+   elseif newState == private.ENCOUNTER_STATES.Active then
       local frame = activeFrames[eventID]
       if frame then
          local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
@@ -212,11 +209,66 @@ private.createIconPool = function()
    end
 end
 
+local defaultPosition = {
+	point = 'CENTER',
+	x = 0,
+	y = 0,
+}
+local function onPositionChanged(frame, layoutName, point, x, y)
+	-- from here you can save the position into a savedvariable
+   private.db.profile.timeline_frame[layoutName] = private.db.profile.timeline_frame[layoutName] or {}
+   private.db.profile.timeline_frame[layoutName].x = x
+   private.db.profile.timeline_frame[layoutName].y = y
+   private.db.profile.timeline_frame[layoutName].point = point
+end
+
+LibEditMode:RegisterCallback('layout', function(layoutName)
+   print("LibEditMode layout changed to " .. layoutName)
+	-- this will be called every time the Edit Mode layout is changed (which also happens at login),
+	-- use it to load the saved button position from savedvariables and position it
+	if not  private.db.profile.timeline_frame then
+		private.db.profile.timeline_frame = {}
+	end
+	if not private.db.profile.timeline_frame[layoutName] then
+		private.db.profile.timeline_frame[layoutName] = CopyTable(defaultPosition)
+	end
+
+	private.TIMELINE_FRAME:ClearAllPoints()
+	private.TIMELINE_FRAME:SetPoint(private.db.profile.timeline_frame[layoutName].point, private.db.profile.timeline_frame[layoutName].x, private.db.profile.timeline_frame[layoutName].y)
+end)
+
+
+
 private.createTimelineFrame = function()
    private.TIMELINE_FRAME = CreateFrame("Frame", "AbilityTimelineFrame", UIParent, "BackdropTemplate")
-   private.TIMELINE_FRAME:SetPoint("CENTER")
    private.TIMELINE_FRAME:SetWidth(60)
    private.TIMELINE_FRAME:SetHeight(500)
+
+   if private.db.profile.timeline_frame_x_position and private.db.profile.timeline_frame_y_position then
+      private.TIMELINE_FRAME:SetPoint("BOTTOM", UIParent, "BOTTOM", private.db.profile.timeline_frame_x_position, private.db.profile.timeline_frame_y_position)
+   else
+      private.TIMELINE_FRAME:SetPoint("CENTER")
+   end
+   DevTool:AddData(LibEditMode, "LibEditMode")
+   LibEditMode:AddFrame(private.TIMELINE_FRAME, onPositionChanged, defaultPosition, "Ability Timeline")
+
+--    LibEditMode:AddFrameSettings(private.TIMELINE_FRAME, {
+-- 	{
+-- 		name = 'X Position',
+-- 		kind = LibEditMode.SettingType.Slider,
+-- 		default = 1,
+-- 		get = function(layoutName)
+-- 			return private.db.profile.timeline_frame[layoutName].x
+-- 		end,
+-- 		set = function(layoutName, value)
+-- 			onPositionChanged(private.TIMELINE_FRAME, layoutName, private.db.profile.timeline_frame[layoutName].point, value, private.db.profile.timeline_frame[layoutName].y)
+-- 		end,
+-- 		minValue = 0,
+-- 		maxValue = UIParent:GetWidth(),
+-- 		valueStep = 1,
+-- 	}
+-- })
+
    private.TIMELINE_FRAME:SetFrameStrata("BACKGROUND")
    private.TIMELINE_FRAME:SetBackdrop({
       bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -247,12 +299,16 @@ private.createTimelineFrame = function()
    end
 
    private.TIMELINE_FRAME.moveHeight = moveHeight
-   private.TIMELINE_FRAME:Show()
+   private.TIMELINE_FRAME:Hide()
    private.TIMELINE_FRAME:EnableMouse(true)
-   private.TIMELINE_FRAME:SetMovable(true)
-   private.TIMELINE_FRAME:RegisterForDrag("LeftButton")
-   private.TIMELINE_FRAME:SetScript("OnDragStart", function(self) self:StartMoving() end)
-   private.TIMELINE_FRAME:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
+   -- private.TIMELINE_FRAME:SetMovable(true)
+   -- private.TIMELINE_FRAME:RegisterForDrag("LeftButton")
+   -- private.TIMELINE_FRAME:SetScript("OnDragStart", function(self) self:StartMoving() end)
+   -- private.TIMELINE_FRAME:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() 
+   --    local left, bottom, width, height = self:GetBoundsRect()
+   --    private.db.profile.timeline_frame_x_position = left + (width / 2) - (UIParent:GetWidth() / 2)
+   --    private.db.profile.timeline_frame_y_position = bottom
+   -- end)
    DevTool:AddData(private.TIMELINE_FRAME, "AT_TIMELINE_FRAME")
    private.createIconPool()
 

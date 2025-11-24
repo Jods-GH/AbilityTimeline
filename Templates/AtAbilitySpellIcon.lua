@@ -8,6 +8,7 @@ local variables = {
 		width = 44,
 		height = 44,
 	},
+	IconMargin = 5
 }
 
 ---@param self AtAbilitySpellIcon
@@ -24,13 +25,17 @@ local function OnRelease(self)
 	self.frame.frameIsMoving = false
 end
 
-local getRawIconPosition          = function(iconSize, moveHeight, remainingDuration)
+local getRawIconPosition          = function(iconSize, moveHeight, remainingDuration, isPaused)
+   local x = 0
+   if isPaused then
+	  x = variables.IconSize.width + variables.IconMargin
+   end
    if not (remainingDuration < private.AT_THRESHHOLD_TIME ) then
       -- We are out of range of the moving timeline
-      return 0, moveHeight + (iconSize / 2), false
+      return x, moveHeight + (iconSize / 2), false
    end
    local y = ((remainingDuration) / private.AT_THRESHHOLD_TIME ) * moveHeight + (iconSize / 2)
-   return 0, y, true
+   return x, y, true
 end
 -- TODO FIX THIS
 -- Currently the offset is ignored when calculating if a conflict is happening. The official timeline also does no conflict resolving and just overlaps icons so maybe we should do the same?
@@ -44,10 +49,10 @@ local calculateOffset             = function(iconSize, timelineHeight, sourceEve
    local sourceRemainingTime = sourceEventInfo.duration - sourceTimeElapsed
    local sourceRemainingTimeInThreshold = sourceRemainingTime < private.AT_THRESHHOLD_TIME 
    local sourceState = C_EncounterTimeline.GetEventState(sourceEventID)
-   local sourceUpperXBound = rawSourcePosX + (iconSize / 2) + ICON_MARGIN
-   local sourceLowerXBound = rawSourcePosX - (iconSize / 2) - ICON_MARGIN
-   local sourceUpperYBound = rawSourcePosY + (iconSize / 2) + ICON_MARGIN
-   local sourceLowerYBound = rawSourcePosY - (iconSize / 2) - ICON_MARGIN
+   local sourceUpperXBound = rawSourcePosX + (iconSize / 2) + variables.IconMargin
+   local sourceLowerXBound = rawSourcePosX - (iconSize / 2) - variables.IconMargin
+   local sourceUpperYBound = rawSourcePosY + (iconSize / 2) + variables.IconMargin
+   local sourceLowerYBound = rawSourcePosY - (iconSize / 2) - variables.IconMargin
    for _, eventID in pairs(eventList) do
       --print("-------")
       local state = C_EncounterTimeline.GetEventState(eventID)
@@ -57,10 +62,10 @@ local calculateOffset             = function(iconSize, timelineHeight, sourceEve
       if sourceState == state then
          totalEvents = totalEvents + 1
          local x, y = getRawIconPosition(iconSize, timelineHeight, remainingTime)
-         local upperXBound = x + iconSize / 2 + ICON_MARGIN
-         local lowerXBound = x - iconSize / 2 - ICON_MARGIN
-         local upperYBound = y + iconSize / 2 + ICON_MARGIN
-         local lowerYBound = y - iconSize / 2 - ICON_MARGIN
+         local upperXBound = x + iconSize / 2 + variables.IconMargin
+         local lowerXBound = x - iconSize / 2 - variables.IconMargin
+         local upperYBound = y + iconSize / 2 + variables.IconMargin
+         local lowerYBound = y - iconSize / 2 - variables.IconMargin
          --print("X " .. x .. ", Y " .. y)
          if TIMELINE_DIRECTION == TIMELINE_DIRECTIONS.VERTICAL then
             --print("Checking bounds")
@@ -78,11 +83,11 @@ local calculateOffset             = function(iconSize, timelineHeight, sourceEve
          end
       end
    end
-   return 0, shorterConflictingEvents * (iconSize + ICON_MARGIN)
+   return 0, shorterConflictingEvents * (iconSize + variables.IconMargin)
 end
 
-local calculateIconPosition       = function(self, timeElapsed, moveHeight)
-   local x, y, isMoving = getRawIconPosition(variables.IconSize.height, moveHeight, self.eventInfo.duration - timeElapsed)
+local calculateIconPosition       = function(self, timeElapsed, moveHeight, isPaused)
+   local x, y, isMoving, isPaused = getRawIconPosition(variables.IconSize.height, moveHeight, self.eventInfo.duration - timeElapsed, isPaused)
    if self.eventInfo.duration - timeElapsed > private.AT_THRESHHOLD_TIME  then
       -- only add offset for waiting icons
       local xOffset, yOffset = calculateOffset(variables.IconSize.height, moveHeight, self.eventInfo.id, timeElapsed, x, y)
@@ -103,18 +108,28 @@ local SetEventInfo = function(self, eventInfo)
 	print("Setting event info for AtAbilitySpellIcon for event " .. eventInfo.id)
 	self.frame.eventInfo = eventInfo
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
-	private.SetZoom(self.frame.SpellIcon, private.ICON_ZOOM)
+	 if not self.frame.SpellIcon.zoomApplied then
+		private.SetZoom(self.frame.SpellIcon, private.ICON_ZOOM)
+		self.frame.SpellIcon.zoomApplied = true
+	 end
     self.frame.SpellName:SetFormattedText("%s in %s", eventInfo.spellName, eventInfo.id)
 	self.frame.Cooldown:SetCooldown(GetTime(), eventInfo.duration)
 
 	-- OnUpdate we want to update the position of the icon based on elapsed time
 	self.frame.frameIsMoving = false
 	self.frame:SetScript("OnUpdate", function(self)
+		local state = C_EncounterTimeline.GetEventState(self.eventInfo.id) 
+		if state ~= self.state then
+			self.state = state
+		elseif state == private.ENCOUNTER_STATES.Paused then
+			return
+		end
+		local isPaused = (state == private.ENCOUNTER_STATES.Paused)
 		local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(self.eventInfo.id)
 		local timeRemaining = C_EncounterTimeline.GetEventTimeRemaining(self.eventInfo.id)
 		if not timeElapsed or timeElapsed < 0 then timeElapsed = self.eventInfo.duration end
 
-		local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, private.TIMELINE_FRAME.moveHeight)
+		local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, private.TIMELINE_FRAME.moveHeight , isPaused)
 		if self.frameIsMoving ~= isMoving then
 			if isMoving then
 				--self.TrailAnimation:Play()
