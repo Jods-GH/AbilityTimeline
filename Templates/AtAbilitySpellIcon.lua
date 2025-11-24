@@ -18,7 +18,7 @@ end
 ---@param self AtAbilitySpellIcon
 local function OnRelease(self)
 	self.frame.eventInfo = nil
-	self.frame.SpellIcon:SetImage(nil)
+	self.frame.SpellIcon:SetTexture(nil)
 	self.frame.SpellName:SetText("")
 	self.frame:SetScript("OnUpdate", nil)
 	self.frame.frameIsMoving = false
@@ -102,9 +102,9 @@ end
 local SetEventInfo = function(self, eventInfo)
 	print("Setting event info for AtAbilitySpellIcon for event " .. eventInfo.id)
 	self.frame.eventInfo = eventInfo
-	self.frame.SpellIcon:SetImage(eventInfo.iconFileID)
-	self.frame.SpellIcon:SetImage(eventInfo.iconFileID, private.GetZoom(self.frame.SpellIcon.image, private.ICON_ZOOM))
-    self.frame.SpellName:SetText(string.format("%s in %s", eventInfo.spellName, eventInfo.id))
+	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
+	private.SetZoom(self.frame.SpellIcon, private.ICON_ZOOM)
+    self.frame.SpellName:SetFormattedText("%s in %s", eventInfo.spellName, eventInfo.id)
 	self.frame.Cooldown:SetCooldown(GetTime(), eventInfo.duration)
 
 	-- OnUpdate we want to update the position of the icon based on elapsed time
@@ -150,14 +150,15 @@ end
 
 local function Constructor()
 	local count = AceGUI:GetNextWidgetNum(Type)
-    local frame = CreateFrame("Frame", Type .. count, private.TIMELINE_FRAME)
+    local frame = CreateFrame("Frame", Type .. count, UIParent)
+	frame:Show()
     frame:SetSize(variables.IconSize.width, variables.IconSize.height)
+	print("Creating AtAbilitySpellIcon frame with size ".. frame:GetWidth() .. "x" .. frame:GetHeight())
 	
 	-- spell icon
-    frame.SpellIcon = AceGUI:Create("Icon")
-	frame.SpellIcon:SetImageSize(variables.IconSize.width, variables.IconSize.height)
+    frame.SpellIcon = frame:CreateTexture(nil, "BACKGROUND")
+	frame.SpellIcon:SetAllPoints(frame)
     frame.SpellIcon:SetPoint("CENTER", frame, "CENTER")
-	frame.SpellIcon.frame:Show()
 	
 	-- border
 	DevTool:AddData(frame, Type .. count)
@@ -165,7 +166,7 @@ local function Constructor()
 	local borderColor = {1, 0, 0}
 	local borderWidth = 2
 	frame.Border:SetPoint("CENTER", frame, "CENTER")
-	frame.Border:SetSize(frame.SpellIcon.image:GetWidth(), frame.SpellIcon.image:GetHeight())
+	frame.Border:SetAllPoints(frame)
 	frame.Border:SetFrameLevel(frame:GetFrameLevel() + 1)
 	frame.Border.backdrop = {
 		edgeFile = "Interface\\Buttons\\WHITE8x8",
@@ -177,14 +178,15 @@ local function Constructor()
 	frame.Border:SetBackdropBorderColor(borderColor[1], borderColor[2], borderColor[3], 1)
 	frame.Border:Hide()
 	-- spell name
-	frame.SpellName = AceGUI:Create("Label")
+	frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
     frame.SpellName:SetPoint("RIGHT", frame, "LEFT", -10, 0)
-    frame.SpellName.frame:Show()
+    frame.SpellName:Show()
 	-- cooldown
 	frame.Cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
 	frame.Cooldown:SetDrawSwipe(false)
 	frame.Cooldown:SetDrawEdge(false)
 	frame.Cooldown:SetAllPoints(frame)
+	frame.Cooldown:Show()
 
 	---@class AtAbilitySpellIcon : AceGUIWidget
 	local widget = {

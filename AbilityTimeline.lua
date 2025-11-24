@@ -33,12 +33,8 @@ private.createTimelineIcon = function(eventInfo)
    local frame = AceGUI:Create("AtAbilitySpellIcon")
    frame:SetEventInfo(eventInfo)
    print("Created timeline icon for event " .. eventInfo.id)
-   DevTool:AddData(eventInfo.id.."OnUpdate",frame.frame:HasScript("OnUpdate"))
    activeFrames[eventInfo.id] = frame
-   frame.eventInfo = eventInfo
-
-   frame:SetParent(private.TIMELINE_FRAME)
-   frame:SetPoint("CENTER", private.TIMELINE_FRAME, "CENTER")
+   frame.frame:Show()
 
    --frame:PlayCancelAnimation()
    --frame:PlayIntroAnimation()
@@ -76,6 +72,7 @@ ENCOUNTER_STATES           = {
 local function removeFrame(eventID, animation)
    local frame = activeFrames[eventID]
    if frame then
+      frame.frame:Hide()
       frame:Release()
    end
 end

@@ -79,6 +79,8 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
         if duration then
             createTestBars(duration)
         end
+    elseif string.find(string.lower(msg), "rect") then
+        print(private.TIMELINE_FRAME:GetBoundsRect())
     elseif msg == "editor" then
         private.openTimingsEditor(1203, 1)
     elseif msg == "eventlist" then
