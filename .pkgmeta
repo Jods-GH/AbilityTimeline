@@ -12,7 +12,7 @@ externals:
     Libs/AceDB-3.0:              https://repos.curseforge.com/wow/ace3/trunk/AceDB-3.0
     Libs/AceDBOptions-3.0:       https://repos.curseforge.com/wow/ace3/trunk/AceDBOptions-3.0
     Libs/AceGUI-3.0:             https://repos.curseforge.com/wow/ace3/trunk/AceGUI-3.0
-    Libs/AceLocale-3.0:          https://repos.curseforge.com/wow/ace3/trunk/AceLocale-3.0
     Libs/LibSharedMedia-3.0:     https://repos.curseforge.com/wow/libsharedmedia-3-0/trunk/LibSharedMedia-3.0
     Libs/LibSerialize:           https://github.com/rossnichols/LibSerialize
     Libs/LibEditMode:            https://github.com/p3lim-wow/LibEditMode
+    Libs/LibCustomGlow-1.0:      https://github.com/Stanzilla/LibCustomGlow
