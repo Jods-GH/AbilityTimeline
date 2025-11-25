@@ -1,6 +1,6 @@
 local addonName, private = ...
 local AceGUI = LibStub("AceGUI-3.0")
-
+local CustomGlow = LibStub("LibCustomGlow-1.0")
 local Type = "AtAbilitySpellIcon"
 local Version = 1
 local variables = {
@@ -97,10 +97,9 @@ local calculateIconPosition       = function(self, timeElapsed, moveHeight, isPa
 end
 
 local PlayHighlight = function (self)
-	print("Playing highlight for AtAbilitySpellIcon for event " .. self.eventInfo.id)
-	self.Border:Show()
+	CustomGlow.ProcGlow_Start(self)
 	C_Timer.After(0.5, function()
-		self.Border:Hide()
+		CustomGlow.ProcGlow_Stop(self)
 	end)
 end
 
