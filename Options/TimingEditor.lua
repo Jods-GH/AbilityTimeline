@@ -8,7 +8,7 @@ local updateTimelineEditorFrame = function(dungeonId, encounterNumber)
     EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
     local frame = private.getTimingsEditorFrame()
     frame.container:SetTitle(private.getLocalisation("TimingsEditorTitle") .. ": " .. Instancename .. " - " .. EncounterName)
-    DevTool:AddData(frame, "AT_TIMINGS_EDITOR_FRAME")
+    private.Debug(frame, "AT_TIMINGS_EDITOR_FRAME")
     for key, value in pairs(private.encounterTable[dungeonId][encounterNumber].spells) do
         local spellInfo = C_Spell.GetSpellInfo(value.spellID);
         frame:AddItem({
@@ -34,33 +34,33 @@ end
 
 private.openTimingsEditor = function(dungeonId, encounterNumber)
     -- Open the timing editor for the specified dungeon and encounter
-    print("Opening timing editor for dungeon " .. dungeonId .. ", encounter " .. encounterNumber)
+    private.Debug("Opening timing editor for dungeon " .. dungeonId .. ", encounter " .. encounterNumber)
     local frame = updateTimelineEditorFrame(dungeonId, encounterNumber)
 end
 
 
 private.closeTimingsEditor = function()
     -- Close the timing editor
-    print("Closing timing editor in function")
+    private.Debug("Closing timing editor in function")
     local frame = private.TIMINGS_EDITOR_WINDOW
-    if not frame then print('frame notfound') DevTools_Dump(private.TIMINGS_EDITOR_WINDOW) return end
+    if not frame then private.Debug('frame notfound') private.Debug(private.TIMINGS_EDITOR_WINDOW, "AT_TIMINGS_EDITOR_WINDOW") return end
     frame:Release()
     private.TIMINGS_EDITOR_WINDOW = nil
 end
 
 local createTimingsEditorFrame = function()
-    print("Creating Timings Editor Frame")
+    private.Debug("Creating Timings Editor Frame")
     private.TIMINGS_EDITOR_WINDOW = AceGUI:Create("AtTimingsEditorDataFrame")
-    DevTool:AddData(private.TIMINGS_EDITOR_WINDOW, "AT_TIMINGS_EDITOR_WINDOW")
+    private.Debug(private.TIMINGS_EDITOR_WINDOW, "AT_TIMINGS_EDITOR_WINDOW")
     return private.TIMINGS_EDITOR_WINDOW
 end
 
 private.getTimingsEditorFrame = function()
     if not private.TIMINGS_EDITOR_WINDOW then
-        print("Timings Editor Frame does not exist, creating new one")
+        private.Debug("Timings Editor Frame does not exist, creating new one")
         local frame = createTimingsEditorFrame()
         return frame
     end
-    print("Returning existing Timings Editor Frame")
+    private.Debug("Returning existing Timings Editor Frame")
     return private.TIMINGS_EDITOR_WINDOW
 end

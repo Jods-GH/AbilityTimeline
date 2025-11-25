@@ -24,6 +24,8 @@
 #Libs
 embeds.xml
 
+#util
+Util\Debug.lua
 # Locales
 Locales\enUS.lua
 Locales\deDE.lua

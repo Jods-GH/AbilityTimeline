@@ -14,7 +14,7 @@ function AbilityTimeline:OnInitialize()
     AbilityTimeline:RegisterEvent("ENCOUNTER_START")
     AbilityTimeline:RegisterEvent("PLAYER_ENTERING_WORLD")
     private.db = LibStub("AceDB-3.0"):New("AbilityTimeline", private.OptionDefaults, true) -- Generates Saved Variables with default Values (if they don't already exist)
-    DevTool:AddData(private, "AT_Options")
+    private.Debug(private, "AT_Options")
     local OptionTable = {
         type = "group",
         args = {
@@ -32,8 +32,7 @@ function AbilityTimeline:OnInitialize()
 end
 
 function AbilityTimeline:OnEnable()
-    --Debug
-    -- DevTool:AddData(RaiderIO.GetProfile("Lemikedh-ragnaros",1),"RioProfile")
+    -- Called when the addon is enabled
 end
 
 function AbilityTimeline:OnDisable()
@@ -45,7 +44,6 @@ function AbilityTimeline_AddonCompartmentFunction()
 end
 
 local function createTestBars(duration)
-    print("Creating test bar with duration: " .. duration .. " seconds")
     local spellId = 376864
     local iconId = 135127
 
@@ -62,11 +60,7 @@ local function createTestBars(duration)
 
 
     local eventId = C_EncounterTimeline.AddScriptEvent(eventinfo)
-    -- print("--")
-    --print(eventId)
-    --print(C_EncounterTimeline.AddEditModeEvents())
-    --print(C_EncounterTimeline.IsTimelineEnabled())
-    --print(C_EncounterTimeline.IsTimelineSupported())
+    private.Debug("Creating test bar with duration: " .. duration .. " seconds")
 end
 
 
@@ -83,16 +77,16 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
             createTestBars(duration)
         end
     elseif string.find(string.lower(msg), "rect") then
-        print(private.TIMELINE_FRAME.frame:GetBoundsRect())
+        private.Debug(private.TIMELINE_FRAME.frame:GetBoundsRect())
     elseif msg == "editor" then
         private.openTimingsEditor(1203, 1)
     elseif msg == "eventlist" then
-        DevTools_Dump(C_EncounterTimeline.GetEventList())
+       private.Debug(C_EncounterTimeline.GetEventList(), "EventList")
     elseif string.find(string.lower(msg), "pause (.-)") then
         local eventID = tonumber(string.match(string.lower(msg), "pause (%d+)"))
         if eventID then
             C_EncounterTimeline.PauseScriptEvent(eventID)
-            DevTools_Dump(C_EncounterTimeline.GetEventInfo(eventID))
+            private.Debug(C_EncounterTimeline.GetEventInfo(eventID), "EventInfo")
         end
     elseif string.find(string.lower(msg), "resume (.-)") then
         local eventID = tonumber(string.match(string.lower(msg), "resume (%d+)"))
@@ -121,6 +115,6 @@ function AbilityTimeline:PLAYER_ENTERING_WORLD()
 end
 
 function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, difficultyID, groupSize, playerDifficultyID)
-    createTestBars(15)
-    print("Encounter started: " .. encounterName)
+    -- createTestBars(15)
+    private.Debug("Encounter started: " .. encounterName)
 end

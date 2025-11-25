@@ -37,7 +37,6 @@ local SetAbility = function(self, icon, text)
     self.frame.SpellName:SetText(text)
 	self.frame.SpellIcon.frame:Show()
     self.frame.SpellName.frame:Show()
-    print("SetAbility called with icon: " .. tostring(icon) .. " and text: " .. tostring(text))
 end
 
 local function Constructor()

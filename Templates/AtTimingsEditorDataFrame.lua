@@ -25,14 +25,14 @@ local function OnAcquire(self)
 
     self.frame:Show()
     self.container.frame:Show()
-    DevTool:AddData(self, "AT_TIMINGS_EDITOR_DATA_FRAME_ONACQUIRE")
+    private.Debug(self, "AT_TIMINGS_EDITOR_DATA_FRAME_ONACQUIRE")
 end
 
 ---@param self AtTimingsEditorDataFrame
 local function OnRelease(self)
     self.container:Release()
     for k, v in pairs(self.items) do
-        DevTools_Dump(v)
+        private.Debug(v)
         v.spellContainer:Release()
     end
     self.items = {}

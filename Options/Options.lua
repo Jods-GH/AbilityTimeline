@@ -5,16 +5,15 @@ private.options = {
   name = private.getLocalisation("addonOptions"),
   type = "group",
   args = {
-    sortAscending = {
-      name = private.getLocalisation("sortAscending"),
-      desc = private.getLocalisation("sortAscendingDescription"),
+    debugMode = {
+      name = private.getLocalisation("debugMode"),
+      desc = private.getLocalisation("debugModeDescription"),
       order = 30,
       width = "full",
       type = "toggle",
-      set = function(info, val) private.db.profile.sortAscending = val end, --Sets value of SavedVariables depending on toggles
+      set = function(info, val) private.db.profile.debugMode = val end, --Sets value of SavedVariables depending on toggles
       get = function(info)
-        return private.db.profile
-        .sortAscending                                                 --Sets value of toggles depending on SavedVariables
+        return private.db.profile.debugMode                                                 --Sets value of toggles depending on SavedVariables
       end,
     },
     encounterOptions = {

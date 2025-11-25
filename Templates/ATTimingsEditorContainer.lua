@@ -38,7 +38,7 @@ local function Constructor()
 
 	local frame = CreateFrame("Frame", Type .. count, UIParent, "DefaultPanelTemplate")
 	frame:SetSize(variables.FrameWidth, variables.FrameHeight)
-	DevTool:AddData(frame, "AT_TIMINGS_EDITOR_FRAME_BASE")
+	private.Debug(frame, "AT_TIMINGS_EDITOR_FRAME_BASE")
     frame:SetPoint("CENTER", UIParent, "CENTER")
     frame:EnableMouse(true)
     frame:SetMovable(true)
