@@ -8,12 +8,13 @@ local variables = {
 		width = 44,
 		height = 44,
 	},
-	IconMargin = 5
+	IconMargin = 5,
+	IconZoom = 0.7,
 }
 
 ---@param self AtAbilitySpellIcon
 local function OnAcquire(self)
-	DevTool:AddData(self.frame, "AT_ABILITY_SPELL_ICON_FRAME_ACQUIRED")
+	private.Debug(self.frame, "AT_ABILITY_SPELL_ICON_FRAME_ACQUIRED")
 end
 
 ---@param self AtAbilitySpellIcon
@@ -104,14 +105,13 @@ local PlayHighlight = function (self)
 end
 
 local SetEventInfo = function(self, eventInfo)
-	print("Setting event info for AtAbilitySpellIcon for event " .. eventInfo.id)
 	self.frame.eventInfo = eventInfo
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
-	 if not self.frame.SpellIcon.zoomApplied then
-		private.SetZoom(self.frame.SpellIcon, private.ICON_ZOOM)
+	if not self.frame.SpellIcon.zoomApplied then
+		private.SetZoom(self.frame.SpellIcon, variables.IconZoom)
 		self.frame.SpellIcon.zoomApplied = true
-	 end
-    self.frame.SpellName:SetFormattedText("%s in %s", eventInfo.spellName, eventInfo.id)
+	end
+    self.frame.SpellName:SetText(eventInfo.spellName)
 	self.frame.Cooldown:SetCooldown(GetTime(), eventInfo.duration)
 
 	-- OnUpdate we want to update the position of the icon based on elapsed time
@@ -138,7 +138,7 @@ local SetEventInfo = function(self, eventInfo)
 			end
 			self.frameIsMoving = isMoving
 		end
-		self:SetPoint("CENTER", private.TIMELINE_FRAME, "BOTTOM", xPos, yPos)
+		self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "BOTTOM", xPos, yPos)
 		for tick, time in ipairs(private.TIMELINE_TICKS) do
 			local inRange = (eventInfo.duration - timeElapsed - time)
 			if inRange < 0.01 and inRange > -0.01 then -- this is not gonna work if fps are to low
@@ -167,7 +167,6 @@ local function Constructor()
     local frame = CreateFrame("Frame", Type .. count, UIParent)
 	frame:Show()
     frame:SetSize(variables.IconSize.width, variables.IconSize.height)
-	print("Creating AtAbilitySpellIcon frame with size ".. frame:GetWidth() .. "x" .. frame:GetHeight())
 	
 	-- spell icon
     frame.SpellIcon = frame:CreateTexture(nil, "BACKGROUND")
@@ -175,7 +174,9 @@ local function Constructor()
     frame.SpellIcon:SetPoint("CENTER", frame, "CENTER")
 	
 	-- border
-	DevTool:AddData(frame, Type .. count)
+	private.Debug(frame, Type .. count)
+
+	--TODO this is supposed to be showing stuff like debufftype or importance
 	frame.Border = CreateFrame("Frame", nil, frame, "BackdropTemplate")
 	local borderColor = {1, 0, 0}
 	local borderWidth = 2

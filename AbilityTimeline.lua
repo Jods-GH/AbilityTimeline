@@ -27,7 +27,6 @@ BIGICON_THRESHHOLD_TIME    = 5
 private.createTimelineIcon = function(eventInfo)
    local frame = AceGUI:Create("AtAbilitySpellIcon")
    frame:SetEventInfo(eventInfo)
-   print("Created timeline icon for event " .. eventInfo.id)
    activeFrames[eventInfo.id] = frame
    frame.frame:Show()
 
@@ -53,7 +52,7 @@ private.createTimelineIcon = function(eventInfo)
    --    end)
    -- end)
 
-   DevTool:AddData(frame, "AT_TIMELINE_ICON")
+   private.Debug(frame, "AT_TIMELINE_ICON")
    -- frame.border:SetVertexColor(DebuffTypeColor[eventInfo.dispelType])
 end
 
@@ -74,7 +73,6 @@ end
 
 private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED = function(self, eventID)
    local newState = C_EncounterTimeline.GetEventState(eventID)
-   print("Event " .. eventID .. " changed state to " .. newState)
    if newState == private.ENCOUNTER_STATES.Finished then
       removeFrame(eventID, 'PlayFinishAnimation')
    elseif newState == private.ENCOUNTER_STATES.Canceled then
@@ -116,27 +114,10 @@ private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED = function(self, eventID)
    end
 end
 
-private.BIG_ICONS = {}
-
 private.HIGHLIGHT_EVENTS = {
    BigIcons = {},
    HighlightTexts = {}
 }
-
-private.evaluateIconPositions = function()
-   local visibleIcons = 0
-   table.sort(private.BIG_ICONS, function(a, b) return a.eventInfo.duration < b.eventInfo.duration end)
-   for i, frame in ipairs(private.BIG_ICONS) do
-      if frame and frame:IsShown() then
-         local xOffset = (private.BIG_ICON_SIZE + private.BIG_ICON_MARGIN) * (visibleIcons)
-         if frame.xOffset ~= xOffset then
-            frame.xOffset = xOffset
-            frame:SetPoint("LEFT", private.BIGICON_FRAME.frame, "LEFT", xOffset, 0)
-         end
-         visibleIcons = visibleIcons + 1
-      end
-   end
-end
 
 local function zoomAroundCenter(u, c, zoom)
    return c + (u - c) * zoom
@@ -191,7 +172,6 @@ end
 private.ENCOUNTER_TIMELINE_EVENT_REMOVED = function()
    if C_EncounterTimeline.HasAnyEvents() then
    else
-      print("No more events in the timeline, hiding frame.")
       private.handleFrame(false)
    end
 end
@@ -206,7 +186,7 @@ private.createTimelineFrame = function()
 
    private.TEXT_HIGHLIGHT_FRAME = AceGUI:Create("AtTextHighlightFrame")
 
-   DevTool:AddData(private.TEXT_HIGHLIGHT_FRAME, "AT_TEXT_HIGHLIGHT_FRAME")
+   private.Debug(private.TEXT_HIGHLIGHT_FRAME, "AT_TEXT_HIGHLIGHT_FRAME")
 end
 
 private.handleFrame = function(show)

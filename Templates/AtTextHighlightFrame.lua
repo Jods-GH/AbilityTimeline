@@ -8,7 +8,8 @@ local variables = {
     height = 100,
 }
 
-local defaultPosition = {
+private.TextHighlight = {}
+private.TextHighlight.defaultPosition = {
     point = 'CENTER',
     x = 0,
     y = 0,
@@ -39,12 +40,19 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
         private.db.profile.text_highlight_frame = {}
     end
     if not private.db.profile.text_highlight_frame[layoutName] then
-        private.db.profile.text_highlight_frame[layoutName] = CopyTable(defaultPosition)
+        private.db.profile.text_highlight_frame[layoutName] = CopyTable(private.TextHighlight.defaultPosition)
+    end
+    if not private.db.profile.text_highlight_enabled then
+        private.db.profile.text_highlight_enabled = {}
+    end
+    if not private.db.profile.text_highlight_enabled[layoutName] then
+        private.db.profile.text_highlight_enabled[layoutName] = true
     end
 
     private.TEXT_HIGHLIGHT_FRAME:ClearAllPoints()
     private.TEXT_HIGHLIGHT_FRAME:SetPoint(private.db.profile.text_highlight_frame[layoutName].point,
         private.db.profile.text_highlight_frame[layoutName].x, private.db.profile.text_highlight_frame[layoutName].y)
+
 end)
 
 local function Constructor()
@@ -55,22 +63,19 @@ local function Constructor()
     frame:SetHeight(variables.height)
     frame:Show()
 
-    LibEditMode:AddFrame(frame, onPositionChanged, defaultPosition, "Ability Timeline Text Highlight")
+    LibEditMode:AddFrame(frame, onPositionChanged, private.TextHighlight.defaultPosition, "Ability Timeline Text Highlight")
     
     LibEditMode:AddFrameSettings(frame, {
         {
-            name = 'Y Offset',
-            kind = LibEditMode.SettingType.Slider,
-            default = 1,
+            name = 'Enabled',
+            kind = LibEditMode.SettingType.Checkbox,
+            default = true,
             get = function(layoutName)
-                return 1
+                return private.db.profile.text_highlight_enabled[layoutName]
             end,
             set = function(layoutName, value)
-                print(1)
+                private.db.profile.text_highlight_enabled[layoutName] = value
             end,
-            minValue = 1,
-            maxValue = 1,
-            valueStep = 1,
         }
     })
 

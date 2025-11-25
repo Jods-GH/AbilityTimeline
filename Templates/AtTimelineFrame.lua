@@ -5,8 +5,8 @@ local Type = "AtTimelineFrame"
 local Version = 1
 local variables = {
 }
-
-local defaultPosition = {
+private.TimelineFrame = {}
+private.TimelineFrame.defaultPosition = {
     point = 'CENTER',
     x = 0,
     y = 0,
@@ -30,6 +30,20 @@ local function onPositionChanged(frame, layoutName, point, x, y)
         private.db.profile.timeline_frame[layoutName].x, private.db.profile.timeline_frame[layoutName].y)
 end
 
+local function HandleTickVisibility(layoutName)
+    if private.db.profile.timeline_frame_ticks_enabled[layoutName] then
+        for _, tick in ipairs(private.TIMELINE_FRAME.frame.Ticks) do
+            tick:Show()
+            tick.tickText:Show()
+        end
+    else
+        for _, tick in ipairs(private.TIMELINE_FRAME.frame.Ticks) do
+            tick:Hide()
+            tick.tickText:Hide()
+        end
+    end
+end
+
 LibEditMode:RegisterCallback('layout', function(layoutName)
     -- this will be called every time the Edit Mode layout is changed (which also happens at login),
     -- use it to load the saved button position from savedvariables and position it
@@ -37,44 +51,22 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
         private.db.profile.timeline_frame = {}
     end
     if not private.db.profile.timeline_frame[layoutName] then
-        private.db.profile.timeline_frame[layoutName] = CopyTable(defaultPosition)
+        private.db.profile.timeline_frame[layoutName] = CopyTable(private.TimelineFrame.defaultPosition)
+    end
+    if not private.db.profile.timeline_frame_ticks_enabled then
+        private.db.profile.timeline_frame_ticks_enabled = {}
+    end
+    if not private.db.profile.timeline_frame_ticks_enabled[layoutName] then
+        private.db.profile.timeline_frame_ticks_enabled[layoutName] = true
     end
 
     private.TIMELINE_FRAME:ClearAllPoints()
     private.TIMELINE_FRAME:SetPoint(private.db.profile.timeline_frame[layoutName].point,
         private.db.profile.timeline_frame[layoutName].x, private.db.profile.timeline_frame[layoutName].y)
+    private.ACTIVE_EDITMODE_LAYOUT = layoutName
+    HandleTickVisibility(layoutName)
 end)
 
--- -- LibEditMode:RegisterCallback('rename', function(oldLayoutName, newLayoutName)
--- -- 	-- this will be called every time the Edit Mode layout is changed (which also happens at login),
--- -- 	-- use it to load the saved button position from savedvariables and position it
--- -- 	if not  private.db.profile.timeline_frame then
--- -- 		private.db.profile.timeline_frame = {}
--- -- 	end
--- --    local layout = private.db.profile.timeline_frame[oldLayoutName]
--- -- 	if not private.db.profile.timeline_frame[oldLayoutName] then
--- -- 		layout = CopyTable(defaultPosition)
--- -- 	end
--- --    private.db.profile.timeline_frame[newLayoutName] = layout
--- -- 	private.TIMELINE_FRAME:ClearAllPoints()
--- -- 	private.TIMELINE_FRAME:SetPoint(private.db.profile.timeline_frame[newLayoutName].point, private.db.profile.timeline_frame[newLayoutName].x, private.db.profile.timeline_frame[newLayoutName].y)
--- -- end)
-
--- LibEditMode:RegisterCallback('create', function(layoutName)
--- 	if not  private.db.profile.timeline_frame then
--- 		private.db.profile.timeline_frame = {}
--- 	end
-
---    private.db.profile.timeline_frame[layoutName] = CopyTable(defaultPosition)
--- end)
-
--- LibEditMode:RegisterCallback('delete', function(layoutName)
--- 	if not private.db.profile.timeline_frame then
--- 		return
--- 	end
-
---    private.db.profile.timeline_frame[layoutName] = {}
--- end)
 
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
@@ -82,22 +74,20 @@ local function Constructor()
     frame:SetWidth(60)
     frame:SetHeight(500)
 
-    LibEditMode:AddFrame(frame, onPositionChanged, defaultPosition, "Ability Timeline")
+    LibEditMode:AddFrame(frame, onPositionChanged, private.TimelineFrame.defaultPosition, "Ability Timeline")
     
     LibEditMode:AddFrameSettings(frame, {
         {
-            name = 'Y Offset',
-            kind = LibEditMode.SettingType.Slider,
-            default = 1,
+            name = 'Enable Ticks',
+            kind = LibEditMode.SettingType.Checkbox,
+            default = true,
             get = function(layoutName)
-                return 1
+                return private.db.profile.timeline_frame_ticks_enabled[layoutName]
             end,
             set = function(layoutName, value)
-                print(1)
+                private.db.profile.timeline_frame_ticks_enabled[layoutName] = value
+                HandleTickVisibility(layoutName)
             end,
-            minValue = 1,
-            maxValue = 1,
-            valueStep = 1,
         }
     })
 
@@ -113,26 +103,22 @@ local function Constructor()
     frame.Ticks = {}
 
 
-    local moveHeight = frame:GetHeight()
-    local left, bottom, width, height = frame:GetBoundsRect()
+    local moveHeight = frame:GetHeight()  
     for i, tick in ipairs(private.TIMELINE_TICKS) do
         local tickLine = frame:CreateTexture(nil, "ARTWORK")
         local tickPosition = (tick / private.AT_THRESHHOLD_TIME) * moveHeight
-        print("Creating tick at position " ..
-        (tick / private.AT_THRESHHOLD_TIME) .. " for position" .. tickPosition .. " for tick " .. tick)
         tickLine:SetColorTexture(1, 1, 1, 1)
         tickLine:SetHeight(1)
         tickLine:SetPoint("LEFT", frame, "BOTTOMLEFT", 0, tickPosition)
         tickLine:SetPoint("RIGHT", frame, "BOTTOMRIGHT", 0, tickPosition)
-        local tickText = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-        tickText:SetPoint("LEFT", tickLine, "RIGHT", 5, 0)
-        tickText:SetText(tick .. "s")
-        tickLine.tickText = tickText
+        tickLine.tickText =  frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
+        tickLine.tickText:SetPoint("LEFT", tickLine, "RIGHT", 5, 0)
+        tickLine.tickText:SetText(tick .. "s")
         frame.Ticks[i] = tickLine
+        tickLine:Hide()
     end
-
     frame:Hide()
-    DevTool:AddData(frame, "AT_TIMELINE_FRAME")
+    private.Debug(frame, "AT_TIMELINE_FRAME")
 
     ---@class AtTimelineFrame : AceGUIWidget
     local widget = {

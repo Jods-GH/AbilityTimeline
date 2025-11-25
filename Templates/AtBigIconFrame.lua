@@ -11,8 +11,8 @@ local variables = {
     width = 400,
     height =100,
 }
-
-local defaultPosition = {
+private.BigIcon = {}
+private.BigIcon.defaultPosition = {
     point = 'CENTER',
     x = 0,
     y = 0,
@@ -43,7 +43,13 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
         private.db.profile.bigicon_frame = {}
     end
     if not private.db.profile.bigicon_frame[layoutName] then
-        private.db.profile.bigicon_frame[layoutName] = CopyTable(defaultPosition)
+        private.db.profile.bigicon_frame[layoutName] = CopyTable(private.BigIcon.defaultPosition)
+    end
+     if not private.db.profile.bigicon_enabled then
+        private.db.profile.bigicon_enabled = {}
+    end
+    if not private.db.profile.bigicon_enabled[layoutName] then
+        private.db.profile.bigicon_enabled[layoutName] = true
     end
 
     private.BIGICON_FRAME:ClearAllPoints()
@@ -57,24 +63,21 @@ local function Constructor()
     frame:SetWidth(variables.width)
     frame:SetHeight(variables.height)
     frame:Show()
-    DevTool:AddData(frame, "AT_BIGICON_FRAME_BASE")
+    private.Debug(frame, "AT_BIGICON_FRAME_BASE")
 
-    LibEditMode:AddFrame(frame, onPositionChanged, defaultPosition, "Ability Timeline Big Icon")
+    LibEditMode:AddFrame(frame, onPositionChanged, private.BigIcon.defaultPosition, "Ability Timeline Big Icon")
     
     LibEditMode:AddFrameSettings(frame, {
         {
-            name = 'Y Offset',
-            kind = LibEditMode.SettingType.Slider,
-            default = 1,
+            name = 'Enabled',
+            kind = LibEditMode.SettingType.Checkbox,
+            default = true,
             get = function(layoutName)
-                return 1
+                return private.db.profile.bigicon_enabled[layoutName]
             end,
             set = function(layoutName, value)
-                print(1)
+                private.db.profile.bigicon_enabled[layoutName] = value
             end,
-            minValue = 1,
-            maxValue = 1,
-            valueStep = 1,
         }
     })
 

@@ -26,6 +26,7 @@ embeds.xml
 
 #util
 Util\Debug.lua
+Util\EditMode.lua
 # Locales
 Locales\enUS.lua
 Locales\deDE.lua
@@ -50,13 +51,15 @@ Templates\AtAbilitySpellIcon.lua
 Templates\AtTimelineFrame.lua
 Templates\AtBigIconFrame.lua
 Templates\AtTextHighlightFrame.lua
+Templates\AtBigIcon.lua
+Templates\AtTextHighlight.lua
 
 #data
 Data\encounters.lua
 
 #plugins
-plugins\TextHighlight.lua
-plugins\BigIcon.lua
+Plugins\TextHighlight.lua
+Plugins\BigIcon.lua
 
 # Core
 Options\Options.lua
