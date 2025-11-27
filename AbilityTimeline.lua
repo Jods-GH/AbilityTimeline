@@ -51,7 +51,7 @@ private.createTimelineIcon = function(eventInfo)
    --       print("Icon removed from timeline.")
    --    end)
    -- end)
-
+   --C_ChatInfo.SendChatMessage(eventInfo.spellName , 'VOICE_TEXT') -- for some reason this can be send here but not after the duration is finished?
    private.Debug(frame, "AT_TIMELINE_ICON")
    -- frame.border:SetVertexColor(DebuffTypeColor[eventInfo.dispelType])
 end
@@ -161,12 +161,16 @@ end
 
 USE_BIGICONS = true
 USE_HIGHLIGHTTEXT = true
+USE_AUDIO_ALERTS = true
 private.TRIGGER_HIGHLIGHT = function(eventInfo)
    if USE_BIGICONS and not private.HIGHLIGHT_EVENTS.BigIcons[eventInfo.id] then
       private.createBigIcon(eventInfo)
    end
    if USE_HIGHLIGHTTEXT and not private.HIGHLIGHT_EVENTS.HighlightTexts[eventInfo.id] then
       private.createTextHighlight(eventInfo)
+   end
+   if USE_AUDIO_ALERTS then
+      private.playAudioAlert(eventInfo)
    end
 end
 private.ENCOUNTER_TIMELINE_EVENT_REMOVED = function()

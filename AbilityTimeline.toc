@@ -60,6 +60,7 @@ Data\encounters.lua
 #plugins
 Plugins\TextHighlight.lua
 Plugins\BigIcon.lua
+Plugins\SoundAlert.lua
 
 # Core
 Options\Options.lua
