@@ -16,6 +16,17 @@ private.options = {
         return private.db.profile.debugMode                                                 --Sets value of toggles depending on SavedVariables
       end,
     },
+    useAudioCountdowns = {
+      name = private.getLocalisation("useAudioCountdowns"),
+      desc = private.getLocalisation("useAudioCountdownsDescription"),
+      order = 40,
+      width = "full",
+      type = "toggle",
+      set = function(info, val) private.db.profile.useAudioCountdowns = val end, --Sets value of SavedVariables depending on toggles
+      get = function(info)
+        return private.db.profile.useAudioCountdowns  --Sets value of toggles depending on SavedVariables
+      end,
+    },
     encounterOptions = {
       name = private.getLocalisation("encounterOptions"),
       type = "group",

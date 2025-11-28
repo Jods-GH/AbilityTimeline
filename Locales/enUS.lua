@@ -14,5 +14,7 @@ if L then
     L['TimingsEditorTitle'] = "Timings Editor for: "
     L['debugMode'] = "Debug Mode"
     L['debugModeDescription'] = "Enables debug mode, which outputs additional information to the chat window."
+    L['useAudioCountdowns'] = "Use Audio Countdowns"
+    L['useAudioCountdownsDescription'] = "Enables audio countdowns of the last 5 seconds for upcoming events."
     private.localisation = L
 end

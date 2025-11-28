@@ -66,7 +66,6 @@ local function Constructor()
     private.Debug(frame, "AT_BIGICON_FRAME_BASE")
 
     LibEditMode:AddFrame(frame, onPositionChanged, private.BigIcon.defaultPosition, "Ability Timeline Big Icon")
-    
     LibEditMode:AddFrameSettings(frame, {
         {
             name = 'Enabled',

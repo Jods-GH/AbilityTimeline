@@ -159,17 +159,14 @@ private.SetZoom = function(icon, zoom)
    icon:SetTexCoord(nULx, nULy, nLLx, nLLy, nURx, nURy, nLRx, nLRy)
 end
 
-USE_BIGICONS = true
-USE_HIGHLIGHTTEXT = true
-USE_AUDIO_ALERTS = true
 private.TRIGGER_HIGHLIGHT = function(eventInfo)
-   if USE_BIGICONS and not private.HIGHLIGHT_EVENTS.BigIcons[eventInfo.id] then
+   if private.db.profile.bigicon_enabled[private.ACTIVE_EDITMODE_LAYOUT] and not private.HIGHLIGHT_EVENTS.BigIcons[eventInfo.id] then
       private.createBigIcon(eventInfo)
    end
-   if USE_HIGHLIGHTTEXT and not private.HIGHLIGHT_EVENTS.HighlightTexts[eventInfo.id] then
+   if private.db.profile.text_highlight_enabled[private.ACTIVE_EDITMODE_LAYOUT] and not private.HIGHLIGHT_EVENTS.HighlightTexts[eventInfo.id] then
       private.createTextHighlight(eventInfo)
    end
-   if USE_AUDIO_ALERTS then
+   if private.db.profile.useAudioCountdowns then
       private.playAudioAlert(eventInfo)
    end
 end
