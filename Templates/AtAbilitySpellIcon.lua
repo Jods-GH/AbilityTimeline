@@ -135,7 +135,6 @@ local PlayHighlight         = function(self)
 		CustomGlow.ProcGlow_Stop(self)
 	end)
 end
-private.PAUSED_EVENTS       = {}
 local SetEventInfo          = function(self, eventInfo)
 	self.frame.eventInfo = eventInfo
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
