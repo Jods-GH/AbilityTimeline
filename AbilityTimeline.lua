@@ -61,9 +61,11 @@ private.ENCOUNTER_STATES           = {
    Paused = 1,
    Finished = 2,
    Canceled = 3,
+   Blocked = 4,
 }
 
 local function removeFrame(eventID, animation)
+   private.PAUSED_EVENTS[eventID] = nil
    local frame = activeFrames[eventID]
    if frame then
       frame.frame:Hide()
@@ -78,19 +80,7 @@ private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED = function(self, eventID)
    elseif newState == private.ENCOUNTER_STATES.Canceled then
       removeFrame(eventID, 'PlayCancelAnimation')
    elseif newState == private.ENCOUNTER_STATES.Paused then
-      local frame = activeFrames[eventID]
-      if frame then
-         local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
-         frame.Cooldown:Pause()
-         frame:SetPoint("LEFT", private.TIMELINE_FRAME.frame, "RIGHT", 10, 0)
-         if frame.SpellName then
-            frame.SpellName:Hide()
-            frame.SpellName = nil
-         end
-         frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-         frame.SpellName:SetPoint("LEFT", frame, "RIGHT", 10, 0)
-         frame.SpellName:SetText(eventInfo.spellName)
-      end
+      private.PAUSED_EVENTS[eventID] = true
    elseif newState == private.ENCOUNTER_STATES.Active then
       local frame = activeFrames[eventID]
       if frame then
