@@ -8,7 +8,7 @@
 ## X-Wago-ID: qGYMWpGg
 ## OptionalDeps: Ace3, DevTool
 ## AddonCompartmentFunc: AbilityTimeline_AddonCompartmentFunction
-## IconTexture: Interface\AddOns\AbilityTimeline\Files\AbilityTimeline.tga
+## IconTexture: Interface\AddOns\AbilityTimeline\Media\Logo.tga
 ## Category-enUS: Dungeons & Raids
 ## Category-deDE: Dungeons & Schlachtzüge
 ## Category-esES: Mazmorras y bandas
