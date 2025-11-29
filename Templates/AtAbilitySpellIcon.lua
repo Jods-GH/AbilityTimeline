@@ -142,7 +142,7 @@ local SetEventInfo          = function(self, eventInfo)
 		private.SetZoom(self.frame.SpellIcon, variables.IconZoom)
 		self.frame.SpellIcon.zoomApplied = true
 	end
-	self.frame.SpellName:SetText(eventInfo.id)
+	self.frame.SpellName:SetText(eventInfo.spellName)
 	self.frame.Cooldown:SetCooldown(GetTime(), eventInfo.duration)
 
 	-- OnUpdate we want to update the position of the icon based on elapsed time
