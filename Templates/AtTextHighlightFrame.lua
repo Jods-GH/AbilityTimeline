@@ -48,10 +48,11 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.profile.text_highlight_enabled[layoutName] then
         private.db.profile.text_highlight_enabled[layoutName] = true
     end
-
-    private.TEXT_HIGHLIGHT_FRAME:ClearAllPoints()
-    private.TEXT_HIGHLIGHT_FRAME:SetPoint(private.db.profile.text_highlight_frame[layoutName].point,
-        private.db.profile.text_highlight_frame[layoutName].x, private.db.profile.text_highlight_frame[layoutName].y)
+    if private.TEXT_HIGHLIGHT_FRAME then
+        private.TEXT_HIGHLIGHT_FRAME:ClearAllPoints()
+        private.TEXT_HIGHLIGHT_FRAME:SetPoint(private.db.profile.text_highlight_frame[layoutName].point,
+            private.db.profile.text_highlight_frame[layoutName].x, private.db.profile.text_highlight_frame[layoutName].y)
+    end
 
 end)
 

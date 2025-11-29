@@ -51,10 +51,11 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.profile.bigicon_enabled[layoutName] then
         private.db.profile.bigicon_enabled[layoutName] = true
     end
-
-    private.BIGICON_FRAME:ClearAllPoints()
-    private.BIGICON_FRAME:SetPoint(private.db.profile.bigicon_frame[layoutName].point,
-        private.db.profile.bigicon_frame[layoutName].x, private.db.profile.bigicon_frame[layoutName].y)
+    if private.BIGICON_FRAME then
+        private.BIGICON_FRAME:ClearAllPoints()
+        private.BIGICON_FRAME:SetPoint(private.db.profile.bigicon_frame[layoutName].point,
+            private.db.profile.bigicon_frame[layoutName].x, private.db.profile.bigicon_frame[layoutName].y)
+    end
 end)
 
 local function Constructor()

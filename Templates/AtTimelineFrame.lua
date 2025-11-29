@@ -59,12 +59,13 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.profile.timeline_frame_ticks_enabled[layoutName] then
         private.db.profile.timeline_frame_ticks_enabled[layoutName] = true
     end
-
-    private.TIMELINE_FRAME:ClearAllPoints()
-    private.TIMELINE_FRAME:SetPoint(private.db.profile.timeline_frame[layoutName].point,
+    if private.TIMELINE_FRAME then
+        private.TIMELINE_FRAME:ClearAllPoints()
+        private.TIMELINE_FRAME:SetPoint(private.db.profile.timeline_frame[layoutName].point,
         private.db.profile.timeline_frame[layoutName].x, private.db.profile.timeline_frame[layoutName].y)
+                HandleTickVisibility(layoutName)
+    end
     private.ACTIVE_EDITMODE_LAYOUT = layoutName
-    HandleTickVisibility(layoutName)
 end)
 
 
