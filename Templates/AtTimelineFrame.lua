@@ -4,6 +4,8 @@ local LibEditMode = LibStub("LibEditMode")
 local Type = "AtTimelineFrame"
 local Version = 1
 local variables = {
+    width = 50,
+    height =500
 }
 private.TimelineFrame = {}
 private.TimelineFrame.defaultPosition = {
@@ -31,15 +33,13 @@ local function onPositionChanged(frame, layoutName, point, x, y)
 end
 
 local function HandleTickVisibility(layoutName)
-    if private.db.profile.timeline_frame_ticks_enabled[layoutName] then
+    if private.db.profile.timeline_frame[layoutName].ticks_enabled then
         for _, tick in ipairs(private.TIMELINE_FRAME.frame.Ticks) do
-            tick:Show()
-            tick.tickText:Show()
+            tick.frame:Show()
         end
     else
         for _, tick in ipairs(private.TIMELINE_FRAME.frame.Ticks) do
-            tick:Hide()
-            tick.tickText:Hide()
+            tick.frame:Hide()
         end
     end
 end
@@ -53,27 +53,45 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.profile.timeline_frame[layoutName] then
         private.db.profile.timeline_frame[layoutName] = CopyTable(private.TimelineFrame.defaultPosition)
     end
-    if not private.db.profile.timeline_frame_ticks_enabled then
-        private.db.profile.timeline_frame_ticks_enabled = {}
+    if not private.db.profile.timeline_frame[layoutName].ticks_enabled then
+        private.db.profile.timeline_frame[layoutName].ticks_enabled = true
     end
-    if not private.db.profile.timeline_frame_ticks_enabled[layoutName] then
-        private.db.profile.timeline_frame_ticks_enabled[layoutName] = true
+    if not private.db.profile.timeline_frame[layoutName].width then
+        private.db.profile.timeline_frame[layoutName].width = variables.width
+    end
+    if not private.db.profile.timeline_frame[layoutName].height then
+        private.db.profile.timeline_frame[layoutName].height = variables.height
     end
     if private.TIMELINE_FRAME then
         private.TIMELINE_FRAME:ClearAllPoints()
         private.TIMELINE_FRAME:SetPoint(private.db.profile.timeline_frame[layoutName].point,
         private.db.profile.timeline_frame[layoutName].x, private.db.profile.timeline_frame[layoutName].y)
                 HandleTickVisibility(layoutName)
+        private.TIMELINE_FRAME.frame:SetWidth(private.db.profile.timeline_frame[layoutName].width)
+        private.TIMELINE_FRAME.frame:SetHeight(private.db.profile.timeline_frame[layoutName].height)
     end
     private.ACTIVE_EDITMODE_LAYOUT = layoutName
 end)
+
+local function HandleTicks(self)
+    for i = 1, #self.Ticks do
+        self.Ticks[i].frame:Hide()
+        self.Ticks[i]:Release()
+    end
+    for i, tick in ipairs(private.TIMELINE_TICKS) do
+        local widget = AceGUI:Create("AtTimelineTicks")
+        self.Ticks[i] = widget
+        widget:SetTick(self, tick)
+        widget.frame:Show()  
+    end
+end
 
 
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
     local frame = CreateFrame("Frame", "AbilityTimelineFrame", UIParent, "BackdropTemplate")
-    frame:SetWidth(60)
-    frame:SetHeight(500)
+    frame:SetWidth(variables.width)
+    frame:SetHeight(variables.height)
 
     LibEditMode:AddFrame(frame, onPositionChanged, private.TimelineFrame.defaultPosition, "Ability Timeline")
     
@@ -83,11 +101,33 @@ local function Constructor()
             kind = LibEditMode.SettingType.Checkbox,
             default = true,
             get = function(layoutName)
-                return private.db.profile.timeline_frame_ticks_enabled[layoutName]
+                return private.db.profile.timeline_frame[layoutName].ticks_enabled
             end,
             set = function(layoutName, value)
-                private.db.profile.timeline_frame_ticks_enabled[layoutName] = value
+                private.db.profile.timeline_frame[layoutName].ticks_enabled = value
                 HandleTickVisibility(layoutName)
+            end,
+        },
+        {
+            name = 'Width',
+            kind = LibEditMode.SettingType.Slider,
+            default = variables.width,
+            get = function(layoutName)
+                return private.db.profile.timeline_frame[layoutName].width
+            end,
+            set = function(layoutName, value)
+                private.db.profile.timeline_frame[layoutName].width = value
+            end,
+        },
+        {
+            name = 'Height',
+            kind = LibEditMode.SettingType.Slider,
+            default = variables.height,
+            get = function(layoutName)
+                return private.db.profile.timeline_frame[layoutName].height
+            end,
+            set = function(layoutName, value)
+                private.db.profile.timeline_frame[layoutName].height = value
             end,
         }
     })
@@ -98,28 +138,13 @@ local function Constructor()
         tile = true,
         tileSize = 32,
         edgeSize = 32,
-        insets = { left = 11, right = 12, top = 12, bottom = 11 }
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
     })
     frame:SetBackdropColor(0, 0, 0, 1)
     frame.Ticks = {}
-
-
-    local moveHeight = frame:GetHeight()  
-    for i, tick in ipairs(private.TIMELINE_TICKS) do
-        local tickLine = frame:CreateTexture(nil, "ARTWORK")
-        local tickPosition = (tick / private.AT_THRESHHOLD_TIME) * moveHeight
-        tickLine:SetColorTexture(1, 1, 1, 1)
-        tickLine:SetHeight(1)
-        tickLine:SetPoint("LEFT", frame, "BOTTOMLEFT", 0, tickPosition)
-        tickLine:SetPoint("RIGHT", frame, "BOTTOMRIGHT", 0, tickPosition)
-        tickLine.tickText =  frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-        tickLine.tickText:SetPoint("LEFT", tickLine, "RIGHT", 5, 0)
-        tickLine.tickText:SetText(tick .. "s")
-        frame.Ticks[i] = tickLine
-        tickLine:Hide()
-    end
-    frame:Hide()
     private.Debug(frame, "AT_TIMELINE_FRAME")
+    HandleTicks(frame)
+    frame:Hide()
 
     ---@class AtTimelineFrame : AceGUIWidget
     local widget = {
@@ -128,7 +153,10 @@ local function Constructor()
         type = Type,
         count = count,
         frame = frame,
-        moveHeight = moveHeight,
+        HandleTicks = HandleTicks,
+        GetHeight = function(self)
+            return self.frame:GetHeight()
+        end,
     }
 
     return AceGUI:RegisterAsWidget(widget)

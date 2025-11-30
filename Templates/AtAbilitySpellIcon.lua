@@ -166,8 +166,7 @@ local SetEventInfo          = function(self, eventInfo)
 			return
 		end
 
-		local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, private.TIMELINE_FRAME.moveHeight,
-		isStopped)
+		local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, private.TIMELINE_FRAME:GetHeight(), isStopped)
 		if self.frameIsMoving ~= isMoving then
 			if isMoving then
 				--self.TrailAnimation:Play()

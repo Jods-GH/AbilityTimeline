@@ -6,8 +6,6 @@ local Version = 1
 local variables = {
 	BackdropBorderColor = { 0.25, 0.25, 0.25, 0.9 },
 	BackdropColor = { 0, 0, 0, 0.9 },
-	FrameHeight = 50,
-	FrameWidth = 200,
 	Backdrop = {
 		bgFile = nil,
 		edgeFile = nil,
@@ -42,7 +40,7 @@ end
 local function Constructor()
 	local count = AceGUI:GetNextWidgetNum(Type)
     local frame = CreateFrame("Frame", Type .. count, UIParent, "BackdropTemplate")
-    frame:SetSize(variables.FrameWidth, variables.FrameHeight)
+    frame:SetSize(variables.IconSize.width, variables.IconSize.height)
 	
     frame.SpellIcon = AceGUI:Create("Icon")
 	frame.SpellIcon:SetImageSize(variables.IconSize.width, variables.IconSize.height)
