@@ -86,6 +86,14 @@ local function HandleTicks(self)
     end
 end
 
+local function HandleSizeChanges(self)
+    local layoutName = private.ACTIVE_EDITMODE_LAYOUT
+    local width = private.db.profile.timeline_frame[layoutName].width
+    local height = private.db.profile.timeline_frame[layoutName].height
+    self.frame:SetWidth(width)
+    self.frame:SetHeight(height)
+end
+
 
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
@@ -117,7 +125,11 @@ local function Constructor()
             end,
             set = function(layoutName, value)
                 private.db.profile.timeline_frame[layoutName].width = value
+                HandleSizeChanges(private.TIMELINE_FRAME)
             end,
+            minValue = 1,
+            maxValue = 200,
+            valueStep = 1,
         },
         {
             name = 'Height',
@@ -128,8 +140,38 @@ local function Constructor()
             end,
             set = function(layoutName, value)
                 private.db.profile.timeline_frame[layoutName].height = value
+                HandleSizeChanges(private.TIMELINE_FRAME)
             end,
-        }
+            minValue = 1,
+            maxValue = 1000,
+            valueStep = 1,
+        },
+        -- {
+        --     name = 'Style',
+        --     kind = LibEditMode.SettingType.Dropdown,
+        
+        --     get = function(layoutName)
+        --         return private.db.profile.timeline_frame[layoutName].style
+        --     end,
+        --     set = function(layoutName, value)
+        --         private.db.profile.timeline_frame[layoutName].style = value
+        --     end,
+        --     height = 500,
+        --     values = {
+        --         {
+        --             text = 'Default',
+        --             value = 'default',
+        --         },
+        --         {
+        --             text = 'Compact',
+        --             value = 'compact',
+        --         },
+        --         {
+        --             text = 'Expanded',
+        --             value = 'expanded',
+        --         },
+        --     },
+        -- }
     })
 
     frame:SetFrameStrata("BACKGROUND")
@@ -157,6 +199,7 @@ local function Constructor()
         GetHeight = function(self)
             return self.frame:GetHeight()
         end,
+        HandleSizeChanges = HandleSizeChanges,
     }
 
     return AceGUI:RegisterAsWidget(widget)
