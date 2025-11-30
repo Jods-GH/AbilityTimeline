@@ -105,7 +105,8 @@ local function Constructor()
     
     LibEditMode:AddFrameSettings(frame, {
         {
-            name = 'Enable Ticks',
+            name = private.getLocalisation("EnableTicks"),
+            desc = private.getLocalisation("EnableTicksDescription"),
             kind = LibEditMode.SettingType.Checkbox,
             default = true,
             get = function(layoutName)
@@ -117,7 +118,8 @@ local function Constructor()
             end,
         },
         {
-            name = 'Width',
+            name = private.getLocalisation("TimelineWidth"),
+            desc = private.getLocalisation("TimelineWidthDescription"),
             kind = LibEditMode.SettingType.Slider,
             default = variables.width,
             get = function(layoutName)
@@ -132,7 +134,8 @@ local function Constructor()
             valueStep = 1,
         },
         {
-            name = 'Height',
+            name = private.getLocalisation("TimelineHeight"),
+            desc = private.getLocalisation("TimelineHeightDescription"),
             kind = LibEditMode.SettingType.Slider,
             default = variables.height,
             get = function(layoutName)

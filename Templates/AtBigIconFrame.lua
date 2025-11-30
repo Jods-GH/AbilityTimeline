@@ -69,7 +69,8 @@ local function Constructor()
     LibEditMode:AddFrame(frame, onPositionChanged, private.BigIcon.defaultPosition, "Ability Timeline Big Icon")
     LibEditMode:AddFrameSettings(frame, {
         {
-            name = 'Enabled',
+            name = private.getLocalisation("EnableBigIcon"),
+            desc = private.getLocalisation("EnableBigIconDescription"),
             kind = LibEditMode.SettingType.Checkbox,
             default = true,
             get = function(layoutName)

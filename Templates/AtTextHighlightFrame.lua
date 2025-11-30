@@ -68,7 +68,8 @@ local function Constructor()
     
     LibEditMode:AddFrameSettings(frame, {
         {
-            name = 'Enabled',
+            name = private.getLocalisation("EnableTextHighlight"),
+            desc = private.getLocalisation("EnableTextHighlightDescription"),
             kind = LibEditMode.SettingType.Checkbox,
             default = true,
             get = function(layoutName)
