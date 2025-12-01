@@ -16,7 +16,7 @@ local function OnRelease(self)
     self.frame:SetScript("OnUpdate", nil)
     private.HIGHLIGHT_EVENTS.HighlightTexts[self.eventInfo.id] = nil
     for i, f in ipairs(private.HIGHLIGHT_TEXTS) do
-        if f == self.frame then
+        if f == self then
             table.remove(private.HIGHLIGHT_TEXTS, i)
             break
         end
