@@ -10,13 +10,13 @@ private.Debug = function(debugValue, tableName)
                 DevTool:AddData(debugValue, tableName or "DebugTable")
                 return
             else
-            private:Print("DEBUG (" .. tableName .. "):")
+            print("AbilityTimeline DEBUG (" .. tableName .. "):")
                 for k, v in pairs(debugValue) do
-                    private:Print("  " .. tostring(k) .. " = " .. tostring(v))
+                    print("  " .. tostring(k) .. " = " .. tostring(v))
                 end
             end
         else
-            private:Print("DEBUG: " .. tostring(debugValue))
+            print("AbilityTimeline DEBUG: " .. tostring(debugValue))
         end
     end
 end
