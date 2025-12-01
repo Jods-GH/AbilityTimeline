@@ -29,9 +29,10 @@ Continuation of the ever-popular [RaidAbilityTimeline Weakaura](https://wago.io/
 
 [Discord]: https://discord.com/invite/v3gYmYamGJ (Join the Discord)
 [PayPal]: https://ko-fi.com/jodsderechte (Donate via PayPal)
-[Release]: https://github.com/Jods-GH/GroupFinderRIO/releases/latest (Latest release)
+[Release]: https://github.com/Jods-GH/AbilityTImeline/releases/latest (Latest release)
 
 [//]: # (Images)
 [SVG-Discord]: https://img.shields.io/badge/Discord-7289da?logo=discord&logoColor=fff&style=flat-square
 [SVG-PayPal]: https://custom-icon-badges.demolab.com/badge/-Support-lightgrey?style=flat-square&logo=kofi&color=222222
-[SVG-Release]: https://badgen.net/github/release/Jods-GH/GroupFinderRio?style=flat-square
+[SVG-Release]: https://img.shields.io/github/v/release/Jods-GH/AbilityTimeline?display_name=tag&style=for-the-badge
+
