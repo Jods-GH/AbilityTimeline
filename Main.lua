@@ -6,6 +6,8 @@ local AceDBOptions = LibStub("AceDBOptions-3.0")
 local AbilityTimeline = LibStub("AceAddon-3.0"):NewAddon("AbilityTimeline", "AceConsole-3.0", "AceEvent-3.0")
 
 function AbilityTimeline:OnInitialize()
+    local buildVersion, buildNumber, buildDate, interfaceVersion, localizedVersion, buildInfo = GetBuildInfo()  -- Mainline
+    assert(interfaceVersion >= 120000, private.getLocalisation("WrongWoWVersionMessage"))
     -- Called when the addon is loaded
     AbilityTimeline:Print(private.getLocalisation("AccessOptionsMessage"))
     AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_ADDED")

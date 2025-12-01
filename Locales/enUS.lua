@@ -37,6 +37,7 @@ if L then
 
     -- errors
     L["InvalidTextPosition"] = "Invalid text anchor position please alert the author."
+    L["WrongWoWVersionMessage"] = "AbilityTimeline requires WoW version 12.0.0 (Midnight) or higher to run."
 
 
     private.localisation = L
