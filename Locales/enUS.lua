@@ -28,5 +28,9 @@ if L then
     L["TimelineWidthDescription"] = "Sets the width of the timeline."
     L["TimelineHeight"] = "Timeline Height"
     L["TimelineHeightDescription"] = "Sets the height of the timeline."
+    L["InverseTravelDirection"] = "Inverse Travel Direction"
+    L["InverseTravelDirectionDescription"] = "Inverts the travel direction of the timeline."
+
+
     private.localisation = L
 end

@@ -5,14 +5,16 @@ local Type = "AtTimelineFrame"
 local Version = 1
 local variables = {
     width = 50,
-    height =500
+    height = 500,
+    inverse_travel_direction = false,
+    ticks_enabled = true,
+    position = {
+        point = 'CENTER',
+        x = 0,
+        y = 0,
+    }
 }
 private.TimelineFrame = {}
-private.TimelineFrame.defaultPosition = {
-    point = 'CENTER',
-    x = 0,
-    y = 0,
-}
 
 ---@param self AtTimelineFrame
 local function OnAcquire(self)
@@ -51,16 +53,19 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
         private.db.profile.timeline_frame = {}
     end
     if not private.db.profile.timeline_frame[layoutName] then
-        private.db.profile.timeline_frame[layoutName] = CopyTable(private.TimelineFrame.defaultPosition)
+        private.db.profile.timeline_frame[layoutName] = CopyTable(variables.position)
     end
     if not private.db.profile.timeline_frame[layoutName].ticks_enabled then
-        private.db.profile.timeline_frame[layoutName].ticks_enabled = true
+        private.db.profile.timeline_frame[layoutName].ticks_enabled = variables.ticks_enabled
     end
     if not private.db.profile.timeline_frame[layoutName].width then
         private.db.profile.timeline_frame[layoutName].width = variables.width
     end
     if not private.db.profile.timeline_frame[layoutName].height then
         private.db.profile.timeline_frame[layoutName].height = variables.height
+    end
+    if not private.db.profile.timeline_frame[layoutName].inverse_travel_direction then
+        private.db.profile.timeline_frame[layoutName].inverse_travel_direction = variables.inverse_travel_direction
     end
     if private.TIMELINE_FRAME then
         private.TIMELINE_FRAME:ClearAllPoints()
@@ -101,7 +106,7 @@ local function Constructor()
     frame:SetWidth(variables.width)
     frame:SetHeight(variables.height)
 
-    LibEditMode:AddFrame(frame, onPositionChanged, private.TimelineFrame.defaultPosition, "Ability Timeline")
+    LibEditMode:AddFrame(frame, onPositionChanged, variables.position, "Ability Timeline")
     
     LibEditMode:AddFrameSettings(frame, {
         {
@@ -114,6 +119,19 @@ local function Constructor()
             end,
             set = function(layoutName, value)
                 private.db.profile.timeline_frame[layoutName].ticks_enabled = value
+                HandleTickVisibility(layoutName)
+            end,
+        },
+        {
+            name = private.getLocalisation("InverseTravelDirection"),
+            desc = private.getLocalisation("InverseTravelDirectionDescription"),
+            kind = LibEditMode.SettingType.Checkbox,
+            default = false,
+            get = function(layoutName)
+                return private.db.profile.timeline_frame[layoutName].inverse_travel_direction
+            end,
+            set = function(layoutName, value)
+                private.db.profile.timeline_frame[layoutName].inverse_travel_direction = value
                 HandleTickVisibility(layoutName)
             end,
         },
