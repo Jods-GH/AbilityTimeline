@@ -29,6 +29,10 @@ function AbilityTimeline:OnInitialize()
     if not private.TIMELINE_FRAME then
       private.createTimelineFrame()
     end
+    SetCVar("encounterTimelineEnabled", "1")
+    EncounterTimeline.View:UnregisterAllEvents()
+    EncounterTimeline.View:Hide()
+    -- SetCVar("encounterWarningsEnabled", "1")
 end
 
 function AbilityTimeline:OnEnable()

@@ -176,8 +176,6 @@ private.createTimelineFrame = function()
    private.TEXT_HIGHLIGHT_FRAME = AceGUI:Create("AtTextHighlightFrame")
 
    private.Debug(private.TEXT_HIGHLIGHT_FRAME, "AT_TEXT_HIGHLIGHT_FRAME")
-
-   EncounterTimeline.View:Hide()
 end
 
 private.handleFrame = function(show)
