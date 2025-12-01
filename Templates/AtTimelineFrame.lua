@@ -67,11 +67,14 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.profile.timeline_frame[layoutName].inverse_travel_direction then
         private.db.profile.timeline_frame[layoutName].inverse_travel_direction = variables.inverse_travel_direction
     end
+    if not private.db.profile.timeline_frame[layoutName].text_anchor then
+        private.db.profile.timeline_frame[layoutName].text_anchor = 'LEFT'
+    end
     if private.TIMELINE_FRAME then
         private.TIMELINE_FRAME:ClearAllPoints()
         private.TIMELINE_FRAME:SetPoint(private.db.profile.timeline_frame[layoutName].point,
-        private.db.profile.timeline_frame[layoutName].x, private.db.profile.timeline_frame[layoutName].y)
-                HandleTickVisibility(layoutName)
+            private.db.profile.timeline_frame[layoutName].x, private.db.profile.timeline_frame[layoutName].y)
+        HandleTickVisibility(layoutName)
         private.TIMELINE_FRAME.frame:SetWidth(private.db.profile.timeline_frame[layoutName].width)
         private.TIMELINE_FRAME.frame:SetHeight(private.db.profile.timeline_frame[layoutName].height)
     end
@@ -87,7 +90,7 @@ local function HandleTicks(self)
         local widget = AceGUI:Create("AtTimelineTicks")
         self.Ticks[i] = widget
         widget:SetTick(self, tick)
-        widget.frame:Show()  
+        widget.frame:Show()
     end
 end
 
@@ -107,7 +110,7 @@ local function Constructor()
     frame:SetHeight(variables.height)
 
     LibEditMode:AddFrame(frame, onPositionChanged, variables.position, "Ability Timeline")
-    
+
     LibEditMode:AddFrameSettings(frame, {
         {
             name = private.getLocalisation("EnableTicks"),
@@ -134,6 +137,32 @@ local function Constructor()
                 private.db.profile.timeline_frame[layoutName].inverse_travel_direction = value
                 HandleTickVisibility(layoutName)
             end,
+        },
+        {
+            name = private.getLocalisation("TextAnchor"),
+            desc = private.getLocalisation("TextAnchorDescription"),
+            kind = LibEditMode.SettingType.Dropdown,
+
+            get = function(layoutName)
+                return private.db.profile.timeline_frame[layoutName].text_anchor
+            end,
+            set = function(layoutName, value)
+                private.db.profile.timeline_frame[layoutName].text_anchor = value
+            end,
+            default = 'LEFT',
+            height = 100,
+            values = {
+                {
+                    text = private.getLocalisation("TextAnchorRight"),
+                    value = 'RIGHT',
+                    isRadio = true,
+                },
+                {
+                    text = private.getLocalisation("TextAnchorLeft"),
+                    value = 'LEFT',
+                    isRadio = true,
+                },
+            },
         },
         {
             name = private.getLocalisation("TimelineWidth"),
@@ -170,7 +199,7 @@ local function Constructor()
         -- {
         --     name = 'Style',
         --     kind = LibEditMode.SettingType.Dropdown,
-        
+
         --     get = function(layoutName)
         --         return private.db.profile.timeline_frame[layoutName].style
         --     end,

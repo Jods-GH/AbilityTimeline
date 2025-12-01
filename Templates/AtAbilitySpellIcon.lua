@@ -10,26 +10,61 @@ local variables = {
 	},
 	IconMargin = 5,
 	IconZoom = 0.7,
+	TextOffset = {
+		x = 10,
+		y = 0,
+	}
 }
 
----@param self AtAbilitySpellIcon
-local function OnAcquire(self)
-	private.Debug(self.frame, "AT_ABILITY_SPELL_ICON_FRAME_ACQUIRED")
-end
+local TEXT_RELATIVE_POSITIONS = {
+	RIGHT = "LEFT",
+	LEFT = "RIGHT",
+}
 
+setmetatable(TEXT_RELATIVE_POSITIONS, {
+	__index = function(_, key)
+		error(string.format(private.getLocalisation('InvalidTextPosition') .. "%s", tostring(key)), 2);
+	end,
+})
+---handles the Text anchoring depending on the selected text anchor
 ---@param self AtAbilitySpellIcon
-local function OnRelease(self)
-	self.frame.eventInfo = nil
-	self.frame.SpellIcon:SetTexture(nil)
-	self.frame.SpellName:SetText("")
-	self.frame:SetScript("OnUpdate", nil)
-	self.frame.frameIsMoving = false
+---@param isStopped boolean
+local handleTextAnchor   = function(self, isStopped)
+	self.SpellName:ClearAllPoints()
+	local relPos, anchorPos, xOffset, yOffset
+	if isStopped then
+		relPos = private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
+		anchorPos = TEXT_RELATIVE_POSITIONS
+		[private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor]
+	else
+		relPos = TEXT_RELATIVE_POSITIONS[private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor]
+		anchorPos = private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
+	end
+	if relPos == 'LEFT' then
+		xOffset = variables.TextOffset.x
+		yOffset = variables.TextOffset.y
+	else
+		xOffset = -variables.TextOffset.x
+		yOffset = -variables.TextOffset.y
+	end
+	self.SpellName:SetPoint(relPos, self, anchorPos, xOffset, yOffset)
 end
-
+---returns a raw icon position without any overlap handling
+---@param iconSize number -- the size of the icon
+---@param moveHeight number -- the total height of the timeline for position calculation
+---@param remainingDuration number -- remaining duration of the icon
+---@param isStopped boolean -- whether the icon is currently stopped (paused/blocked)
+---@return integer -- x position
+---@return integer -- y position
+---@return boolean -- is moving
 local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isStopped)
 	local x = 0
 	if isStopped then
-		x = variables.IconSize.width + variables.IconMargin
+		if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor == 'RIGHT' then
+			x = 0 - iconSize - variables.IconMargin
+		else
+			x = iconSize  + variables.IconMargin
+		end
 	end
 	if not (remainingDuration < private.AT_THRESHHOLD_TIME) then
 		-- We are out of range of the moving timeline
@@ -47,10 +82,10 @@ end
 
 
 ---set state to blocked for blocked events
----@param eventID any
----@param duration any
----@param timeElapsed any
----@param timeRemaining any
+---@param eventID EncounterTimelineEventID
+---@param duration number
+---@param timeElapsed number
+---@param timeRemaining number
 ---@return EncounterTimelineEventState state
 local fixStateForBlocked = function(eventID, duration, timeElapsed, timeRemaining)
 	local state = C_EncounterTimeline.GetEventState(eventID)
@@ -63,7 +98,9 @@ local fixStateForBlocked = function(eventID, duration, timeElapsed, timeRemainin
 		return state
 	end
 end
-
+---Returns if an icon is currently in a non moving state
+---@param state EncounterTimelineEventState
+---@return boolean
 local function isStoppedForPosition(state)
 	return state == private.ENCOUNTER_STATES.Paused or state == private.ENCOUNTER_STATES.Blocked
 end
@@ -86,7 +123,6 @@ local calculateOffset = function(iconSize, timelineHeight, sourceEventID, source
 	local sourceUpperYBound = rawSourcePosY + (iconSize / 2) + variables.IconMargin
 	local sourceLowerYBound = rawSourcePosY - (iconSize / 2) - variables.IconMargin
 	for _, eventID in pairs(eventList) do
-		--print("-------")
 		if eventID ~= sourceEventID then
 			local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(eventID)
 			local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
@@ -100,16 +136,12 @@ local calculateOffset = function(iconSize, timelineHeight, sourceEventID, source
 				local lowerXBound = x - iconSize / 2 - variables.IconMargin
 				local upperYBound = y + iconSize / 2 + variables.IconMargin
 				local lowerYBound = y - iconSize / 2 - variables.IconMargin
-				--print("X " .. x .. ", Y " .. y)
 				if TIMELINE_DIRECTION == TIMELINE_DIRECTIONS.VERTICAL then
-					--print("Checking bounds")
 					if upperYBound >= sourceLowerYBound and upperYBound <= sourceUpperYBound or
 						lowerYBound >= sourceLowerYBound and lowerYBound <= sourceUpperYBound then
-						--print("conflict detected")
 						conflictingEvents = conflictingEvents + 1
 						-- use eventID as tiebreaker to have a consistent order
 						if remainingTime < sourceRemainingTime or (remainingTime == sourceRemainingTime and eventID < sourceEventID) then
-							--print("shorter conflict detected")
 							shorterConflictingEvents = shorterConflictingEvents + 1
 						end
 					end
@@ -122,7 +154,14 @@ local calculateOffset = function(iconSize, timelineHeight, sourceEventID, source
 	return 0, shorterConflictingEvents * (iconSize + variables.IconMargin)
 end
 
-
+---comment
+---@param self AtAbilitySpellIcon
+---@param timeElapsed number -- time elapsed since the ability was started
+---@param moveHeight number -- total height of the timeline for position calculation
+---@param isStopped boolean -- whether the icon is currently stopped (paused/blocked)
+---@return integer x -- xPosition of an icon including potential offsets to handle overlaps
+---@return integer y -- yPosition of an icon including potential offsets to handle overlaps
+---@return boolean ismoving -- whether the icon is currently moving
 local calculateIconPosition = function(self, timeElapsed, moveHeight, isStopped)
 	local x, y, isMoving = getRawIconPosition(variables.IconSize.height, moveHeight,
 		self.eventInfo.duration - timeElapsed, isStopped)
@@ -131,19 +170,23 @@ local calculateIconPosition = function(self, timeElapsed, moveHeight, isStopped)
 		local xOffset, yOffset = calculateOffset(variables.IconSize.height, moveHeight, self.eventInfo.id, timeElapsed, x,
 			y)
 		if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
-			return x - xOffset, y - yOffset, isMoving 
+			return x - xOffset, y - yOffset, isMoving
 		end
-		return x + xOffset, y + yOffset, isMoving 
+		return x + xOffset, y + yOffset, isMoving
 	end
 	return x, y, isMoving
 end
-
+---Plays a short highlight animation
+---@param self Frame
 local PlayHighlight         = function(self)
 	CustomGlow.ProcGlow_Start(self)
 	C_Timer.After(0.5, function()
 		CustomGlow.ProcGlow_Stop(self)
 	end)
 end
+---Sets the event info and all associated handling for an icon
+---@param self AtAbilitySpellIcon
+---@param eventInfo EncounterTimelineEventInfo
 local SetEventInfo          = function(self, eventInfo)
 	self.frame.eventInfo = eventInfo
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
@@ -165,17 +208,13 @@ local SetEventInfo          = function(self, eventInfo)
 		if not timeRemaining or timeRemaining < 0 then timeRemaining = 0 end
 		if state ~= self.state then
 			self.state = state
-			self.SpellName:ClearAllPoints()
-			if isStopped then
-				self.SpellName:SetPoint("LEFT", self, "RIGHT", 10, 0)
-			else
-				self.SpellName:SetPoint("RIGHT", self, "LEFT", -10, 0)
-			end
+			handleTextAnchor(self, isStopped)
 		elseif state == private.ENCOUNTER_STATES.Paused then
 			return
 		end
 
-		local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, private.TIMELINE_FRAME:GetHeight(), isStopped)
+		local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, private.TIMELINE_FRAME:GetHeight(),
+			isStopped)
 		if self.frameIsMoving ~= isMoving then
 			if isMoving then
 				--self.TrailAnimation:Play()
@@ -207,6 +246,23 @@ local SetEventInfo          = function(self, eventInfo)
 		end
 	end)
 	self.frame:Show()
+end
+
+
+---@param self AtAbilitySpellIcon
+local function OnAcquire(self)
+	private.Debug(self.frame, "AT_ABILITY_SPELL_ICON_FRAME_ACQUIRED")
+end
+
+
+---@param self AtAbilitySpellIcon
+local function OnRelease(self)
+	self.frame.eventInfo = nil
+	self.frame.SpellIcon:SetTexture(nil)
+	self.frame.SpellName:SetText("")
+	handleTextAnchor(self.frame, false)
+	self.frame:SetScript("OnUpdate", nil)
+	self.frame.frameIsMoving = false
 end
 
 local function Constructor()
@@ -241,7 +297,7 @@ local function Constructor()
 	frame.Border:Hide()
 	-- spell name
 	frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-	frame.SpellName:SetPoint("RIGHT", frame, "LEFT", -10, 0)
+	handleTextAnchor(frame, false)
 	frame.SpellName:Show()
 	-- cooldown
 	frame.Cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")

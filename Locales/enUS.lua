@@ -30,6 +30,13 @@ if L then
     L["TimelineHeightDescription"] = "Sets the height of the timeline."
     L["InverseTravelDirection"] = "Inverse Travel Direction"
     L["InverseTravelDirectionDescription"] = "Inverts the travel direction of the timeline."
+    L["TextAnchor"] = "Text Anchor"
+    L["TextAnchorDescription"] = "Sets the anchor position of the text relative to the icons."
+    L["TextAnchorLeft"] = "Left"
+    L["TextAnchorRight"] = "Right"
+
+    -- errors
+    L["InvalidTextPosition"] = "Invalid text anchor position please alert the author."
 
 
     private.localisation = L
