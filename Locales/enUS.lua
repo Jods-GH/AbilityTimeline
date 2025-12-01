@@ -6,6 +6,8 @@ if L then
     L["AccessOptionsMessage"] = "Access the options via /at"
     L["TimelineNotEnabledMessage"] = "The timeline feature is not enabled."
     L["TimelineNotSupportedMessage"] = "The timeline feature is not supported on this version."
+    L["ReadyCheckBy"] = "Ready Check by"
+    L["PullTimerBy"] = "Pull Timer by"
 
     --options
     L['addonOptions'] = "Ability Timeline Options"

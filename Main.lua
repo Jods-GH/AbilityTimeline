@@ -15,6 +15,10 @@ function AbilityTimeline:OnInitialize()
     AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED")
     AbilityTimeline:RegisterEvent("ENCOUNTER_START")
     AbilityTimeline:RegisterEvent("PLAYER_ENTERING_WORLD")
+    AbilityTimeline:RegisterEvent("READY_CHECK")
+    AbilityTimeline:RegisterEvent("READY_CHECK_FINISHED")
+    AbilityTimeline:RegisterEvent("START_PLAYER_COUNTDOWN")
+    AbilityTimeline:RegisterEvent("CANCEL_PLAYER_COUNTDOWN")
     private.db = LibStub("AceDB-3.0"):New("AbilityTimeline", private.OptionDefaults, true) -- Generates Saved Variables with default Values (if they don't already exist)
     private.Debug(private, "AT_Options")
     local OptionTable = {
@@ -28,6 +32,7 @@ function AbilityTimeline:OnInitialize()
     AceConfigDialog:AddToBlizOptions(appName, appName)
     self:RegisterChatCommand("at", "SlashCommand")
     self:RegisterChatCommand("AT", "SlashCommand")
+    self:RegisterChatCommand("pull", "PullCommand")
     if not private.TIMELINE_FRAME then
       private.createTimelineFrame()
     end
@@ -100,7 +105,7 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
             C_EncounterTimeline.ResumeScriptEvent(eventID)
         end
     else
-        AbilityTimeline:Print(private.getLocalisation("AccessOptionsMessage"))
+        AceConfigDialog:Open(appName)
     end
 end
 
@@ -123,4 +128,78 @@ end
 function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, difficultyID, groupSize, playerDifficultyID)
     -- createTestBars(15)
     private.Debug("Encounter started: " .. encounterName)
+end
+
+function AbilityTimeline:READY_CHECK(event, initiatorName, readyCheckTimeLeft)
+    local timeleft = tonumber(readyCheckTimeLeft) or 35
+    local _, classFilename, _ = UnitClass(initiatorName)
+    local _, _, _, argbHex = GetClassColor(classFilename)
+    local eventinfo = {
+        duration = timeleft,
+        maxQueueDuration = 0,
+        overrideName = private.getLocalisation("ReadyCheckBy") .. " " .. WrapTextInColorCode(initiatorName, argbHex),
+        spellID = 0,
+        iconFileID = 134400,
+        severity = 1,
+        paused = false
+
+    }
+    private.Debug("Ready check started by " .. WrapTextInColorCode(initiatorName, argbHex) .. ", time left: " .. tostring(readyCheckTimeLeft) .. " seconds.")
+    private.ReadyCheckEventId = C_EncounterTimeline.AddScriptEvent(eventinfo)
+end
+
+function AbilityTimeline:READY_CHECK_FINISHED()
+    if private.ReadyCheckEventId then
+        C_EncounterTimeline.CancelScriptEvent(private.ReadyCheckEventId)
+        private.ReadyCheckEventId = nil
+    end
+end
+
+function AbilityTimeline:PullCommand(msg)
+    if msg and msg:lower():trim() == "cancel" then
+        C_PartyInfo.DoCountdown(0)
+        return 
+    end
+    local inInstance, instanceType = IsInInstance()
+    local smartSeconds = 10
+    if inInstance then
+        if instanceType == "raid" then
+            smartSeconds = 10
+        elseif instanceType == "party" then
+            smartSeconds = 3
+        end
+    end
+    local seconds = tonumber(msg) or smartSeconds
+    C_PartyInfo.DoCountdown(seconds)
+end
+
+function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemaining, totalTime, informChat, initiatedByName)
+    local timeleft = tonumber(timeRemaining) or 35
+    local color
+    if initiatedByName and UnitClass(initiatedByName) then
+        local _, classFilename, _ = UnitClass(initiatedByName)
+        local _, _, _, argbHex = GetClassColor(classFilename)
+        color = argbHex
+    else 
+        color = 'ffffffff'
+    end
+    local eventinfo = {
+        duration = timeleft,
+        maxQueueDuration = 0,
+        overrideName = private.getLocalisation("PullTimerBy") .. " " .. WrapTextInColorCode(initiatedByName, color),
+        spellID = 0,
+        iconFileID = 134376,
+        severity = 1,
+        paused = false
+
+    }
+    private.Debug("Pull timer started by " .. WrapTextInColorCode(initiatedByName, color) .. ", time left: " .. tostring(timeRemaining) .. " seconds.")
+    private.PullTimerEventId = C_EncounterTimeline.AddScriptEvent(eventinfo)
+end
+
+function AbilityTimeline:CANCEL_PLAYER_COUNTDOWN()
+    if private.PullTimerEventId then
+        C_EncounterTimeline.CancelScriptEvent(private.PullTimerEventId)
+        private.PullTimerEventId = nil
+    end
 end

@@ -48,7 +48,6 @@ private.createTimelineIcon = function(eventInfo)
    --    frame:PlayFinishAnimation()
    --    C_Timer.After(fadeoutDuration, function()
    --       private.ICON_POOL:Release(frame)
-   --       print("Icon removed from timeline.")
    --    end)
    -- end)
    --C_ChatInfo.SendChatMessage(eventInfo.spellName , 'VOICE_TEXT') -- for some reason this can be send here but not after the duration is finished?
