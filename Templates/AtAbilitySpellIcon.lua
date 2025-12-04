@@ -77,11 +77,12 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 		end
 	else
 		if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
-			timelineMainPosition = moveHeight - ((remainingDuration) / private.AT_THRESHHOLD_TIME) * moveHeight - (iconSize / 2)
-			isMoving =true
+			timelineMainPosition = moveHeight - ((remainingDuration) / private.AT_THRESHHOLD_TIME) * moveHeight -
+			(iconSize / 2)
+			isMoving = true
 		else
 			timelineMainPosition = ((remainingDuration) / private.AT_THRESHHOLD_TIME) * moveHeight + (iconSize / 2)
-			isMoving =true
+			isMoving = true
 		end
 	end
 	if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
@@ -171,7 +172,8 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 			end
 		end
 	end
-	return shorterXConflictingEvents * (iconSize + variables.IconMargin), shorterYConflictingEvents * (iconSize + variables.IconMargin)
+	return shorterXConflictingEvents * (iconSize + variables.IconMargin),
+		shorterYConflictingEvents * (iconSize + variables.IconMargin)
 end
 
 ---comment

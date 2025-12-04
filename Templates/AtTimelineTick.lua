@@ -29,7 +29,7 @@ local function OnRelease(self)
 end
 
 local function SetTick(self, relativeTo, tick)
-    local moveHeight = relativeTo:GetMoveSize()  
+    local moveHeight = relativeTo:GetMoveSize()
     self.frame.tickText:SetText(tick .. "s")
     local tickPosition = (tick / private.AT_THRESHHOLD_TIME) * moveHeight
     self.frame:ClearAllPoints()
@@ -41,46 +41,48 @@ local function SetTick(self, relativeTo, tick)
         self.frame:SetPoint("BOTTOMLEFT", relativeTo.frame, "BOTTOMLEFT", tickPosition, 0)
         self.frame.tickLine:SetPoint("TOP", self.frame, "TOP", 0, 0)
         self.frame.tickLine:SetPoint("BOTTOM", self.frame, "BOTTOM", 0, 0)
-        self.frame.tickText:SetPoint("BOTTOM", self.frame.tickLine, "TOP", variables.textOffset.y, variables.textOffset.x)
+        self.frame.tickText:SetPoint("BOTTOM", self.frame.tickLine, "TOP", variables.textOffset.y, variables.textOffset
+        .x)
     else
         self.frame:SetPoint("LEFT", relativeTo.frame, "BOTTOMLEFT", 0, tickPosition)
         self.frame:SetPoint("RIGHT", relativeTo.frame, "BOTTOMRIGHT", 0, tickPosition)
         self.frame.tickLine:SetPoint("LEFT", self.frame, "LEFT", 0, 0)
         self.frame.tickLine:SetPoint("RIGHT", self.frame, "RIGHT", 0, 0)
-        self.frame.tickText:SetPoint("LEFT", self.frame.tickLine, "RIGHT", variables.textOffset.x, variables.textOffset.y)
+        self.frame.tickText:SetPoint("LEFT", self.frame.tickLine, "RIGHT", variables.textOffset.x, variables.textOffset
+        .y)
     end
     self.frame:SetParent(relativeTo.frame)
 end
 
 
 local function Constructor()
-	local count = AceGUI:GetNextWidgetNum(Type)
+    local count = AceGUI:GetNextWidgetNum(Type)
 
-	local frame = CreateFrame("Frame", Type .. count, UIParent )
-	
+    local frame = CreateFrame("Frame", Type .. count, UIParent)
+
     frame:SetHeight(variables.height)
     frame:SetWidth(variables.width)
     frame.tickLine = frame:CreateTexture(nil, "ARTWORK")
     frame.tickLine:SetColorTexture(variables.color.r, variables.color.g, variables.color.b, variables.color.a)
     frame.tickLine:SetPoint("LEFT", frame, "LEFT", 0, 0)
     frame.tickLine:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
-    frame.tickText =  frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
+    frame.tickText = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
     frame.tickText:SetPoint("LEFT", frame.tickLine, "RIGHT", variables.textOffset.x, variables.textOffset.y)
     frame.tickText:SetJustifyH("CENTER")
     frame:Hide()
 
-	---@class AtTimelineTicks : AceGUIWidget
-	local widget = {
-		OnAcquire = OnAcquire,
-		OnRelease = OnRelease,
-		frame = frame,
-		type = Type,
-		count = count,
+    ---@class AtTimelineTicks : AceGUIWidget
+    local widget = {
+        OnAcquire = OnAcquire,
+        OnRelease = OnRelease,
+        frame = frame,
+        type = Type,
+        count = count,
         SetTick = SetTick,
         tick = 0,
-	}
+    }
 
-	return AceGUI:RegisterAsWidget(widget)
+    return AceGUI:RegisterAsWidget(widget)
 end
 
 AceGUI:RegisterWidgetType(Type, Constructor, Version)

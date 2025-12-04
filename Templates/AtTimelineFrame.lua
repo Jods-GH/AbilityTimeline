@@ -1,9 +1,9 @@
-local addonName, private = ...
-local AceGUI = LibStub("AceGUI-3.0")
-local LibEditMode = LibStub("LibEditMode")
-local Type = "AtTimelineFrame"
-local Version = 1
-local variables = {
+local addonName, private    = ...
+local AceGUI                = LibStub("AceGUI-3.0")
+local LibEditMode           = LibStub("LibEditMode")
+local Type                  = "AtTimelineFrame"
+local Version               = 1
+local variables             = {
     otherSize = 50,
     travelSize = 500,
     inverse_travel_direction = false,
@@ -14,11 +14,11 @@ local variables = {
         y = 0,
     }
 }
-private.TIMELINE_DIRECTIONS                    = {
-   VERTICAL = "VERTICAL",
-   HORIZONTAL = "HORIZONTAL"
+private.TIMELINE_DIRECTIONS = {
+    VERTICAL = "VERTICAL",
+    HORIZONTAL = "HORIZONTAL"
 }
-private.TimelineFrame = {}
+private.TimelineFrame       = {}
 
 ---@param self AtTimelineFrame
 local function OnAcquire(self)
