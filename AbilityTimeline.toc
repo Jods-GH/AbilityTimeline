@@ -27,6 +27,8 @@ embeds.xml
 #util
 Util\Debug.lua
 Util\EditMode.lua
+Util\ModernizeSettings.lua
+
 # Locales
 Locales\enUS.lua
 Locales\deDE.lua

@@ -35,7 +35,7 @@ local handleTextAnchor   = function(self, isStopped)
 	if isStopped then
 		relPos = private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
 		anchorPos = TEXT_RELATIVE_POSITIONS
-		[private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor]
+			[private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor]
 	else
 		relPos = TEXT_RELATIVE_POSITIONS[private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor]
 		anchorPos = private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
@@ -58,25 +58,36 @@ end
 ---@return integer -- y position
 ---@return boolean -- is moving
 local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isStopped)
-	local x = 0
+	local timelineOtherPosition = 0
+	local timelineMainPosition = 0
+	local isMoving = false
 	if isStopped then
 		if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor == 'RIGHT' then
-			x = 0 - iconSize - variables.IconMargin
+			timelineOtherPosition = 0 - iconSize - variables.IconMargin
 		else
-			x = iconSize  + variables.IconMargin
+			timelineOtherPosition = iconSize + variables.IconMargin
 		end
 	end
 	if not (remainingDuration < private.AT_THRESHHOLD_TIME) then
 		-- We are out of range of the moving timeline
 		if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
-			return x, 0 - (iconSize / 2), false
+			timelineMainPosition = 0 - (iconSize / 2)
+		else
+			timelineMainPosition = moveHeight + (iconSize / 2)
 		end
-		return x, moveHeight + (iconSize / 2), false
-	end
-	if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
-		return x, moveHeight - ((remainingDuration) / private.AT_THRESHHOLD_TIME) * moveHeight - (iconSize / 2), true
 	else
-		return x, ((remainingDuration) / private.AT_THRESHHOLD_TIME) * moveHeight + (iconSize / 2), true
+		if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
+			timelineMainPosition = moveHeight - ((remainingDuration) / private.AT_THRESHHOLD_TIME) * moveHeight - (iconSize / 2)
+			isMoving =true
+		else
+			timelineMainPosition = ((remainingDuration) / private.AT_THRESHHOLD_TIME) * moveHeight + (iconSize / 2)
+			isMoving =true
+		end
+	end
+	if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
+		return timelineMainPosition, timelineOtherPosition, isMoving
+	else
+		return timelineOtherPosition, timelineMainPosition, isMoving
 	end
 end
 
@@ -107,12 +118,14 @@ end
 
 -- TODO FIX THIS
 -- Currently the offset is ignored when calculating if a conflict is happening. The official timeline also does no conflict resolving and just overlaps icons so maybe we should do the same?
-local calculateOffset = function(iconSize, timelineHeight, sourceEventID, sourceTimeElapsed, rawSourcePosX,
-								 rawSourcePosY)
+local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, sourceTimeElapsed, rawSourcePosX,
+									   rawSourcePosY)
 	local eventList = C_EncounterTimeline.GetEventList()
 	local totalEvents = 0
-	local conflictingEvents = 0
-	local shorterConflictingEvents = 0
+	local conflictingYEvents = 0
+	local shorterYConflictingEvents = 0
+	local conflictingXEvents = 0
+	local shorterXConflictingEvents = 0
 	local sourceEventInfo = C_EncounterTimeline.GetEventInfo(sourceEventID)
 	local sourceRemainingTime = C_EncounterTimeline.GetEventTimeRemaining(sourceEventID)
 	local sourceRemainingTimeInThreshold = sourceRemainingTime < private.AT_THRESHHOLD_TIME
@@ -136,22 +149,29 @@ local calculateOffset = function(iconSize, timelineHeight, sourceEventID, source
 				local lowerXBound = x - iconSize / 2 - variables.IconMargin
 				local upperYBound = y + iconSize / 2 + variables.IconMargin
 				local lowerYBound = y - iconSize / 2 - variables.IconMargin
-				if TIMELINE_DIRECTION == TIMELINE_DIRECTIONS.VERTICAL then
+				if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.VERTICAL then
 					if upperYBound >= sourceLowerYBound and upperYBound <= sourceUpperYBound or
 						lowerYBound >= sourceLowerYBound and lowerYBound <= sourceUpperYBound then
-						conflictingEvents = conflictingEvents + 1
+						conflictingYEvents = conflictingYEvents + 1
 						-- use eventID as tiebreaker to have a consistent order
 						if remainingTime < sourceRemainingTime or (remainingTime == sourceRemainingTime and eventID < sourceEventID) then
-							shorterConflictingEvents = shorterConflictingEvents + 1
+							shorterYConflictingEvents = shorterYConflictingEvents + 1
 						end
 					end
 				else
-					assert(false, "Horizontal timeline not implemented yet.")
+					if upperXBound >= sourceLowerXBound and upperXBound <= sourceUpperXBound or
+						lowerXBound >= sourceLowerXBound and lowerXBound <= sourceUpperXBound then
+						conflictingXEvents = conflictingXEvents + 1
+						-- use eventID as tiebreaker to have a consistent order
+						if remainingTime < sourceRemainingTime or (remainingTime == sourceRemainingTime and eventID < sourceEventID) then
+							shorterXConflictingEvents = shorterXConflictingEvents + 1
+						end
+					end
 				end
 			end
 		end
 	end
-	return 0, shorterConflictingEvents * (iconSize + variables.IconMargin)
+	return shorterXConflictingEvents * (iconSize + variables.IconMargin), shorterYConflictingEvents * (iconSize + variables.IconMargin)
 end
 
 ---comment
@@ -194,7 +214,11 @@ local SetEventInfo          = function(self, eventInfo)
 		private.SetZoom(self.frame.SpellIcon, variables.IconZoom)
 		self.frame.SpellIcon.zoomApplied = true
 	end
-	self.frame.SpellName:SetText(eventInfo.spellName)
+	if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
+		self.frame.SpellName:SetText("")
+	else
+		self.frame.SpellName:SetText(eventInfo.spellName)
+	end
 	self.frame.Cooldown:SetCooldown(GetTime(), eventInfo.duration)
 
 	-- OnUpdate we want to update the position of the icon based on elapsed time
@@ -213,7 +237,7 @@ local SetEventInfo          = function(self, eventInfo)
 			return
 		end
 
-		local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, private.TIMELINE_FRAME:GetHeight(),
+		local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, private.TIMELINE_FRAME:GetMoveSize(),
 			isStopped)
 		if self.frameIsMoving ~= isMoving then
 			if isMoving then
@@ -224,7 +248,11 @@ local SetEventInfo          = function(self, eventInfo)
 			end
 			self.frameIsMoving = isMoving
 		end
-		self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "BOTTOM", xPos, yPos)
+		if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
+			self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "LEFT", xPos, yPos)
+		else
+			self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "BOTTOM", xPos, yPos)
+		end
 		for tick, time in ipairs(private.TIMELINE_TICKS) do
 			local inRange = (eventInfo.duration - timeElapsed - time)
 			if inRange < 0.01 and inRange > -0.01 then -- this is not gonna work if fps are to low

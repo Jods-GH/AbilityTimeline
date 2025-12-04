@@ -12,11 +12,6 @@ end
 private.TIMELINE_TICKS                         = { 5 }
 private.AT_THRESHHOLD                          = 0.8
 private.AT_THRESHHOLD_TIME                     = 10
-TIMELINE_DIRECTIONS                    = {
-   VERTICAL = "VERTICAL",
-   HORIZONTAL = "HORIZONTAL"
-}
-TIMELINE_DIRECTION                     = TIMELINE_DIRECTIONS.VERTICAL
 private.TIMER_COLORS = {
    [3] = {1, 0, 0},
    [5] = {1, 1, 0},
@@ -168,13 +163,13 @@ end
 private.createTimelineFrame = function()
    private.TIMELINE_FRAME = AceGUI:Create("AtTimelineFrame")
 
-
    private.BIGICON_FRAME = AceGUI:Create("AtBigIconFrame")
 
 
    private.TEXT_HIGHLIGHT_FRAME = AceGUI:Create("AtTextHighlightFrame")
 
    private.Debug(private.TEXT_HIGHLIGHT_FRAME, "AT_TEXT_HIGHLIGHT_FRAME")
+   private.Debug(private.TIMELINE_FRAME, "AT_TIMELINE_FRAME")
 end
 
 private.handleFrame = function(show)

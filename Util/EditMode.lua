@@ -3,6 +3,7 @@ local LibEditMode = LibStub("LibEditMode")
 
 LibEditMode:RegisterCallback('layout', function(layoutName)
     private.ACTIVE_EDITMODE_LAYOUT = layoutName
+    private.modernize() --modernize any old settings to new ones
 end)
 
 
