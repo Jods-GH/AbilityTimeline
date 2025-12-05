@@ -206,19 +206,24 @@ function AbilityTimeline:CANCEL_PLAYER_COUNTDOWN()
     end
 end
 
--- TODO only add the timer if the key was upgraded succesfully
 function AbilityTimeline:CHALLENGE_MODE_COMPLETED()
     if private.db.profile.enableKeyRerollTimer then
+        local info = C_ChallengeMode.GetChallengeCompletionInfo()
+        if not info or not info.onTime then
+            private.Debug("Challenge mode completed but not on time. Not adding timer.")
+            return
+        end
         local eventinfo = {
             duration = 300,
             maxQueueDuration = 0,
             overrideName = private.getLocalisation("RerollKey"),
             spellID = 0,
-            iconFileID = 134376,
+            iconFileID = 525134,
             severity = 1,
             paused = false
 
         }
+        private.Debug("Challenge mode completed Adding timer for key reroll: 5 minutes.")
         private.RerollKeyEventId = C_EncounterTimeline.AddScriptEvent(eventinfo)
     end
 end
