@@ -19,6 +19,8 @@ function AbilityTimeline:OnInitialize()
     AbilityTimeline:RegisterEvent("READY_CHECK_FINISHED")
     AbilityTimeline:RegisterEvent("START_PLAYER_COUNTDOWN")
     AbilityTimeline:RegisterEvent("CANCEL_PLAYER_COUNTDOWN")
+    AbilityTimeline:RegisterEvent("CHALLENGE_MODE_COMPLETED")
+    AbilityTimeline:RegisterEvent("ZONE_CHANGED_NEW_AREA")
     private.db = LibStub("AceDB-3.0"):New("AbilityTimeline", private.OptionDefaults, true) -- Generates Saved Variables with default Values (if they don't already exist)
     private.Debug(private, "AT_Options")
     local OptionTable = {
@@ -201,5 +203,29 @@ function AbilityTimeline:CANCEL_PLAYER_COUNTDOWN()
     if private.PullTimerEventId then
         C_EncounterTimeline.CancelScriptEvent(private.PullTimerEventId)
         private.PullTimerEventId = nil
+    end
+end
+
+-- TODO only add the timer if the key was upgraded succesfully
+function AbilityTimeline:CHALLENGE_MODE_COMPLETED()
+    if private.db.profile.enableKeyRerollTimer then
+        local eventinfo = {
+            duration = 300,
+            maxQueueDuration = 0,
+            overrideName = private.getLocalisation("RerollKey"),
+            spellID = 0,
+            iconFileID = 134376,
+            severity = 1,
+            paused = false
+
+        }
+        private.RerollKeyEventId = C_EncounterTimeline.AddScriptEvent(eventinfo)
+    end
+end
+-- TODO cancel the event if the player actually rerolls the key before the timer ends
+function AbilityTimeline:ZONE_CHANGED_NEW_AREA()
+    if private.RerollKeyEventId then
+        C_EncounterTimeline.CancelScriptEvent(private.RerollKeyEventId)
+        private.RerollKeyEventId = nil
     end
 end

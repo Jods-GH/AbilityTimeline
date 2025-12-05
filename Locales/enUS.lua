@@ -18,6 +18,8 @@ if L then
     L['debugModeDescription'] = "Enables debug mode, which outputs additional information to the chat window."
     L['useAudioCountdowns'] = "Use Audio Countdowns"
     L['useAudioCountdownsDescription'] = "Enables audio countdowns of the last 5 seconds for upcoming events."
+    L['enableKeyRerollTimer'] = "Enable Key Reroll Timer"
+    L['enableKeyRerollTimerDescription'] = "Enables a timer for you to reroll your Mythic+ key after completing a dungeon."
 
     --edit mode
     L["EnableBigIcon"] = "Enable Big Icon"

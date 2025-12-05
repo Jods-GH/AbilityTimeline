@@ -27,6 +27,17 @@ private.options = {
         return private.db.profile.useAudioCountdowns  --Sets value of toggles depending on SavedVariables
       end,
     },
+    enableKeyRerollTimer = {
+      name = private.getLocalisation("enableKeyRerollTimer"),
+      desc = private.getLocalisation("enableKeyRerollTimerDescription"),
+      order = 40,
+      width = "full",
+      type = "toggle",
+      set = function(info, val) private.db.profile.enableKeyRerollTimer = val end, --Sets value of SavedVariables depending on toggles
+      get = function(info)
+        return private.db.profile.enableKeyRerollTimer  --Sets value of toggles depending on SavedVariables
+      end,
+    },
     encounterOptions = {
       name = private.getLocalisation("encounterOptions"),
       type = "group",
