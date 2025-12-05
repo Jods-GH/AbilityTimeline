@@ -40,6 +40,8 @@ if L then
     L["TextAnchorDescription"] = "Sets the anchor position of the text relative to the icons."
     L["TextAnchorLeft"] = "Left"
     L["TextAnchorRight"] = "Right"
+    L["TimelineTexture"] = "Timeline Texture"
+    L["TimelineTextureDescription"] = "Sets the texture of the timeline background."
 
     -- errors
     L["InvalidTextPosition"] = "Invalid text anchor position please alert the author."

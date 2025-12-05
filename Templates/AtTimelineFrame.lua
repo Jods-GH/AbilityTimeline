@@ -1,6 +1,7 @@
 local addonName, private    = ...
 local AceGUI                = LibStub("AceGUI-3.0")
 local LibEditMode           = LibStub("LibEditMode")
+local SharedMedia           = LibStub("LibSharedMedia-3.0")
 local Type                  = "AtTimelineFrame"
 local Version               = 1
 local variables             = {
@@ -12,7 +13,8 @@ local variables             = {
         point = 'CENTER',
         x = 0,
         y = 0,
-    }
+    },
+    timelineTexture = "Blizzard Dialog Background"
 }
 private.TIMELINE_DIRECTIONS = {
     VERTICAL = "VERTICAL",
@@ -81,6 +83,11 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.profile.timeline_frame[layoutName].horizontal then
         private.db.profile.timeline_frame[layoutName].horizontal = false
     end
+    if not private.db.profile.timeline_frame[layoutName].timeline_texture then
+        private.db.profile.timeline_frame[layoutName].timeline_texture = variables.timelineTexture
+    end
+
+
     if private.TIMELINE_FRAME then
         private.TIMELINE_FRAME:ClearAllPoints()
         private.TIMELINE_FRAME:SetPoint(private.db.profile.timeline_frame[layoutName].point,
@@ -96,6 +103,8 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
         end
         SetFrameSize(private.TIMELINE_FRAME, width, height)
         private.TIMELINE_FRAME:HandleTicks()
+        private.TIMELINE_FRAME.SetBackDrop(private.TIMELINE_FRAME.frame,
+            private.db.profile.timeline_frame[layoutName].timeline_texture)
     end
 end)
 
@@ -125,6 +134,16 @@ local function HandleSizeChanges(self)
     SetFrameSize(self, width, height)
 end
 
+local function SetBackDrop(frame, textureName)
+    local texture = SharedMedia:Fetch("background", textureName) or ""
+    frame:SetBackdrop({
+        bgFile = texture,
+        tile = true,
+        tileSize = 32,
+        edgeSize = 32,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    })
+end
 
 
 local function GetMoveSize(self)
@@ -134,14 +153,21 @@ local function GetMoveSize(self)
     return self.frame:GetHeight()
 end
 
-
-local function Constructor()
-    local count = AceGUI:GetNextWidgetNum(Type)
-    local frame = CreateFrame("Frame", "AbilityTimelineFrame", UIParent, "BackdropTemplate")
-    frame:SetWidth(variables.otherSize)
-    frame:SetHeight(variables.travelSize)
-
+local function SetupEditModeSettings(frame)
     LibEditMode:AddFrame(frame, onPositionChanged, variables.position, "Ability Timeline")
+
+
+    local TextureSettings = {
+    }
+    for _, texName in ipairs(SharedMedia:List("background")) do
+        local texPath = SharedMedia:Fetch("background", texName) or ""
+        local display = ("|T%s:16:128|t %s"):format(tostring(texPath), texName)
+        table.insert(TextureSettings, {
+            text = display,
+            value = texName,
+            isRadio = false,
+        })
+    end
 
     LibEditMode:AddFrameSettings(frame, {
         {
@@ -225,6 +251,23 @@ local function Constructor()
             },
         },
         {
+            name = private.getLocalisation("TimelineTexture"),
+            desc = private.getLocalisation("TimelineTextureDescription"),
+            kind = LibEditMode.SettingType.Dropdown,
+
+            get = function(layoutName)
+                return private.db.profile.timeline_frame[layoutName].timeline_texture
+            end,
+            set = function(layoutName, value)
+                private.db.profile.timeline_frame[layoutName].timeline_texture = value
+                SetBackDrop(private.TIMELINE_FRAME.frame, value)
+            end,
+            default = variables.timelineTexture,
+            height = 300,
+            values = TextureSettings,
+
+        },
+        {
             name = private.getLocalisation("TimelineOtherSize"),
             desc = private.getLocalisation("TimelineOtherSizeDescription"),
             kind = LibEditMode.SettingType.Slider,
@@ -285,15 +328,18 @@ local function Constructor()
         --     },
         -- }
     })
+end
+
+
+local function Constructor()
+    local count = AceGUI:GetNextWidgetNum(Type)
+    local frame = CreateFrame("Frame", "AbilityTimelineFrame", UIParent, "BackdropTemplate")
+    frame:SetWidth(variables.otherSize)
+    frame:SetHeight(variables.travelSize)
 
     frame:SetFrameStrata("BACKGROUND")
-    frame:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        tile = true,
-        tileSize = 32,
-        edgeSize = 32,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 }
-    })
+    SetupEditModeSettings(frame)
+    SetBackDrop(frame, variables.timelineTexture)
     frame:SetBackdropColor(0, 0, 0, 1)
     frame.Ticks = {}
     frame:Hide()
@@ -307,6 +353,7 @@ local function Constructor()
         frame = frame,
         HandleTicks = HandleTicks,
         GetMoveSize = GetMoveSize,
+        SetBackDrop = SetBackDrop,
         HandleSizeChanges = HandleSizeChanges,
     }
 
