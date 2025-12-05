@@ -28,6 +28,7 @@ embeds.xml
 Util\Debug.lua
 Util\EditMode.lua
 Util\ModernizeSettings.lua
+Util\Tooltip.lua
 
 # Locales
 Locales\enUS.lua
@@ -56,6 +57,7 @@ Templates\AtBigIconFrame.lua
 Templates\AtTextHighlightFrame.lua
 Templates\AtBigIcon.lua
 Templates\AtTextHighlight.lua
+Templates\AtSpellIconSettingsFrame.lua
 
 #data
 Data\encounters.lua
@@ -68,6 +70,7 @@ Plugins\SoundAlert.lua
 # Core
 Options\Options.lua
 Options\TimingEditor.lua
+Options\SpellIconsSettings.lua
 Main.lua
 AbilityTimeline.lua
 

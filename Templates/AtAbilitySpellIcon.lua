@@ -41,11 +41,21 @@ local handleTextAnchor   = function(self, isStopped)
 		anchorPos = private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
 	end
 	if relPos == 'LEFT' then
-		xOffset = variables.TextOffset.x
-		yOffset = variables.TextOffset.y
+		if private.db.profile.icon_settings and private.db.profile.icon_settings.TextOffset then
+			xOffset = private.db.profile.icon_settings.TextOffset.x
+			yOffset = private.db.profile.icon_settings.TextOffset.y
+		else
+			xOffset = variables.TextOffset.x
+			yOffset = variables.TextOffset.y
+		end
 	else
-		xOffset = -variables.TextOffset.x
-		yOffset = -variables.TextOffset.y
+		if private.db.profile.icon_settings and private.db.profile.icon_settings.TextOffset then
+			xOffset = - private.db.profile.icon_settings.TextOffset.x
+			yOffset = - private.db.profile.icon_settings.TextOffset.y
+		else
+			xOffset = - variables.TextOffset.x
+			yOffset = - variables.TextOffset.y
+		end
 	end
 	self.SpellName:SetPoint(relPos, self, anchorPos, xOffset, yOffset)
 end
@@ -209,7 +219,8 @@ end
 ---Sets the event info and all associated handling for an icon
 ---@param self AtAbilitySpellIcon
 ---@param eventInfo EncounterTimelineEventInfo
-local SetEventInfo          = function(self, eventInfo)
+---@param disableOnUpdate boolean -- if true, the OnUpdate script will not be set
+local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	self.frame.eventInfo = eventInfo
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
 	if not self.frame.SpellIcon.zoomApplied then
@@ -225,63 +236,79 @@ local SetEventInfo          = function(self, eventInfo)
 
 	-- OnUpdate we want to update the position of the icon based on elapsed time
 	self.frame.frameIsMoving = false
-	self.frame:SetScript("OnUpdate", function(self)
-		local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(self.eventInfo.id)
-		local timeRemaining = C_EncounterTimeline.GetEventTimeRemaining(self.eventInfo.id)
-		local state = fixStateForBlocked(self.eventInfo.id, self.eventInfo.duration, timeElapsed, timeRemaining)
-		local isStopped = isStoppedForPosition(state)
-		if not timeElapsed or timeElapsed < 0 then timeElapsed = self.eventInfo.duration end
-		if not timeRemaining or timeRemaining < 0 then timeRemaining = 0 end
-		if state ~= self.state then
-			self.state = state
-			handleTextAnchor(self, isStopped)
-		elseif state == private.ENCOUNTER_STATES.Paused then
-			return
-		end
+	if not disableOnUpdate then
+		self.frame:SetScript("OnUpdate", function(self)
+			local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(self.eventInfo.id)
+			local timeRemaining = C_EncounterTimeline.GetEventTimeRemaining(self.eventInfo.id)
+			local state = fixStateForBlocked(self.eventInfo.id, self.eventInfo.duration, timeElapsed, timeRemaining)
+			local isStopped = isStoppedForPosition(state)
+			if not timeElapsed or timeElapsed < 0 then timeElapsed = self.eventInfo.duration end
+			if not timeRemaining or timeRemaining < 0 then timeRemaining = 0 end
+			self.isStopped = isStopped
+			if state ~= self.state then
+				self.state = state
+				handleTextAnchor(self, isStopped)
+			elseif state == private.ENCOUNTER_STATES.Paused then
+				return
+			end
 
-		local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, private.TIMELINE_FRAME:GetMoveSize(),
-			isStopped)
-		if self.frameIsMoving ~= isMoving then
-			if isMoving then
-				--self.TrailAnimation:Play()
-				--self.HighlightAnimation:Play()
+			local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, private.TIMELINE_FRAME:GetMoveSize(),
+				isStopped)
+			if self.frameIsMoving ~= isMoving then
+				if isMoving then
+					--self.TrailAnimation:Play()
+					--self.HighlightAnimation:Play()
+				else
+					--self.TrailAnimation:Stop()
+				end
+				self.frameIsMoving = isMoving
+			end
+			if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
+				self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "LEFT", xPos, yPos)
 			else
-				--self.TrailAnimation:Stop()
+				self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "BOTTOM", xPos, yPos)
 			end
-			self.frameIsMoving = isMoving
-		end
-		if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
-			self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "LEFT", xPos, yPos)
-		else
-			self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "BOTTOM", xPos, yPos)
-		end
-		for tick, time in ipairs(private.TIMELINE_TICKS) do
-			local inRange = (eventInfo.duration - timeElapsed - time)
-			if inRange < 0.01 and inRange > -0.01 then -- this is not gonna work if fps are to low
-				-- self.IconContainer.HighlightAnimation:Play()
-				PlayHighlight(self)
+			for tick, time in ipairs(private.TIMELINE_TICKS) do
+				local inRange = (eventInfo.duration - timeElapsed - time)
+				if inRange < 0.01 and inRange > -0.01 then -- this is not gonna work if fps are to low
+					-- self.IconContainer.HighlightAnimation:Play()
+					PlayHighlight(self)
+				end
 			end
-		end
 
-		for time, color in pairs(private.TIMER_COLORS) do
-			-- TODO this requires some refactor of how we display cooldowns to actually use a fontstring we can change the color for
-			if (timeRemaining <= time) then
-				--self.Cooldown:SetTextColor(color[1], color[2], color[3])
-				break
+			for time, color in pairs(private.TIMER_COLORS) do
+				-- TODO this requires some refactor of how we display cooldowns to actually use a fontstring we can change the color for
+				if (timeRemaining <= time) then
+					--self.Cooldown:SetTextColor(color[1], color[2], color[3])
+					break
+				end
 			end
-		end
-		local inBigIconRange = (eventInfo.duration - timeElapsed - BIGICON_THRESHHOLD_TIME)
-		if inBigIconRange < 0.01 and inBigIconRange > -0.01 then -- this is not gonna work if fps are to low
-			private.TRIGGER_HIGHLIGHT(self.eventInfo)
-		end
-	end)
+			local inBigIconRange = (eventInfo.duration - timeElapsed - BIGICON_THRESHHOLD_TIME)
+			if inBigIconRange < 0.01 and inBigIconRange > -0.01 then -- this is not gonna work if fps are to low
+				private.TRIGGER_HIGHLIGHT(self.eventInfo)
+			end
+		end)
+	end
 	self.frame:Show()
 end
 
+local function ApplySettings(self)
+	-- Apply settings to the icon
+	if private.db.profile.icon_settings and private.db.profile.icon_settings.size then
+		self.frame:SetSize(private.db.profile.icon_settings.size, private.db.profile.icon_settings.size)
+	else
+		self.frame:SetSize(variables.IconSize.width, variables.IconSize.height)
+	end
+
+	if private.db.profile.icon_settings and private.db.profile.icon_settings.textMargin then
+		handleTextAnchor(self.frame, self.isStopped)
+	end
+end
 
 ---@param self AtAbilitySpellIcon
 local function OnAcquire(self)
 	private.Debug(self.frame, "AT_ABILITY_SPELL_ICON_FRAME_ACQUIRED")
+	ApplySettings(self)
 end
 
 
@@ -299,7 +326,6 @@ local function Constructor()
 	local count = AceGUI:GetNextWidgetNum(Type)
 	local frame = CreateFrame("Frame", Type .. count, UIParent)
 	frame:Show()
-	frame:SetSize(variables.IconSize.width, variables.IconSize.height)
 
 	-- spell icon
 	frame.SpellIcon = frame:CreateTexture(nil, "BACKGROUND")
@@ -345,6 +371,7 @@ local function Constructor()
 		frame = frame,
 		eventInfo = {},
 		SetEventInfo = SetEventInfo,
+		ApplySettings = ApplySettings,
 	}
 
 	return AceGUI:RegisterAsWidget(widget)

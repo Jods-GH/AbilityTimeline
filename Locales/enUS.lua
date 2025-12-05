@@ -20,6 +20,18 @@ if L then
     L['useAudioCountdownsDescription'] = "Enables audio countdowns of the last 5 seconds for upcoming events."
     L['enableKeyRerollTimer'] = "Enable Key Reroll Timer"
     L['enableKeyRerollTimerDescription'] = "Enables a timer for you to reroll your Mythic+ key after completing a dungeon."
+    L['TestIcon'] = "Test Icon"
+
+
+    --spell icon editor
+    L["IconSize"] = "Icon Size"
+    L["IconSizeDescription"] = "Sets the size of the spell icon."
+    L["TextOffsetX"] = "Text Offset X"
+    L["TextOffsetXDescription"] = "Sets the X offset of the text relative to the icon."
+    L["TextOffsetY"] = "Text Offset Y"
+    L["TextOffsetYDescription"] = "Sets the Y offset of the text relative to the icon."
+    L["SpellIconSettings"] = "Spell Icon Settings"
+    L["IconPreview"] = "Icon Preview"
 
     --edit mode
     L["EnableBigIcon"] = "Enable Big Icon"

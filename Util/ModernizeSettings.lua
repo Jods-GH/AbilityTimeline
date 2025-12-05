@@ -1,6 +1,4 @@
 local addonName, private = ...
-local LibEditMode = LibStub("LibEditMode")
-
 
 private.modernize = function()
     if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].height then
@@ -9,5 +7,14 @@ private.modernize = function()
     end
     if not private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].otherSize then
         private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].otherSize = private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].width
+    end
+    if not private.db.profile.icon_settings then
+        private.db.profile.icon_settings = {}
+    end
+    if not private.db.profile.icon_settings.size then
+        private.db.profile.icon_settings.size = 44
+    end
+    if not private.db.profile.icon_settings.TextOffset then
+        private.db.profile.icon_settings.TextOffset = { x = 10, y = 0 }
     end
 end
