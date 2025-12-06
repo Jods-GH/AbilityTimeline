@@ -32,6 +32,10 @@ if L then
     L["TextOffsetYDescription"] = "Sets the Y offset of the text relative to the icon."
     L["SpellIconSettings"] = "Spell Icon Settings"
     L["IconPreview"] = "Icon Preview"
+    L["SpellnameFontSize"] = "Font Size"
+    L["SpellnameFontSizeDescription"] = "Sets the font size of the text besides the icon."
+    L["SpellnameFont"] = "Font"
+    L["SpellnameFontDescription"] = "Sets the font of the text besides the icon."
 
     --edit mode
     L["EnableBigIcon"] = "Enable Big Icon"

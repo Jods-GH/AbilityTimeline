@@ -17,4 +17,13 @@ private.modernize = function()
     if not private.db.profile.icon_settings.TextOffset then
         private.db.profile.icon_settings.TextOffset = { x = 10, y = 0 }
     end
+    if not private.db.profile.text_settings then
+        private.db.profile.text_settings = {}
+    end
+    if not private.db.profile.text_settings.fontSize then
+        private.db.profile.text_settings.fontSize = 14
+    end
+    if not private.db.profile.text_settings.font then
+        private.db.profile.text_settings.font = "Friz Quadrata TT"
+    end
 end

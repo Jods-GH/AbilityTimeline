@@ -1,6 +1,7 @@
 local addonName, private = ...
 local AceGUI = LibStub("AceGUI-3.0")
 local CustomGlow = LibStub("LibCustomGlow-1.0")
+local SharedMedia = LibStub("LibSharedMedia-3.0")
 local Type = "AtAbilitySpellIcon"
 local Version = 1
 local variables = {
@@ -299,9 +300,13 @@ local function ApplySettings(self)
 	else
 		self.frame:SetSize(variables.IconSize.width, variables.IconSize.height)
 	end
-
-	if private.db.profile.icon_settings and private.db.profile.icon_settings.textMargin then
+	if private.db.profile.icon_settings and private.db.profile.icon_settings.TextOffset then
 		handleTextAnchor(self.frame, self.isStopped)
+	end
+	if private.db.profile.text_settings and private.db.profile.text_settings.font and private.db.profile.text_settings.fontSize then
+		self.frame.SpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.text_settings.font), private.db.profile.text_settings.fontSize)
+	elseif private.db.profile.text_settings and private.db.profile.text_settings.fontSize then
+		self.frame.SpellName:SetFontHeight(private.db.profile.text_settings.fontSize)
 	end
 end
 
