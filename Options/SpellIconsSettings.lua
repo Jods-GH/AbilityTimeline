@@ -19,9 +19,13 @@ local createSpellIconSettingsFrame = function()
         paused = false
     }
     widget:SetEventInfo(eventInfo, true)
-    widget.frame:SetScript("OnUpdate", nil) -- remove move code
-    widget.frame.Cooldown:SetScript("OnCooldownDone", function()
-        widget.frame.Cooldown:SetCooldown(GetTime(), eventInfo.duration)
+    widget.startTime = GetTime()
+    widget.duration = 15
+    widget.frame:SetScript("OnUpdate", function() 
+        if widget.startTime + widget.duration < GetTime() then
+            widget.startTime = GetTime()
+        end
+        widget.HandleCooldown(widget.frame, math.ceil((widget.startTime + widget.duration) - GetTime()))
     end) -- loop cooldown display
     widget.frame:Show()
     widget.frame:SetFrameStrata("DIALOG")

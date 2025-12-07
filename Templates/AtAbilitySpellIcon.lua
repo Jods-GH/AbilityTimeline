@@ -51,11 +51,11 @@ local handleTextAnchor   = function(self, isStopped)
 		end
 	else
 		if private.db.profile.icon_settings and private.db.profile.icon_settings.TextOffset then
-			xOffset = - private.db.profile.icon_settings.TextOffset.x
-			yOffset = - private.db.profile.icon_settings.TextOffset.y
+			xOffset = -private.db.profile.icon_settings.TextOffset.x
+			yOffset = -private.db.profile.icon_settings.TextOffset.y
 		else
-			xOffset = - variables.TextOffset.x
-			yOffset = - variables.TextOffset.y
+			xOffset = -variables.TextOffset.x
+			yOffset = -variables.TextOffset.y
 		end
 	end
 	self.SpellName:SetPoint(relPos, self, anchorPos, xOffset, yOffset)
@@ -89,7 +89,7 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 	else
 		if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
 			timelineMainPosition = moveHeight - ((remainingDuration) / private.AT_THRESHHOLD_TIME) * moveHeight -
-			(iconSize / 2)
+				(iconSize / 2)
 			isMoving = true
 		else
 			timelineMainPosition = ((remainingDuration) / private.AT_THRESHHOLD_TIME) * moveHeight + (iconSize / 2)
@@ -217,11 +217,31 @@ local PlayHighlight         = function(self)
 		CustomGlow.ProcGlow_Stop(self)
 	end)
 end
+---Handles the cooldown display for a given frame (the frame needs to be the frame of a AtAbilitySpellIcon widget)
+---@param self frame
+---@param remainingTime number
+local HandleCooldown        = function(self, remainingTime)
+	local roundedTime = math.ceil(remainingTime)
+	if roundedTime <= 0 then
+		self.Cooldown:SetText("")
+		return
+	end
+	self.Cooldown:SetText(roundedTime)
+	for time, color in pairs(private.TIMER_COLORS) do
+		if (remainingTime <= time) then
+			self.Cooldown:SetTextColor(color[1], color[2], color[3])
+			return
+		end
+	end
+	self.Cooldown:SetTextColor(1, 1, 1)
+end
+
+
 ---Sets the event info and all associated handling for an icon
 ---@param self AtAbilitySpellIcon
 ---@param eventInfo EncounterTimelineEventInfo
 ---@param disableOnUpdate boolean -- if true, the OnUpdate script will not be set
-local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
+local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 	self.frame.eventInfo = eventInfo
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
 	if not self.frame.SpellIcon.zoomApplied then
@@ -233,7 +253,6 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	else
 		self.frame.SpellName:SetText(eventInfo.spellName)
 	end
-	self.frame.Cooldown:SetCooldown(GetTime(), eventInfo.duration)
 
 	-- OnUpdate we want to update the position of the icon based on elapsed time
 	self.frame.frameIsMoving = false
@@ -252,6 +271,8 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 			elseif state == private.ENCOUNTER_STATES.Paused then
 				return
 			end
+
+			HandleCooldown(self, timeRemaining)
 
 			local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, private.TIMELINE_FRAME:GetMoveSize(),
 				isStopped)
@@ -277,13 +298,6 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 				end
 			end
 
-			for time, color in pairs(private.TIMER_COLORS) do
-				-- TODO this requires some refactor of how we display cooldowns to actually use a fontstring we can change the color for
-				if (timeRemaining <= time) then
-					--self.Cooldown:SetTextColor(color[1], color[2], color[3])
-					break
-				end
-			end
 			local inBigIconRange = (eventInfo.duration - timeElapsed - BIGICON_THRESHHOLD_TIME)
 			if inBigIconRange < 0.01 and inBigIconRange > -0.01 then -- this is not gonna work if fps are to low
 				private.TRIGGER_HIGHLIGHT(self.eventInfo)
@@ -304,10 +318,13 @@ local function ApplySettings(self)
 		handleTextAnchor(self.frame, self.isStopped)
 	end
 	if private.db.profile.text_settings and private.db.profile.text_settings.font and private.db.profile.text_settings.fontSize then
-		self.frame.SpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.text_settings.font), private.db.profile.text_settings.fontSize)
+		self.frame.SpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.text_settings.font),
+			private.db.profile.text_settings.fontSize)
 	elseif private.db.profile.text_settings and private.db.profile.text_settings.fontSize then
 		self.frame.SpellName:SetFontHeight(private.db.profile.text_settings.fontSize)
 	end
+	self.frame.Cooldown:SetTextHeight(20)
+	self.frame.Cooldown:SetFont("fonts/frizqt__.ttf", 20, "OUTLINE")
 end
 
 ---@param self AtAbilitySpellIcon
@@ -361,11 +378,9 @@ local function Constructor()
 	handleTextAnchor(frame, false)
 	frame.SpellName:Show()
 	-- cooldown
-	frame.Cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
-	frame.Cooldown:SetDrawSwipe(false)
-	frame.Cooldown:SetDrawEdge(false)
+	frame.Cooldown = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
 	frame.Cooldown:SetAllPoints(frame)
-	frame.Cooldown:Show()
+
 
 	---@class AtAbilitySpellIcon : AceGUIWidget
 	local widget = {
@@ -377,6 +392,7 @@ local function Constructor()
 		eventInfo = {},
 		SetEventInfo = SetEventInfo,
 		ApplySettings = ApplySettings,
+		HandleCooldown = HandleCooldown,
 	}
 
 	return AceGUI:RegisterAsWidget(widget)
