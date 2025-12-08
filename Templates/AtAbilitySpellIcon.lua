@@ -227,13 +227,24 @@ local HandleCooldown        = function(self, remainingTime)
 		return
 	end
 	self.Cooldown:SetText(roundedTime)
-	for time, color in pairs(private.TIMER_COLORS) do
-		if (remainingTime <= time) then
-			self.Cooldown:SetTextColor(color[1], color[2], color[3])
-			return
+	if private.db.profile.cooldown_settings.color_highlight and private.db.profile.cooldown_settings.color_highlight.enabled then
+		for _,value in pairs(private.db.profile.cooldown_settings.color_highlight.highlights) do
+			local time, color = value.time, value.color
+			if (remainingTime <= time) then
+				self.Cooldown:SetTextColor(color.r, color.g, color.b)
+				return
+			end
 		end
 	end
-	self.Cooldown:SetTextColor(1, 1, 1)
+	if private.db.profile.cooldown_settings.cooldown_color then
+		self.Cooldown:SetTextColor(
+			private.db.profile.cooldown_settings.cooldown_color.r,
+			private.db.profile.cooldown_settings.cooldown_color.g,
+			private.db.profile.cooldown_settings.cooldown_color.b
+		)
+	else
+		self.Cooldown:SetTextColor(1, 1, 1)
+	end
 end
 
 
@@ -319,12 +330,25 @@ local function ApplySettings(self)
 	end
 	if private.db.profile.text_settings and private.db.profile.text_settings.font and private.db.profile.text_settings.fontSize then
 		self.frame.SpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.text_settings.font),
-			private.db.profile.text_settings.fontSize)
+			private.db.profile.text_settings.fontSize, "OUTLINE")
 	elseif private.db.profile.text_settings and private.db.profile.text_settings.fontSize then
 		self.frame.SpellName:SetFontHeight(private.db.profile.text_settings.fontSize)
 	end
-	self.frame.Cooldown:SetTextHeight(20)
-	self.frame.Cooldown:SetFont("fonts/frizqt__.ttf", 20, "OUTLINE")
+
+	if private.db.profile.cooldown_settings and private.db.profile.cooldown_settings.font and private.db.profile.cooldown_settings.fontSize then
+		self.frame.Cooldown:SetFont(SharedMedia:Fetch("font", private.db.profile.cooldown_settings.font),
+			private.db.profile.cooldown_settings.fontSize, "OUTLINE")
+	elseif private.db.profile.cooldown_settings and private.db.profile.cooldown_settings.fontSize then
+		self.frame.Cooldown:SetFontHeight(private.db.profile.cooldown_settings.fontSize)
+	end
+
+	if  private.db.profile.text_settings and  private.db.profile.text_settings.defaultColor then
+		self.frame.SpellName:SetTextColor(
+			private.db.profile.text_settings.defaultColor.r,
+			private.db.profile.text_settings.defaultColor.g,
+			private.db.profile.text_settings.defaultColor.b
+		)
+	end
 end
 
 ---@param self AtAbilitySpellIcon
@@ -379,7 +403,7 @@ local function Constructor()
 	frame.SpellName:Show()
 	-- cooldown
 	frame.Cooldown = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-	frame.Cooldown:SetAllPoints(frame)
+	frame.Cooldown:SetPoint("CENTER", frame, "CENTER")
 
 
 	---@class AtAbilitySpellIcon : AceGUIWidget

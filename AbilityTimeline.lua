@@ -12,10 +12,6 @@ end
 private.TIMELINE_TICKS                         = { 5 }
 private.AT_THRESHHOLD                          = 0.8
 private.AT_THRESHHOLD_TIME                     = 10
-private.TIMER_COLORS = {
-   [3] = {1, 0, 0},
-   [5] = {1, 1, 0},
-}
 
 BIGICON_THRESHHOLD_TIME    = 5
 

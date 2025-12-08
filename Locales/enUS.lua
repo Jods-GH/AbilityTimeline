@@ -24,7 +24,10 @@ if L then
 
 
     --spell icon editor
+    L["GeneralSettings"] = "General Settings"
     L["IconSize"] = "Icon Size"
+
+    L['TextSettings'] = "Text Settings"
     L["IconSizeDescription"] = "Sets the size of the spell icon."
     L["TextOffsetX"] = "Text Offset X"
     L["TextOffsetXDescription"] = "Sets the X offset of the text relative to the icon."
@@ -36,6 +39,25 @@ if L then
     L["SpellnameFontSizeDescription"] = "Sets the font size of the text besides the icon."
     L["SpellnameFont"] = "Font"
     L["SpellnameFontDescription"] = "Sets the font of the text besides the icon."
+
+    L["CooldownSettings"] = "Cooldown Settings"
+    L["CooldownFont"] = "Cooldown Font"
+    L["CooldownFontDescription"] = "Sets the font of the cooldown text on the icon."
+    L["CooldownFontSize"] = "Cooldown Font Size"
+    L["CooldownFontSizeDescription"] = "Sets the font size of the cooldown text on the icon."
+    L["EnableCooldownColorChanges"] = "Color Changes"
+    L["EnableCooldownColorChangesDescription"] = "Enables color changes of the cooldown text based on remaining time."
+    L["CooldownColorChangeColor"] = "Color"
+    L["CooldownColorChangeColorDescription"] = "Sets the color of the cooldown text when this timing is reached."
+    L["CooldownColorChangesDescription"] = "Sets the color changes of the cooldown text based on remaining time."
+    L["CooldownColorChangeTiming"] = "Timing"
+    L["CooldownColorChangeTimingDescription"] = "Sets the timing (in seconds) when this color change should occur."
+    L["CooldownColorChanges"] = "Cooldown Color Changes"
+    L["DefaultCooldownColor"] = "Cooldown Color"
+    L["RemoveCooldownColorChangeTooltip"] = "Removes this cooldown color change."
+    L["AddCooldownColorChangeTooltip"] = "Adds a new cooldown color change."
+
+
 
     --edit mode
     L["EnableBigIcon"] = "Enable Big Icon"
@@ -60,6 +82,7 @@ if L then
     L["TextAnchorRight"] = "Right"
     L["TimelineTexture"] = "Timeline Texture"
     L["TimelineTextureDescription"] = "Sets the texture of the timeline background."
+    L["OpenIconEditor"] = "Edit Icons"
 
     -- errors
     L["InvalidTextPosition"] = "Invalid text anchor position please alert the author."
