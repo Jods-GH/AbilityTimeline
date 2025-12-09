@@ -1,6 +1,5 @@
 local addonName, private = ...
 local AceGUI = LibStub("AceGUI-3.0")
-local CustomGlow = LibStub("LibCustomGlow-1.0")
 local SharedMedia = LibStub("LibSharedMedia-3.0")
 local Type = "AtAbilitySpellIcon"
 local Version = 1
@@ -212,10 +211,7 @@ end
 ---Plays a short highlight animation
 ---@param self Frame
 local PlayHighlight         = function(self)
-	CustomGlow.ProcGlow_Start(self)
-	C_Timer.After(0.5, function()
-		CustomGlow.ProcGlow_Stop(self)
-	end)
+	private.EnableGlow(self, private.GlowTypes.PROC, 0.5)
 end
 ---Handles the cooldown display for a given frame (the frame needs to be the frame of a AtAbilitySpellIcon widget)
 ---@param self frame
@@ -227,11 +223,14 @@ local HandleCooldown        = function(self, remainingTime)
 		return
 	end
 	self.Cooldown:SetText(roundedTime)
-	if private.db.profile.cooldown_settings.color_highlight and private.db.profile.cooldown_settings.color_highlight.enabled then
-		for _,value in pairs(private.db.profile.cooldown_settings.color_highlight.highlights) do
+	if private.db.profile.cooldown_settings.cooldown_highlight and private.db.profile.cooldown_settings.cooldown_highlight.enabled then
+		for _,value in pairs(private.db.profile.cooldown_settings.cooldown_highlight.highlights) do
 			local time, color = value.time, value.color
 			if (remainingTime <= time) then
 				self.Cooldown:SetTextColor(color.r, color.g, color.b)
+				if value.useGlow then
+					private.EnableGlow(self, value.glowType, time, value.glowColor)
+				end
 				return
 			end
 		end
@@ -255,10 +254,6 @@ end
 local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 	self.frame.eventInfo = eventInfo
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
-	if not self.frame.SpellIcon.zoomApplied then
-		private.SetZoom(self.frame.SpellIcon, variables.IconZoom)
-		self.frame.SpellIcon.zoomApplied = true
-	end
 	if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
 		self.frame.SpellName:SetText("")
 	else
@@ -348,6 +343,14 @@ local function ApplySettings(self)
 			private.db.profile.text_settings.defaultColor.g,
 			private.db.profile.text_settings.defaultColor.b
 		)
+	end
+
+	if not self.frame.SpellIcon.zoomApplied or self.frame.SpellIcon.zoomApplied ~= (1-private.db.profile.icon_settings.zoom) then
+		if self.frame.SpellIcon.zoomApplied then
+			private.ResetZoom(self.frame.SpellIcon)
+		end
+		private.SetZoom(self.frame.SpellIcon, 1-private.db.profile.icon_settings.zoom)
+		self.frame.SpellIcon.zoomApplied = 1-private.db.profile.icon_settings.zoom
 	end
 end
 

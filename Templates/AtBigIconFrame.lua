@@ -13,9 +13,9 @@ local variables = {
 }
 private.BigIcon = {}
 private.BigIcon.defaultPosition = {
-    point = 'CENTER',
-    x = 0,
-    y = 0,
+    point = 'RIGHT',
+    y = -200,
+    x = -280,
 }
 
 ---@param self AtBigIconFrame

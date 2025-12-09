@@ -66,6 +66,7 @@ Data\encounters.lua
 Plugins\TextHighlight.lua
 Plugins\BigIcon.lua
 Plugins\SoundAlert.lua
+Plugins\Glow.lua
 
 # Core
 Options\Options.lua

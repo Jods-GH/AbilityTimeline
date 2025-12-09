@@ -132,6 +132,10 @@ private.GetZoom = function(icon, zoom)
    return nULx, nULy, nLLx, nLLy, nURx, nURy, nLRx, nLRy
 end
 
+private.ResetZoom = function(icon)
+   icon:SetTexCoord(0, 1, 0, 1)
+end
+
 private.SetZoom = function(icon, zoom)
    local nULx, nULy, nLLx, nLLy, nURx, nURy, nLRx, nLRy = private.GetZoom(icon, zoom)
    icon:SetTexCoord(nULx, nULy, nLLx, nLLy, nURx, nURy, nLRx, nLRy)

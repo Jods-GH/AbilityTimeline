@@ -16,11 +16,19 @@ private.modernize = function()
         private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].otherSize = private.db.profile.timeline_frame
         [private.ACTIVE_EDITMODE_LAYOUT].width
     end
+
+    if not private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction then
+        private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction = private.TIMELINE_DIRECTIONS.VERTICAL
+    end
+
     if not private.db.profile.icon_settings then
         private.db.profile.icon_settings = {}
     end
     if not private.db.profile.icon_settings.size then
         private.db.profile.icon_settings.size = 44
+    end
+    if not private.db.profile.icon_settings.zoom then
+        private.db.profile.icon_settings.zoom = 0.3
     end
     if not private.db.profile.icon_settings.TextOffset then
         private.db.profile.icon_settings.TextOffset = { x = 10, y = 0 }
@@ -58,23 +66,29 @@ private.modernize = function()
         }
     end
 
-    if not private.db.profile.cooldown_settings.color_highlight then
-        private.db.profile.cooldown_settings.color_highlight = {}
+    if not private.db.profile.cooldown_settings.cooldown_highlight then
+        private.db.profile.cooldown_settings.cooldown_highlight = {}
     end
 
-    if not private.db.profile.cooldown_settings.color_highlight.enabled then
-        private.db.profile.cooldown_settings.color_highlight.enabled = true
+    if not private.db.profile.cooldown_settings.cooldown_highlight.enabled then
+        private.db.profile.cooldown_settings.cooldown_highlight.enabled = true
     end
 
-    if not private.db.profile.cooldown_settings.color_highlight.highlights then
-        private.db.profile.cooldown_settings.color_highlight.highlights = {
+    if not private.db.profile.cooldown_settings.cooldown_highlight.highlights then
+        private.db.profile.cooldown_settings.cooldown_highlight.highlights = {
             {
                 time = 3,
                 color = { r = 1, g = 0, b = 0 },
+                useGlow = false,
+                glowType = private.GlowTypes.PROC,
+                glowColor = {r= 0.95, g= 0.95, b= 0.32, a= 1 },
             },
             {
                 time = 5,
                 color = { r = 1, g = 1, b = 0 },
+                useGlow = false,
+                glowType = private.GlowTypes.PROC,
+                glowColor = {r= 0.95, g= 0.95, b= 0.32, a= 1 },
             },
         }
     end

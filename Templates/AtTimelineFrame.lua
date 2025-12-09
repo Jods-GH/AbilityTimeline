@@ -9,12 +9,12 @@ local variables             = {
     travelSize = 500,
     inverse_travel_direction = false,
     ticks_enabled = true,
+    timelineTexture = "Blizzard Dialog Background",
     position = {
         point = 'CENTER',
-        x = 0,
-        y = 0,
+        y = 110,
+        x = 410,
     },
-    timelineTexture = "Blizzard Dialog Background"
 }
 private.TIMELINE_DIRECTIONS = {
     VERTICAL = "VERTICAL",
@@ -62,8 +62,14 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.profile.timeline_frame then
         private.db.profile.timeline_frame = {}
     end
-    if not private.db.profile.timeline_frame[layoutName] then
-        private.db.profile.timeline_frame[layoutName] = CopyTable(variables.position)
+    if not private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].point then
+        private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].point = variables.position.point
+    end
+    if not private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].x then
+        private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].x = variables.position.x
+    end
+    if not private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].y then
+        private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].y = variables.position.y
     end
     if not private.db.profile.timeline_frame[layoutName].ticks_enabled then
         private.db.profile.timeline_frame[layoutName].ticks_enabled = variables.ticks_enabled
@@ -240,7 +246,7 @@ local function SetupEditModeSettings(frame)
             values = {
                 {
                     text = private.getLocalisation("TravelDirectionVertical"),
-                    value = private.TIMELINE_DIRECTIONS.VERTICAL,
+                    value = private.TIMELINE_DIRECTIONS.VERTICAL, 
                     isRadio = true,
                 },
                 {

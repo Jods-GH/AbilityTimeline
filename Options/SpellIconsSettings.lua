@@ -5,13 +5,13 @@ local SharedMedia = LibStub("LibSharedMedia-3.0")
 
 local createGeneralSettings = function(widget)
     local scrollContainer = AceGUI:Create("SimpleGroup")
-    local group = AceGUI:Create("ScrollFrame")
+    local scroll = AceGUI:Create("ScrollFrame")
     scrollContainer:SetLayout("Fill") -- important!
     scrollContainer:SetFullWidth(true)
     scrollContainer:SetHeight(private.SPELL_ICON_SETTINGS_WINDOW.frame:GetHeight() - 100)
-    group:SetLayout("Flow")
-    group:SetFullWidth(true)
-    scrollContainer:AddChild(group)
+    scroll:SetLayout("Flow")
+    scroll:SetFullWidth(true)
+    scrollContainer:AddChild(scroll)
 
     local sizeSetting = AceGUI:Create("Slider")
     private.Debug(sizeSetting, "AT_SPELL_ICON_SETTINGS_SIZE_SETTING")
@@ -24,20 +24,33 @@ local createGeneralSettings = function(widget)
         private.db.profile.icon_settings.size = value
         widget:ApplySettings()
     end)
-    group:AddChild(sizeSetting)
+    scroll:AddChild(sizeSetting)
 
-    return group
+    local zoomSetting = AceGUI:Create("Slider")
+    zoomSetting:SetLabel(private.getLocalisation("IconZoom"))
+    private.AddFrameTooltip(zoomSetting.frame, "IconZoomDescription")
+    zoomSetting:SetSliderValues(0, 1, 0.01)
+    zoomSetting:SetIsPercent(true)
+    zoomSetting:SetValue(private.db.profile.icon_settings.zoom)
+
+    zoomSetting:SetCallback("OnValueChanged", function(_, _, value)
+        private.db.profile.icon_settings.zoom = value
+        widget:ApplySettings()
+    end)
+    scroll:AddChild(zoomSetting)
+
+    return scrollContainer
 end
 
 local createTextSettings = function(widget)
     local scrollContainer = AceGUI:Create("SimpleGroup")
-    local group = AceGUI:Create("ScrollFrame")
+    local scroll = AceGUI:Create("ScrollFrame")
     scrollContainer:SetLayout("Fill") -- important!
     scrollContainer:SetFullWidth(true)
     scrollContainer:SetHeight(private.SPELL_ICON_SETTINGS_WINDOW.frame:GetHeight() - 100)
-    group:SetLayout("Flow")
-    group:SetFullWidth(true)
-    scrollContainer:AddChild(group)
+    scroll:SetLayout("Flow")
+    scroll:SetFullWidth(true)
+    scrollContainer:AddChild(scroll)
 
     local textOffsetSettingX = AceGUI:Create("Slider")
     textOffsetSettingX:SetLabel(private.getLocalisation("TextOffsetX"))
@@ -49,7 +62,7 @@ local createTextSettings = function(widget)
         widget:ApplySettings()
     end)
     textOffsetSettingX:SetRelativeWidth(0.5)
-    group:AddChild(textOffsetSettingX)
+    scroll:AddChild(textOffsetSettingX)
 
 
     local textOffsetSettingY = AceGUI:Create("Slider")
@@ -62,7 +75,7 @@ local createTextSettings = function(widget)
         widget:ApplySettings()
     end)
     textOffsetSettingY:SetRelativeWidth(0.5)
-    group:AddChild(textOffsetSettingY)
+    scroll:AddChild(textOffsetSettingY)
 
     local fontSizeSetting = AceGUI:Create("Slider")
     fontSizeSetting:SetLabel(private.getLocalisation("SpellnameFontSize"))
@@ -74,7 +87,7 @@ local createTextSettings = function(widget)
         widget:ApplySettings()
     end)
     fontSizeSetting:SetRelativeWidth(0.5)
-    group:AddChild(fontSizeSetting)
+    scroll:AddChild(fontSizeSetting)
 
     local fontSetting = AceGUI:Create("Dropdown")
     fontSetting:SetText(private.db.profile.text_settings.font)
@@ -88,7 +101,7 @@ local createTextSettings = function(widget)
         widget:ApplySettings()
     end)
     fontSetting:SetRelativeWidth(0.5)
-    group:AddChild(fontSetting)
+    scroll:AddChild(fontSetting)
 
     local textDefaultColorSetting = AceGUI:Create("ColorPicker")
     textDefaultColorSetting:SetLabel(private.getLocalisation("SpellnameDefaultColor"))
@@ -103,9 +116,9 @@ local createTextSettings = function(widget)
         private.db.profile.text_settings.defaultColor.b = b
         widget:ApplySettings()
     end)
-    group:AddChild(textDefaultColorSetting)
+    scroll:AddChild(textDefaultColorSetting)
 
-    return group
+    return scrollContainer
 end
 
 
@@ -118,7 +131,7 @@ local handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, 
 handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, widget, cooldownColorChanges)
     parentGroup:ReleaseChildren()
     for i, value in pairs(cooldownColorChanges) do
-        local time, color = value.time, value.color
+        local time, color, useGlow, glowType, glowColor = value.time, value.color, value.useGlow, value.glowType, value.glowColor
         local group = AceGUI:Create("InlineGroup")
         group:SetLayout("Flow")
         group:SetFullWidth(true)
@@ -130,8 +143,8 @@ handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, widget
         removeChangeButton:SetRelativeWidth(0.1)
 
         removeChangeButton:SetCallback("OnClick", function()
-            table.remove(private.db.profile.cooldown_settings.color_highlight.highlights, i)
-            table.sort(private.db.profile.cooldown_settings.color_highlight.highlights,
+            table.remove(private.db.profile.cooldown_settings.cooldown_highlight.highlights, i)
+            table.sort(private.db.profile.cooldown_settings.cooldown_highlight.highlights,
                 function(a, b) return a.time < b.time end)
             createCooldownSubSettings(scrollContainer, widget)
         end)
@@ -148,7 +161,7 @@ handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, widget
             local valueNum = tonumber(valueStr)
             if valueNum then
                 value.time = valueNum
-                table.sort(private.db.profile.cooldown_settings.color_highlight.highlights,
+                table.sort(private.db.profile.cooldown_settings.cooldown_highlight.highlights,
                     function(a, b) return a.time < b.time end)
             else
                 timeSetting:SetText(time)
@@ -166,6 +179,41 @@ handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, widget
         colorPicker:SetCallback("OnValueChanged", function(_, _, r, g, b)
             value.color = { r = r, g = g, b = b }
         end)
+
+        local isGlowEnabled = AceGUI:Create("CheckBox")
+        isGlowEnabled:SetValue(useGlow)
+        isGlowEnabled:SetLabel(private.getLocalisation("EnableCooldownGlowChange"))
+        private.AddFrameTooltip(isGlowEnabled.frame, "EnableCooldownGlowChangeDescription")
+        isGlowEnabled:SetCallback("OnValueChanged", function(_, _, enabled)
+            value.useGlow = enabled
+        end)
+        group:AddChild(isGlowEnabled)
+
+        local glowTypeSetting = AceGUI:Create("Dropdown")
+        glowTypeSetting:SetLabel(private.getLocalisation("CooldownGlowType"))
+        private.AddFrameTooltip(glowTypeSetting.frame, "CooldownGlowTypeDescription")
+        glowTypeSetting:SetList(private.GlowTypes)
+        glowTypeSetting:SetValue(glowType)
+        glowTypeSetting:SetCallback("OnValueChanged", function(_, _, type)
+            value.glowType = type
+        end)
+        glowTypeSetting:SetRelativeWidth(0.5)
+        group:AddChild(glowTypeSetting)
+
+        local glowColorPicker = AceGUI:Create("ColorPicker")
+        private.AddFrameTooltip(glowColorPicker.frame, "CooldownGlowColorDescription")
+        glowColorPicker:SetLabel(private.getLocalisation("CooldownGlowColor"))
+        glowColorPicker:SetColor(glowColor.r, glowColor.g, glowColor.b, glowColor.a)
+        glowColorPicker:SetHasAlpha(true)
+        glowColorPicker:SetRelativeWidth(0.5)
+        glowColorPicker:SetCallback("OnValueChanged", function(_, _, r, g, b, a)
+            value.glowColor = { r = r, g = g, b = b, a = a }
+        end)
+        group:AddChild(glowColorPicker)
+
+
+
+        -- add all settings to container
         parentGroup:AddChild(group)
     end
     scrollContainer:DoLayout()
@@ -189,14 +237,14 @@ local addCooldownColorHighlightSettings = function(cooldownColorChangeGroup, scr
     cooldownColorChangeCreator:SetLayout("Flow")
 
     handleCooldownColorChangeOptions(cooldownColorChangeCreator, scroll, widget,
-        private.db.profile.cooldown_settings.color_highlight.highlights)
+        private.db.profile.cooldown_settings.cooldown_highlight.highlights)
 
     addChangeButton:SetCallback("OnClick", function()
-        table.insert(private.db.profile.cooldown_settings.color_highlight.highlights, {
+        table.insert(private.db.profile.cooldown_settings.cooldown_highlight.highlights, {
             time = 10,
-            color = { r = 1, g = 0, b = 0 }
+            color = private.db.profile.cooldown_settings.cooldown_color
         })
-        table.sort(private.db.profile.cooldown_settings.color_highlight.highlights,
+        table.sort(private.db.profile.cooldown_settings.cooldown_highlight.highlights,
             function(a, b) return a.time < b.time end)
         createCooldownSubSettings(scroll, widget)
     end)
@@ -247,16 +295,16 @@ createCooldownSubSettings = function(scroll, widget)
 
 
     local cooldownColorChangeToggle = AceGUI:Create("CheckBox")
-    cooldownColorChangeToggle:SetValue(private.db.profile.cooldown_settings.color_highlight.enabled)
-    cooldownColorChangeToggle:SetLabel(private.getLocalisation("EnableCooldownColorChanges"))
+    cooldownColorChangeToggle:SetValue(private.db.profile.cooldown_settings.cooldown_highlight.enabled)
+    cooldownColorChangeToggle:SetLabel(private.getLocalisation("EnableCooldownHighlight"))
+    private.AddFrameTooltip(cooldownColorChangeToggle.frame, "EnableCooldownHighlightDescription")
     cooldownColorChangeToggle:SetCallback("OnValueChanged", function(_, _, value)
-        private.db.profile.cooldown_settings.color_highlight.enabled = value
-        scroll:ReleaseChildren()
+        private.db.profile.cooldown_settings.cooldown_highlight.enabled = value
         createCooldownSubSettings(scroll, widget)
     end)
     cooldownColorChangeToggle:SetRelativeWidth(0.5)
     scroll:AddChild(cooldownColorChangeToggle)
-    if private.db.profile.cooldown_settings.color_highlight.enabled then
+    if private.db.profile.cooldown_settings.cooldown_highlight.enabled then
         local cooldownColorChangeGroup = AceGUI:Create("InlineGroup")
         cooldownColorChangeGroup:SetLayout("Flow")
         cooldownColorChangeGroup:SetFullWidth(true)
@@ -279,7 +327,7 @@ local createCooldownSettings = function(widget)
     -- TODO template this nonsense we should be getting arrested for this
     createCooldownSubSettings(scroll, widget)
 
-    return scroll
+    return scrollContainer
 end
 
 local createSpellIconSettingsFrame = function()

@@ -26,6 +26,9 @@ if L then
     --spell icon editor
     L["GeneralSettings"] = "General Settings"
     L["IconSize"] = "Icon Size"
+    L["IconSizeDescription"] = "Sets the size of the spell icon."
+    L["IconZoom"] = "Icon Zoom"
+    L["IconZoomDescription"] = "Sets the zoom level of the spell icon."
 
     L['TextSettings'] = "Text Settings"
     L["IconSizeDescription"] = "Sets the size of the spell icon."
@@ -39,14 +42,16 @@ if L then
     L["SpellnameFontSizeDescription"] = "Sets the font size of the text besides the icon."
     L["SpellnameFont"] = "Font"
     L["SpellnameFontDescription"] = "Sets the font of the text besides the icon."
+    L["SpellnameDefaultColor"] = "Default Text Color"
+    L["SpellnameDefaultColorDescription"] = "Sets the default color of the text besides the icon when not impacted by specific information like the type of debuff e.G. Poison."
 
     L["CooldownSettings"] = "Cooldown Settings"
     L["CooldownFont"] = "Cooldown Font"
     L["CooldownFontDescription"] = "Sets the font of the cooldown text on the icon."
     L["CooldownFontSize"] = "Cooldown Font Size"
     L["CooldownFontSizeDescription"] = "Sets the font size of the cooldown text on the icon."
-    L["EnableCooldownColorChanges"] = "Color Changes"
-    L["EnableCooldownColorChangesDescription"] = "Enables color changes of the cooldown text based on remaining time."
+    L["EnableCooldownHighlight"] = "Cooldown Changes"
+    L["EnableCooldownHighlightDescription"] = "Enables changes of the cooldown display based on remaining time."
     L["CooldownColorChangeColor"] = "Color"
     L["CooldownColorChangeColorDescription"] = "Sets the color of the cooldown text when this timing is reached."
     L["CooldownColorChangesDescription"] = "Sets the color changes of the cooldown text based on remaining time."
@@ -56,6 +61,12 @@ if L then
     L["DefaultCooldownColor"] = "Cooldown Color"
     L["RemoveCooldownColorChangeTooltip"] = "Removes this cooldown color change."
     L["AddCooldownColorChangeTooltip"] = "Adds a new cooldown color change."
+    L['CooldownGlowColorDescription'] = "Sets the glow color for this cooldown timing."
+    L['CooldownGlowColor'] = "Glow Color"
+    L['EnableCooldownGlowChange'] = "Enable Glow"
+    L['EnableCooldownGlowChangeDescription'] = "Enables glow effect for this cooldown timing."
+    L['CooldownGlowType'] = "Glow Type"
+    L['CooldownGlowTypeDescription'] = "Sets the glow type for this cooldown timing."
 
 
 
