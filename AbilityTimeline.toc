@@ -60,7 +60,7 @@ Templates\AtTextHighlight.lua
 Templates\AtSpellIconSettingsFrame.lua
 
 #data
-Data\encounters.lua
+Data\encounters.xml
 
 #plugins
 Plugins\TextHighlight.lua

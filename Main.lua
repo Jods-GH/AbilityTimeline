@@ -132,6 +132,7 @@ end
 function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, difficultyID, groupSize, playerDifficultyID)
     -- createTestBars(15)
     private.Debug("Encounter started: " .. encounterName)
+    private.createReminders(encounterID)
 end
 
 function AbilityTimeline:READY_CHECK(event, initiatorName, readyCheckTimeLeft)
