@@ -9,6 +9,8 @@ import requests
 from typing import Dict, List, Optional, Iterable
 from pathlib import Path
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
+
 
 # --- Configuration ---
 BLIZZARD_CLIENT_ID = os.getenv("BLIZZARD_CLIENT_ID")
@@ -20,7 +22,8 @@ BLIZZARD_NAMESPACE = "dynamic-us"
 RAIDEROI_API_URL = "https://raider.io/api/v1/mythic-plus/static-data?expansion_id=11" # Midnight needs adjustment when new expac releases
 WAGO_CSV_URL = "https://wago.tools/db2/JournalEncounter/csv"
 
-OUTPUT_DIR = os.path.join("Data","Encounters")
+DATA_DIR = os.path.join("Data")
+OUTPUT_DIR = os.path.join(DATA_DIR, "Dungeons")
 
 # Logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -74,6 +77,26 @@ def parse_wago_csv(csv_text: str) -> List[Dict[str, str]]:
 def ensure_dir(path) -> None:
     Path(path).mkdir(parents=True, exist_ok=True)
 
+def iso_to_unix(s: Optional[str]) -> Optional[int]:
+    if not s:
+        return None
+    try:
+        if s.endswith("Z"):
+            dt = datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            return int(dt.timestamp())
+        # accept offsets like +00:00
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return int(dt.timestamp())
+    except Exception:
+        try:
+            dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+            return int(dt.timestamp())
+        except Exception:
+            log.warning("Failed to parse ISO timestamp: %s", s)
+            return None
+
 
 def int_or_none(x: Optional[str]) -> Optional[int]:
     if x is None:
@@ -114,7 +137,7 @@ def pretty_write_tree(tree: ET.ElementTree, xml_path: str) -> None:
 def to_windows_xml_path(*parts: str) -> str:
     return "\\".join(parts)
 
-def update_encounters_xml(xml_path: str, script_paths: Iterable[str]) -> None:
+def update_dungeons_xml(xml_path: str, script_paths: Iterable[str]) -> None:
     ns, xsi = register_xml_namespaces()
     script_tag = f"{{{ns}}}Script"
     root_tag = f"{{{ns}}}Ui"
@@ -201,11 +224,11 @@ def main():
     if not seasons:
         log.warning("No seasons found in Raider.IO data.")
     created_script_paths: set[str] = set()
+    seasons_collection: Dict[str, Dict] = {}
     for season in seasons:
         # choose directory name: prefer slug, fallback to name
         season_slug = season.get("slug") or (season.get("short_name") or season.get("name") or "season")
-        season_dir = os.path.join(OUTPUT_DIR, season_slug)
-        ensure_dir(season_dir)
+        season_dungeon_ids: List[int] = []
 
         dungeons = season.get("dungeons", [])
         if not dungeons:
@@ -254,15 +277,58 @@ def main():
                 log.info("Found %d encounters for JournalInstanceID=%s", len(encounter_ids), journal_instance_id)
 
             lua_content = build_lua_content(journal_instance_id, journal_instance_name, encounter_ids)
-            out_path = os.path.join(season_dir, f"{journal_instance_id}.lua")
+            out_path = os.path.join(OUTPUT_DIR, f"{journal_instance_id}.lua")
             with open(out_path, "w", encoding="utf-8") as f:
                 f.write(lua_content)
             log.info("Wrote %s", out_path)
-            created_script_paths.add(to_windows_xml_path("Data", "Encounters", season_slug, f"{journal_instance_id}.lua"))
+            created_script_paths.add(to_windows_xml_path(out_path))
+            if journal_instance_id not in season_dungeon_ids:
+                season_dungeon_ids.append(journal_instance_id)
 
-    encounters_xml_path = os.path.join("Data", "Encounters", "encounters.xml")
-    update_encounters_xml(encounters_xml_path, created_script_paths)
-    log.info("Updated encounters XML: %s", encounters_xml_path)
+        seasons_collection[season_slug] = {
+            "name": season.get("name", ""),
+            "short_name": season.get("short_name", ""),
+            "starts": season.get("starts", {}) or {},
+            "ends": season.get("ends", {}) or {},
+            "dungeons": sorted(set(season_dungeon_ids)),
+        }
+    dungeons_xml_path = os.path.join("Data", "dungeons.xml")
+    update_dungeons_xml(dungeons_xml_path, created_script_paths)
+    log.info("Updated dungeons XML: %s", dungeons_xml_path)
+
+    seasons_lines: List[str] = [
+        "-- Auto-generated. Do not edit manually.",
+        "local addonName, private = ...",
+        "private.Seasons = private.Seasons or {}",
+        "",
+    ]
+    for slug, s in seasons_collection.items():
+        # escape quotes in strings
+        name = s["name"].replace('"', '\\"')
+        short = s["short_name"].replace('"', '\\"')
+        starts_pairs = []
+        for k, v in s["starts"].items():
+            ts = iso_to_unix(v)
+            if ts is not None:
+                starts_pairs.append(f'{k} = {ts}')
+        starts_items = ", ".join(starts_pairs)
+
+        ends_pairs = []
+        for k, v in s["ends"].items():
+            ts = iso_to_unix(v)
+            if ts is not None:
+                ends_pairs.append(f'{k} = {ts}')
+        ends_items = ", ".join(ends_pairs)
+        dungeons_list = ", ".join(str(i) for i in s["dungeons"])
+
+        seasons_lines.append(f'private.Seasons["{slug}"] = {{ \n  name = "{name}", \n  short_name = "{short}", \n  starts = {{ {starts_items} }}, \n  ends = {{ {ends_items} }}, \n  dungeons = {{ {dungeons_list} }} \n}}')
+        seasons_lines.append("")
+
+    seasons_content = "\n".join(seasons_lines) + "\n"
+    seasons_path = os.path.join(DATA_DIR, "seasons.lua")
+    with open(seasons_path, "w", encoding="utf-8") as fh:
+        fh.write(seasons_content)
+    log.info("Wrote seasons summary %s", seasons_path)
 
     log.info("All done.")
 
