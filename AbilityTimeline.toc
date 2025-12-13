@@ -46,6 +46,7 @@ Locales\zhTW.lua
 Locales\Locales.lua
 
 #templates
+Templates\AtReminderCreator.lua
 Templates\AtTimelineTick.lua
 Templates\AtEditorSpellIcon.lua
 Templates\AtTimingsEditorTimelineFrame.lua
@@ -60,7 +61,8 @@ Templates\AtTextHighlight.lua
 Templates\AtSpellIconSettingsFrame.lua
 
 #data
-Data\encounters.xml
+Data\dungeons.xml
+Data\seasons.lua
 
 #plugins
 Plugins\TextHighlight.lua

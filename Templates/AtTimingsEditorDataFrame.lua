@@ -59,7 +59,13 @@ local function AddItem(self, item)
     separator:SetPoint("LEFT",  self.rightContent, "LEFT",  0, -10 - (i + 1) * 36)
     separator:SetPoint("RIGHT", self.rightContent, "RIGHT", 0, -10 - (i + 1) * 36)
     separator:SetHeight(20)
-    separator:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background" })
+    separator:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        tile = true,
+        tileSize = 32,
+        edgeSize = 32,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    })
     separator:SetBackdropColor(0.2,0.2,0.2,0.9)
     separator:SetFrameLevel(self.rightContent:GetFrameLevel() + 50)
     separator:Show()
@@ -73,6 +79,41 @@ local function AddItem(self, item)
         separator = separator,
         data = item,
     })
+
+end
+
+local function SetCombatDuration(self, duration)
+    self.slider:SetSliderValues(0, duration , 1)
+     self.slider:SetUserData('maxValue', duration)
+end
+
+local function SetEncounter(self, dungeonId, encounterNumber, duration)
+    local Instancename, Instancedescription, _, InstanceImage, _, _, _, _, _ = EJ_GetInstanceInfo(dungeonId)
+    local EncounterName, Encounterdescription, journalEncounterID, rootSectionID, link, journalInstanceID, dungeonEncounterID, instanceID =
+    EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
+    self.container:SetTitle(private.getLocalisation("TimingsEditorTitle") .. Instancename .. " - " .. EncounterName)
+    SetCombatDuration(self, 295)  -- Example duration, replace with actual encounter duration if available
+    -- for key, value in pairs(private.Instances[dungeonId].encounters[encounterNumber].spells) do
+    --     local spellInfo = C_Spell.GetSpellInfo(value.spellID);
+    --     frame:AddItem({
+    --         spellname = spellInfo.name,
+    --         spellicon = spellInfo.iconID,
+    --         timings = value.timings,
+    --         rowText = "Spell: " .. spellInfo.name .. " (ID: " .. value.spellID .. ")",
+    --         type = value.type,
+    --     })
+    -- end
+    self.addEntryButton:SetCallback("OnClick", function()
+        private.Debug("Add Entry Button Clicked")
+        local addEntry = AceGUI:Create("AtReminderCreator")
+        print(addEntry:IsShown())
+        addEntry.frame:Show()
+
+        addEntry.closeButton:SetScript("OnClick", function()
+            addEntry:Release()
+        end)
+        
+    end)
 end
 
 
@@ -97,44 +138,64 @@ local function Constructor()
     local left = CreateFrame("Frame", Type .."_Left", content , "BackdropTemplate")
     left:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
     left:SetSize(variables.FrameLeftSize, content:GetHeight())
+    left:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        tile = true,
+        tileSize = 32,
+        edgeSize = 32,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    })
+    left:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
+    left:SetBackdropBorderColor(0.25, 0.25, 0.25, 0.9)
+
+    local leftContent = AceGUI:Create("SimpleGroup")
+    leftContent:SetLayout("Flow")
+    leftContent:SetParent(left)
+    leftContent.frame:SetAllPoints(left)
+    leftContent.frame:SetFrameLevel(left:GetFrameLevel() + 50)
+
+    local addEntryButton = AceGUI:Create("Button")
+    addEntryButton:SetText(private.getLocalisation("TimingsEditorAddEntryButton"))
+    leftContent:AddChild(addEntryButton)
+
 
 
     -- RIGHT column: a Clip/viewport frame that will host a horizontal ScrollFrame
     local rightViewport = CreateFrame("Frame", Type .."_RightViewport", content)
     rightViewport:SetPoint("TOPLEFT", content, "TOPLEFT", variables.FrameLeftSize + 10, 0)
-    rightViewport:SetSize(variables.FrameRightSize, vscroll:GetHeight()) -- visible viewport size inside content
+    rightViewport:SetSize(variables.FrameRightSize, vscroll:GetHeight()- 20) -- visible viewport size inside content
 
     -- right horizontal ScrollFrame (no vertical bar). It is a child of content so it moves with parent vertical scroll.
     local hscroll = CreateFrame("ScrollFrame", Type .."_RightHScroll", rightViewport)
     hscroll:SetAllPoints(rightViewport)
 
     -- right content must be wider than viewport to allow horizontal scroll
-    local rightContent = CreateFrame("Frame", Type .."_RightContent", hscroll)
+    local rightContent = CreateFrame("Frame", Type .."_RightContent", hscroll, "BackdropTemplate")
     rightContent:SetSize(1600, content:GetHeight()) -- make it wide; height matches content so vertical scroll is handled by parent
     hscroll:SetScrollChild(rightContent)
 
+    rightContent:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        tile = true,
+        tileSize = 32,
+        edgeSize = 32,
+        insets = { left = 0, right = 0, top = 0, bottom = 0}
+    })
+
 
     -- add a horizontal slider under rightViewport to control horizontal scroll
-    local hslider = CreateFrame("Slider", Type .."_HSlider", main, "OptionsSliderTemplate")
-    hslider:SetOrientation("HORIZONTAL")
-    hslider:SetPoint("TOPLEFT", main, "BOTTOMLEFT", variables.FrameLeftSize, 14)
-    hslider:SetPoint("TOPRIGHT", main, "BOTTOMRIGHT", -40, 14)
-    hslider:SetMinMaxValues(0, math.max(0, rightContent:GetWidth() - rightViewport:GetWidth()))
-    hslider:SetValueStep(1)
+    local hslider = AceGUI:Create("Slider")
+    hslider.frame:SetSize(main:GetWidth() - variables.FrameLeftSize - 30, 20)
+    hslider:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", -10, 25)
+    hslider:SetSliderValues(0, 300 , 1)
+    hslider:SetUserData('maxValue', 300)
     hslider:SetValue(0)
-    hslider:SetScript("OnValueChanged", function(self, val)
-        hscroll:SetHorizontalScroll(val)
+    local sliderSize = math.max(0, rightContent:GetWidth() - rightViewport:GetWidth())
+    hslider:SetCallback("OnValueChanged", function(_, _, value)
+        local sliderval = value/hslider:GetUserData('maxValue') * sliderSize
+        hscroll:SetHorizontalScroll(sliderval)
     end)
-
-    -- update slider range if sizes change
-    local function UpdateRanges()
-        local maxh = math.max(0, rightContent:GetWidth() - rightViewport:GetWidth())
-        hslider:SetMinMaxValues(0, maxh)
-        -- vertical scrollbar range handled automatically by UIPanelScrollFrameTemplate; if you use a custom scroll you must update it here
-    end
-
-    -- call UpdateRanges after layout or when content size changes
-    UpdateRanges()
+    private.Debug(hslider, "AT_TIMINGS_EDITOR_HSLIDER")
 
 	---@class AtTimingsEditorDataFrame : AceGUIWidget
 	local widget = {
@@ -148,7 +209,10 @@ local function Constructor()
         container = container,
         items = ITEMS,
         rightContent = rightContent,
-        leftContent = left
+        leftContent = leftContent,
+        slider = hslider,
+        addEntryButton = addEntryButton,
+        SetEncounter = SetEncounter,
 	}
 
 	return AceGUI:RegisterAsWidget(widget)

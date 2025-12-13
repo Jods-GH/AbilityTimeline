@@ -51,7 +51,7 @@ private.options = {
 OPTIONS_INITIALIZED = false
 private.buildInstanceOptions = function()
   if OPTIONS_INITIALIZED then return end
-  for dungeonId, dungeonValue in pairs(private.Encounters) do
+  for dungeonId, dungeonValue in pairs(private.Instances) do
     EJ_SelectInstance(dungeonId)
     local Instancename, Instancedescription, _, InstanceImage, _, _, _, _, _ = EJ_GetInstanceInfo()
     private.options.args.encounterOptions.args["dungeon" .. dungeonId] = {
