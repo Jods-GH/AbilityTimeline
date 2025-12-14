@@ -43,7 +43,7 @@ end
 local function HandleTickVisibility(layoutName)
     for _, tick in ipairs(private.TIMELINE_FRAME.frame.Ticks) do
         if private.db.profile.timeline_frame[layoutName].ticks_enabled then
-            tick:SetTick(private.TIMELINE_FRAME, tick.tick)
+            tick:SetTick(private.TIMELINE_FRAME.frame, tick.tick, private.TIMELINE_FRAME:GetMoveSize() ,private.AT_THRESHHOLD_TIME, private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL)
             tick.frame:Show()
         else
             tick.frame:Hide()
@@ -123,7 +123,7 @@ local function HandleTicks(self)
     for i, tick in ipairs(private.TIMELINE_TICKS) do
         local widget = AceGUI:Create("AtTimelineTicks")
         self.frame.Ticks[i] = widget
-        widget:SetTick(self, tick)
+        widget:SetTick(self.frame, tick, self:GetMoveSize() ,private.AT_THRESHHOLD_TIME, private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL)
         widget.frame:Show()
     end
 end

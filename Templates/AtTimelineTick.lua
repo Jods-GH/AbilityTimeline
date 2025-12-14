@@ -28,30 +28,29 @@ local function OnRelease(self)
     self.frame:ClearAllPoints()
 end
 
-local function SetTick(self, relativeTo, tick)
-    local moveHeight = relativeTo:GetMoveSize()
+local function SetTick(self, relativeTo, tick, totalSize, threshhold, isHorizontal)
     self.frame.tickText:SetText(tick .. "s")
-    local tickPosition = (tick / private.AT_THRESHHOLD_TIME) * moveHeight
+    local tickPosition = (tick / threshhold) * totalSize
     self.frame:ClearAllPoints()
     self.frame.tickLine:ClearAllPoints()
     self.frame.tickText:ClearAllPoints()
     self.tick = tick
-    if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
-        self.frame:SetPoint("TOPLEFT", relativeTo.frame, "TOPLEFT", tickPosition, 0)
-        self.frame:SetPoint("BOTTOMLEFT", relativeTo.frame, "BOTTOMLEFT", tickPosition, 0)
+    if isHorizontal then
+        self.frame:SetPoint("TOPLEFT", relativeTo, "TOPLEFT", tickPosition, 0)
+        self.frame:SetPoint("BOTTOMLEFT", relativeTo, "BOTTOMLEFT", tickPosition, 0)
         self.frame.tickLine:SetPoint("TOP", self.frame, "TOP", 0, 0)
         self.frame.tickLine:SetPoint("BOTTOM", self.frame, "BOTTOM", 0, 0)
         self.frame.tickText:SetPoint("BOTTOM", self.frame.tickLine, "TOP", variables.textOffset.y, variables.textOffset
         .x)
     else
-        self.frame:SetPoint("LEFT", relativeTo.frame, "BOTTOMLEFT", 0, tickPosition)
-        self.frame:SetPoint("RIGHT", relativeTo.frame, "BOTTOMRIGHT", 0, tickPosition)
+        self.frame:SetPoint("LEFT", relativeTo, "BOTTOMLEFT", 0, tickPosition)
+        self.frame:SetPoint("RIGHT", relativeTo, "BOTTOMRIGHT", 0, tickPosition)
         self.frame.tickLine:SetPoint("LEFT", self.frame, "LEFT", 0, 0)
         self.frame.tickLine:SetPoint("RIGHT", self.frame, "RIGHT", 0, 0)
         self.frame.tickText:SetPoint("LEFT", self.frame.tickLine, "RIGHT", variables.textOffset.x, variables.textOffset
         .y)
     end
-    self.frame:SetParent(relativeTo.frame)
+    self.frame:SetParent(relativeTo)
 end
 
 

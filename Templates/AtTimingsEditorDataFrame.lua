@@ -18,6 +18,7 @@ local variables = {
     FrameLeftSize = 240,
     FrameRightSize = 800,
 	Padding = { x = 2, y = 2 },
+    sliderSize = 1100,
 }
 
 ---@param self AtTimingsEditorDataFrame
@@ -82,9 +83,29 @@ local function AddItem(self, item)
 
 end
 
+local Reminders = {}
+local function AddReminder(self, reminder)
+    -- Function to add a reminder to the data frame
+end
+local function HandleTicks(self)
+    for i = 1, #self.timeline.Ticks do
+        self.timeline.Ticks[i].frame:Hide()
+        self.timeline.Ticks[i]:Release()
+    end
+    for i=1, math.floor(self.combatDuration/5) do
+        local widget = AceGUI:Create("AtTimelineTicks")
+        self.timeline.Ticks[i] = widget
+        private.Debug(self.timeline, "AT_TIMINGS_EDITOR_TICKS")
+        widget:SetTick(self.timeline, i*5, self.timeline:GetWidth(), self.combatDuration, true)
+        widget.frame:Show()
+    end
+end
+
 local function SetCombatDuration(self, duration)
     self.slider:SetSliderValues(0, duration , 1)
-     self.slider:SetUserData('maxValue', duration)
+    self.slider:SetUserData('maxValue', duration)
+    self.combatDuration = duration
+    HandleTicks(self)
 end
 
 local function SetEncounter(self, dungeonId, encounterNumber, duration)
@@ -104,13 +125,23 @@ local function SetEncounter(self, dungeonId, encounterNumber, duration)
     --     })
     -- end
     self.addEntryButton:SetCallback("OnClick", function()
+        if self.addEntry then return end
         private.Debug("Add Entry Button Clicked")
-        local addEntry = AceGUI:Create("AtReminderCreator")
-        print(addEntry:IsShown())
-        addEntry.frame:Show()
+        self.addEntry = AceGUI:Create("AtReminderCreator")
 
-        addEntry.closeButton:SetScript("OnClick", function()
-            addEntry:Release()
+        local timing = AceGUI:Create("EditBox")
+        timing:SetLabel(private.getLocalisation("ReminderCreatorTimingLabel"))
+        timing:SetText("0")
+        self.addEntry:AddChild(timing)
+
+        local addButton = AceGUI:Create("Button")
+        addButton:SetText(private.getLocalisation("ReminderCreatorAddButton"))
+        self.addEntry:AddChild(addButton)
+
+        self.addEntry.frame:Show()
+        self.addEntry.closeButton:SetScript("OnClick", function()
+            self.addEntry:Release()
+            self.addEntry = nil
         end)
         
     end)
@@ -182,6 +213,13 @@ local function Constructor()
         insets = { left = 0, right = 0, top = 0, bottom = 0}
     })
 
+    local timeline = CreateFrame("Frame", Type .."_Timeline", rightContent , "BackdropTemplate")
+    timeline:SetPoint("TOPLEFT", rightContent, "TOPLEFT", 0, 0)
+    timeline:SetPoint("TOPRIGHT", rightContent, "TOPRIGHT", 0, 0)
+    timeline:SetHeight(40)
+    timeline:SetFrameLevel(rightContent:GetFrameLevel() + 50)
+    timeline.Ticks = {}
+
 
     -- add a horizontal slider under rightViewport to control horizontal scroll
     local hslider = AceGUI:Create("Slider")
@@ -190,10 +228,10 @@ local function Constructor()
     hslider:SetSliderValues(0, 300 , 1)
     hslider:SetUserData('maxValue', 300)
     hslider:SetValue(0)
-    local sliderSize = math.max(0, rightContent:GetWidth() - rightViewport:GetWidth())
     hslider:SetCallback("OnValueChanged", function(_, _, value)
-        local sliderval = value/hslider:GetUserData('maxValue') * sliderSize
+        local sliderval = value/hslider:GetUserData('maxValue') * variables.sliderSize
         hscroll:SetHorizontalScroll(sliderval)
+        print("HSlider value changed to " .. value .. ", setting hscroll to " .. sliderval)
     end)
     private.Debug(hslider, "AT_TIMINGS_EDITOR_HSLIDER")
 
@@ -213,6 +251,7 @@ local function Constructor()
         slider = hslider,
         addEntryButton = addEntryButton,
         SetEncounter = SetEncounter,
+        timeline = timeline,
 	}
 
 	return AceGUI:RegisterAsWidget(widget)
