@@ -26,10 +26,13 @@ local variables = {
 local function OnAcquire(self)
     self.frame:SetPoint("CENTER", private.TIMINGS_EDITOR_WINDOW.frame, "CENTER")
     self.frame:SetFrameStrata("DIALOG")
+    self:SetLayout("List")
 end
 
 ---@param self AtReminderCreator
 local function OnRelease(self)
+    self:ReleaseChildren()
+    self.frame:Hide()
 end
 
 local function Constructor()

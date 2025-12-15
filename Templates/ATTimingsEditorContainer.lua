@@ -22,10 +22,13 @@ local variables = {
 
 ---@param self ATTimingsEditorContainer
 local function OnAcquire(self)
+	self.frame:Show()
+	self.frame:SetPoint("CENTER", UIParent, "CENTER")
 end
 
 ---@param self ATTimingsEditorContainer
 local function OnRelease(self)
+	self.frame:Hide()
 end
 
 

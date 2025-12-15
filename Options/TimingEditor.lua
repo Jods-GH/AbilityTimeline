@@ -23,6 +23,7 @@ private.openTimingsEditor = function(dungeonId, encounterNumber)
     -- Open the timing editor for the specified dungeon and encounter
     private.Debug("Opening timing editor for dungeon " .. dungeonId .. ", encounter " .. encounterNumber)
     local frame = updateTimelineEditorFrame(dungeonId, encounterNumber)
+    frame.frame:Show()
 end
 
 

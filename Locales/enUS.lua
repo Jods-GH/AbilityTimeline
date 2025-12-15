@@ -14,6 +14,7 @@ if L then
     L['encounterOptions'] = "Encounter Options"
     L['EditTimingsForEncounter'] = "Edit Timings for Encounter"
     L['TimingsEditorTitle'] = "Timings Editor for: "
+    L['TimingsEditorAddEntryButton'] = "Add Reminder"
     L['debugMode'] = "Debug Mode"
     L['debugModeDescription'] = "Enables debug mode, which outputs additional information to the chat window."
     L['useAudioCountdowns'] = "Use Audio Countdowns"
@@ -21,6 +22,24 @@ if L then
     L['enableKeyRerollTimer'] = "Enable Key Reroll Timer"
     L['enableKeyRerollTimerDescription'] = "Enables a timer for you to reroll your Mythic+ key after completing a dungeon."
     L['TestIcon'] = "Test Icon"
+
+    -- reminders
+    L["ReminderCreatorTitle"] = "Create Reminder"
+    L["ReminderCreatorTimingLabel"] = "Time (seconds)"
+    L["ReminderCreatorAddButton"] = "Save Reminder"
+    L["ReminderNameLabel"] = "Name"
+    L["ReminderSpellIdLabel"] = "Spell ID"
+    L["ReminderDelayLabel"] = "Queue Delay (seconds)"
+    L["ReminderDeleteButton"] = "Delete"
+    L["ReminderCancelButton"] = "Cancel"
+    L["ReminderSaveButton"] = "Save"
+    L["ReminderInvalidTime"] = "Please enter a valid time in seconds."
+    L["ReminderInvalidSpell"] = "Spell not found. Please enter a valid Spell ID."
+    L["ReminderListEmpty"] = "No reminders yet. Add one to get started."
+    L["ReminderEncounterLabel"] = "Encounter"
+    L["ReminderDurationLabel"] = "Encounter Duration (seconds)"
+    L["ReminderSeverityLabel"] = "Severity"
+    L["ReminderEditButton"] = "Edit"
 
 
     --spell icon editor
