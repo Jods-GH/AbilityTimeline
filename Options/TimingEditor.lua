@@ -2,9 +2,9 @@ local appName, private = ...
 
 local AceGUI = LibStub("AceGUI-3.0")
 
-local updateTimelineEditorFrame = function(dungeonId, encounterNumber)
+local updateTimelineEditorFrame = function(dungeonId, encounterNumber, encounterID)
     local frame = private.getTimingsEditorFrame()
-    frame:SetEncounter(dungeonId, encounterNumber)
+    frame:SetEncounter(dungeonId, encounterNumber, nil, encounterID)
     private.Debug(frame, "AT_TIMINGS_EDITOR_FRAME")
     -- for key, value in pairs(private.Instances[dungeonId].encounters[encounterNumber].spells) do
     --     local spellInfo = C_Spell.GetSpellInfo(value.spellID);
@@ -19,10 +19,10 @@ local updateTimelineEditorFrame = function(dungeonId, encounterNumber)
     return frame
 end
 
-private.openTimingsEditor = function(dungeonId, encounterNumber)
+private.openTimingsEditor = function(dungeonId, encounterNumber, encounterID)
     -- Open the timing editor for the specified dungeon and encounter
-    private.Debug("Opening timing editor for dungeon " .. dungeonId .. ", encounter " .. encounterNumber)
-    local frame = updateTimelineEditorFrame(dungeonId, encounterNumber)
+    private.Debug("Opening timing editor for dungeon " .. dungeonId .. ", encounter " .. encounterNumber .. ", encounterID " .. (encounterID or "nil"))
+    local frame = updateTimelineEditorFrame(dungeonId, encounterNumber, encounterID)
     frame.frame:Show()
 end
 

@@ -76,7 +76,10 @@ private.buildInstanceOptions = function()
             name = private.getLocalisation("EditTimingsForEncounter") .. ": " .. EncounterName,
             type = "execute",
             order = 0,
-            func = function() private.openTimingsEditor(dungeonId, encounterNumber) end
+            func = function() 
+              local encounterID = private.Instances[dungeonId] and private.Instances[dungeonId].encounters and private.Instances[dungeonId].encounters[encounterNumber]
+              private.openTimingsEditor(dungeonId, encounterNumber, encounterID) 
+            end
           },
         }
       }

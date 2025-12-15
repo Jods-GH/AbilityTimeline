@@ -69,6 +69,7 @@ Plugins\TextHighlight.lua
 Plugins\BigIcon.lua
 Plugins\SoundAlert.lua
 Plugins\Glow.lua
+Plugins\Reminders.lua
 
 # Core
 Options\Options.lua

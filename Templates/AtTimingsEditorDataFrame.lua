@@ -192,17 +192,21 @@ end
 
 local function clearPins(self)
     if not self.reminderPins then return end
-    -- Hide and detach all tracked pins
+    -- Hide and destroy all tracked pins and their delay bars
     for _, pin in ipairs(self.reminderPins) do
+        if pin and pin.delayBar then
+            pin.delayBar:Hide()
+            if pin.delayBar.Destroy then
+                pin.delayBar:Destroy()
+            else
+                pin.delayBar:SetParent(nil)
+            end
+        end
         if pin and pin.Hide then
             pin:Hide()
         end
         if pin and pin.SetParent then
             pin:SetParent(nil)
-        end
-        if pin and pin.delayBar then
-            pin.delayBar:Hide()
-            pin.delayBar:SetParent(nil)
         end
     end
     wipe(self.reminderPins)
@@ -215,9 +219,13 @@ local function clearPins(self)
                 child:Hide()
                 child:SetParent(nil)
             end
-            if child and child.delayBar then
-                child.delayBar:Hide()
-                child.delayBar:SetParent(nil)
+            if child and child.isDelayBar then
+                child:Hide()
+                if child.Destroy then
+                    child:Destroy()
+                else
+                    child:SetParent(nil)
+                end
             end
         end
     end
@@ -254,12 +262,12 @@ end
 
 local function SaveReminders(self)
     ensureReminderDB()
-    if not self.encounterJournalID then return end
+    if not self.encounterID then return end
     local copy = {}
     for _, reminder in ipairs(self.reminders) do
         table.insert(copy, copyReminder(reminder))
     end
-    private.db.profile.reminders[self.encounterJournalID] = copy
+    private.db.profile.reminders[self.encounterID] = copy
 end
 
 local function createPin(self, reminder)
@@ -276,6 +284,7 @@ local function createPin(self, reminder)
     local delay = tonumber(reminder.CombatTimeDelay) or 0
     pin.delaySeconds = delay
     pin.delayBar = CreateFrame("Frame", nil, self.timeline, "BackdropTemplate")
+    pin.delayBar.isDelayBar = true  -- mark for cleanup
     pin.delayBar:SetFrameLevel(pin:GetFrameLevel() - 1)
     pin.delayBar:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8x8",
@@ -509,9 +518,9 @@ local function OpenReminderDialog(self, reminderIndex)
     self.addEntry = dialog
 end
 
-local function loadReminders(self, encounterJournalID)
+local function loadReminders(self, encounterID)
     ensureReminderDB()
-    local stored = private.db.profile.reminders[encounterJournalID] or {}
+    local stored = private.db.profile.reminders[encounterID] or {}
     self.reminders = {}
     for _, reminder in ipairs(stored) do
         table.insert(self.reminders, copyReminder(reminder))
@@ -519,10 +528,10 @@ local function loadReminders(self, encounterJournalID)
     SortReminders(self)
 end
 
-local function SetEncounter(self, dungeonId, encounterNumber, duration)
+local function SetEncounter(self, dungeonId, encounterNumber, duration, encounterID)
     local Instancename = EJ_GetInstanceInfo(dungeonId)
     local EncounterName, _, journalEncounterID = EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
-    self.encounterJournalID = journalEncounterID
+    self.encounterID = encounterID or journalEncounterID
     self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), Instancename or "", EncounterName or ""))
     if self.encounterLabel then
         self.encounterLabel:SetText(private.getLocalisation("ReminderEncounterLabel") .. ": " .. (EncounterName or ""))
@@ -530,7 +539,7 @@ local function SetEncounter(self, dungeonId, encounterNumber, duration)
     -- Clear any existing pins/rows before loading new encounter data
     clearPins(self)
     clearReminderRows(self)
-    loadReminders(self, journalEncounterID)
+    loadReminders(self, self.encounterID)
     SetCombatDuration(self, duration or private.db.profile.editor.defaultEncounterDuration)
     UpdateTimelineWidth(self)
     HandleTicks(self)
