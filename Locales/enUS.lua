@@ -36,7 +36,6 @@ if L then
     L["ReminderInvalidTime"] = "Please enter a valid time in seconds."
     L["ReminderInvalidSpell"] = "Spell not found. Please enter a valid Spell ID."
     L["ReminderListEmpty"] = "No reminders yet. Add one to get started."
-    L["ReminderEncounterLabel"] = "Encounter"
     L["ReminderDurationLabel"] = "Encounter Duration (seconds)"
     L["ReminderSeverityLabel"] = "Severity"
     L["ReminderEditButton"] = "Edit"

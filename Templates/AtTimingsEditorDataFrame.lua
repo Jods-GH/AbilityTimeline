@@ -142,12 +142,12 @@ local function HandleTicks(self)
         self.timeline.Ticks[i]:Release()
     end
     wipe(self.timeline.Ticks)
-    local tickCount = math.floor((self.combatDuration or 0) / 5)
+    local tickCount = math.floor((self.combatDuration or 0) / 15)
     local timelineWidth = self.timeline:GetWidth()
     for i = 1, tickCount do
         local widget = AceGUI:Create("AtTimelineTicks")
         self.timeline.Ticks[i] = widget
-        widget:SetTick(self.timeline, i * 5, timelineWidth, self.combatDuration, true)
+        widget:SetTick(self.timeline, i * 15, timelineWidth, self.combatDuration, true)
         widget.frame:Show()
     end
 end
@@ -158,11 +158,16 @@ local function UpdateTimelineWidth(self)
     self.rightContent:SetWidth(width)
     self.timeline:SetWidth(width)
     local maxScroll = math.max(0, width - self.rightViewport:GetWidth())
-    self.hslider:SetSliderValues(0, maxScroll, 1)
-    self.hslider:SetUserData('maxScroll', maxScroll)
-    local value = math.min(self.hslider:GetValue() or 0, maxScroll)
+    self.hslider:SetSliderValues(0, self.combatDuration or 0, 1)
+    local value = math.min(self.hslider:GetValue() or 0, self.combatDuration or 0)
     self.hslider:SetValue(value)
-    self.hscroll:SetHorizontalScroll(value)
+    local scrollPos = (value / (self.combatDuration or 1)) * maxScroll
+    self.hscroll:SetHorizontalScroll(scrollPos)
+
+    self.hslider:SetCallback("OnValueChanged", function(_, _, value)
+        local scrollPos = (value / (self.combatDuration or 1)) * maxScroll
+        self.hscroll:SetHorizontalScroll(scrollPos)
+    end)
 end
 
 local function SetCombatDuration(self, duration)
@@ -533,9 +538,6 @@ local function SetEncounter(self, dungeonId, encounterNumber, duration, encounte
     local EncounterName, _, journalEncounterID = EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
     self.encounterID = encounterID or journalEncounterID
     self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), Instancename or "", EncounterName or ""))
-    if self.encounterLabel then
-        self.encounterLabel:SetText(private.getLocalisation("ReminderEncounterLabel") .. ": " .. (EncounterName or ""))
-    end
     -- Clear any existing pins/rows before loading new encounter data
     clearPins(self)
     clearReminderRows(self)
@@ -562,20 +564,11 @@ local function Constructor()
     local container = AceGUI:Create("ATTimingsEditorContainer")
     local main = container.content
 
-    -- parent vertical ScrollFrame (this controls vertical scrolling for both columns)
-    local vscroll = CreateFrame("ScrollFrame", Type .."_VScroll", main, "UIPanelScrollFrameTemplate")
-    vscroll:SetPoint("TOPLEFT", main, "TOPLEFT", 10, -10)
-    vscroll:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", -10, 10)
-
-    -- content frame that is the scroll child. Height must be >= visible content height.
-    local content = CreateFrame("Frame", Type .."_Content", vscroll)
-    content:SetSize(variables.FrameLeftSize + variables.FrameRightSize, 1200) -- content height bigger than visible to allow vertical scroll
-    vscroll:SetScrollChild(content)
-
-    -- LEFT column (fixed width). 
-    local left = CreateFrame("Frame", Type .."_Left", content , "BackdropTemplate")
-    left:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
-    left:SetSize(variables.FrameLeftSize, content:GetHeight())
+    -- LEFT column (fixed width)
+    local left = CreateFrame("Frame", Type .."_Left", main, "BackdropTemplate")
+    left:SetPoint("TOPLEFT", main, "TOPLEFT", 10, -10)
+    left:SetPoint("BOTTOMLEFT", main, "BOTTOMLEFT", 10, 40)
+    left:SetWidth(variables.FrameLeftSize)
     left:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
         tile = true,
@@ -586,46 +579,47 @@ local function Constructor()
     left:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
     left:SetBackdropBorderColor(0.25, 0.25, 0.25, 0.9)
 
-    local leftContent = AceGUI:Create("SimpleGroup")
-    leftContent:SetLayout("List")
-    leftContent:SetParent(left)
-    leftContent.frame:SetAllPoints(left)
-    leftContent.frame:SetFrameLevel(left:GetFrameLevel() + 50)
-
-    local encounterLabel = AceGUI:Create("Label")
-    encounterLabel:SetFullWidth(true)
-    leftContent:AddChild(encounterLabel)
+    -- Create a container for controls at top (label, duration, button)
+    local controlsContainer = AceGUI:Create("SimpleGroup")
+    controlsContainer:SetLayout("List")
+    controlsContainer:SetParent(left)
+    controlsContainer.frame:SetPoint("TOPLEFT", left, "TOPLEFT", 0, 0)
+    controlsContainer.frame:SetPoint("TOPRIGHT", left, "TOPRIGHT", 0, 0)
+    controlsContainer.frame:SetFrameLevel(left:GetFrameLevel() + 50)
 
     local durationBox = AceGUI:Create("EditBox")
     durationBox:SetLabel(private.getLocalisation("ReminderDurationLabel"))
     durationBox:SetText(tostring(private.db.profile.editor.defaultEncounterDuration or 300))
     durationBox:SetFullWidth(true)
-    leftContent:AddChild(durationBox)
+    controlsContainer:AddChild(durationBox)
 
     local addEntryButton = AceGUI:Create("Button")
     addEntryButton:SetText(private.getLocalisation("TimingsEditorAddEntryButton"))
-    leftContent:AddChild(addEntryButton)
+    addEntryButton:SetRelativeWidth(1)
+    addEntryButton:SetHeight(20)
+    controlsContainer:AddChild(addEntryButton)
 
+    -- Reminder list below controls, filling remaining space
     local reminderList = AceGUI:Create("ScrollFrame")
     reminderList:SetLayout("List")
-    reminderList:SetFullWidth(true)
-    reminderList:SetHeight(left:GetHeight() - 140)
-    leftContent:AddChild(reminderList)
+    reminderList:SetParent(left)
+    reminderList.frame:SetPoint("TOPLEFT", left, "TOPLEFT", 0, -125)
+    reminderList.frame:SetPoint("BOTTOMRIGHT", left, "BOTTOMRIGHT", 0, 0)
+    reminderList.frame:SetFrameLevel(left:GetFrameLevel() + 50)
 
+    -- RIGHT column: viewport with horizontal scroll for timeline
+    local rightViewport = CreateFrame("Frame", Type .."_RightViewport", main)
+    rightViewport:SetPoint("TOPLEFT", main, "TOPLEFT", variables.FrameLeftSize + 20, -10)
+    rightViewport:SetPoint("TOPRIGHT", main, "TOPRIGHT", -10, -10)
+    rightViewport:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", -10, 40)
 
-
-    -- RIGHT column: a Clip/viewport frame that will host a horizontal ScrollFrame
-    local rightViewport = CreateFrame("Frame", Type .."_RightViewport", content)
-    rightViewport:SetPoint("TOPLEFT", content, "TOPLEFT", variables.FrameLeftSize + 10, 0)
-    rightViewport:SetSize(variables.FrameRightSize, vscroll:GetHeight()- 20) -- visible viewport size inside content
-
-    -- right horizontal ScrollFrame (no vertical bar). It is a child of content so it moves with parent vertical scroll.
+    -- right horizontal ScrollFrame
     local hscroll = CreateFrame("ScrollFrame", Type .."_RightHScroll", rightViewport)
     hscroll:SetAllPoints(rightViewport)
 
     -- right content must be wider than viewport to allow horizontal scroll
     local rightContent = CreateFrame("Frame", Type .."_RightContent", hscroll, "BackdropTemplate")
-    rightContent:SetSize(1600, content:GetHeight()) -- make it wide; height matches content so vertical scroll is handled by parent
+    rightContent:SetSize(2000, rightViewport:GetHeight())
     hscroll:SetScrollChild(rightContent)
 
     rightContent:SetBackdrop({
@@ -635,39 +629,52 @@ local function Constructor()
         edgeSize = 32,
         insets = { left = 0, right = 0, top = 0, bottom = 0}
     })
+    rightContent:SetBackdropColor(0.08, 0.08, 0.08, 0.9)
+    rightContent:SetBackdropBorderColor(0.2, 0.2, 0.2, 0.9)
 
-    local timeline = CreateFrame("Frame", Type .."_Timeline", rightContent , "BackdropTemplate")
-    timeline:SetPoint("TOPLEFT", rightContent, "TOPLEFT", 0, 0)
-    timeline:SetPoint("TOPRIGHT", rightContent, "TOPRIGHT", 0, 0)
-    timeline:SetHeight(40)
+    local timeline = CreateFrame("Frame", Type .."_Timeline", rightContent, "BackdropTemplate")
+    timeline:SetPoint("TOPLEFT", rightContent, "TOPLEFT", 10, -25)
+    timeline:SetPoint("BOTTOMRIGHT", rightContent, "BOTTOMRIGHT", -10, 10)
+    timeline:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        tile = true,
+        tileSize = 32,
+        edgeSize = 32,
+        insets = { left = 0, right = 0, top = 0, bottom = 0}
+    })
+    timeline:SetBackdropColor(0.05, 0.05, 0.06, 0.95)
+    timeline:SetBackdropBorderColor(0.3, 0.3, 0.3, 0.9)
     timeline:SetFrameLevel(rightContent:GetFrameLevel() + 50)
     timeline.Ticks = {}
 
-
     -- add a horizontal slider under rightViewport to control horizontal scroll
     local hslider = AceGUI:Create("Slider")
-    hslider.frame:SetSize(main:GetWidth() - variables.FrameLeftSize - 30, 20)
-    hslider:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", -10, 25)
-    hslider:SetSliderValues(0, 0 , 1)
+    hslider.frame:SetSize(rightViewport:GetWidth() - 20, 20)
+    hslider:SetPoint("TOPLEFT", rightViewport, "BOTTOMLEFT", 0, 8)
+    hslider:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", -10, 8)
+    hslider:SetSliderValues(0, 0, 1)
     hslider:SetUserData('maxScroll', 0)
     hslider:SetValue(0)
     hslider:SetCallback("OnValueChanged", function(_, _, value)
         hscroll:SetHorizontalScroll(value)
     end)
     private.Debug(hslider, "AT_TIMINGS_EDITOR_HSLIDER")
+    
+    -- Create a dummy content frame for compatibility
+    local content = rightContent
 
 	---@class AtTimingsEditorDataFrame : AceGUIWidget
 	local widget = {
 		OnAcquire = OnAcquire,
 		OnRelease = OnRelease,
 		frame = container.frame,
-        content = content,
+        content = main,
 		type = Type,
 		count = count,
         container = container,
         items = ITEMS,
         rightContent = rightContent,
-        leftContent = leftContent,
+        leftContent = controlsContainer,
         addEntryButton = addEntryButton,
         SetEncounter = SetEncounter,
         timeline = timeline,
@@ -676,10 +683,10 @@ local function Constructor()
         reminderRows = {},
         reminders = {},
         durationBox = durationBox,
-        encounterLabel = encounterLabel,
         hslider = hslider,
         hscroll = hscroll,
         rightViewport = rightViewport,
+        left = left,
         HandleTicks = HandleTicks,
         SetCombatDuration = SetCombatDuration,
         RefreshReminders = RefreshReminders,
