@@ -4,20 +4,20 @@ local AceGUI = LibStub("AceGUI-3.0")
 local Type = "AtTimingsEditorDataFrame"
 local Version = 1
 local variables = {
-	BackdropBorderColor = { 0.25, 0.25, 0.25, 0.9 },
-	BackdropColor = { 0, 0, 0, 0.9 },
-	FrameHeight = 600,
-	FrameWidth = 800,
-	Backdrop = {
-		bgFile = nil,
-		edgeFile = nil,
-		tile = true,
-		tileSize = 16,
-		edgeSize = 1,
-	},
+    BackdropBorderColor = { 0.25, 0.25, 0.25, 0.9 },
+    BackdropColor = { 0, 0, 0, 0.9 },
+    FrameHeight = 600,
+    FrameWidth = 800,
+    Backdrop = {
+        bgFile = nil,
+        edgeFile = nil,
+        tile = true,
+        tileSize = 16,
+        edgeSize = 1,
+    },
     FrameLeftSize = 240,
     FrameRightSize = 800,
-	Padding = { x = 2, y = 2 },
+    Padding = { x = 2, y = 2 },
     sliderSize = 1100,
     timelinePixelsPerSecond = 6,
     RowHeight = 44,
@@ -62,36 +62,35 @@ end
 
 ---@param self AtTimingsEditorDataFrame
 local function OnRelease(self)
-
-        if self.reminderList then
-            self.reminderList:ReleaseChildren()
-        end
-        if self.items then
-            for _, v in pairs(self.items) do
-                if v.spellContainer then
-                    v.spellContainer:Release()
-                end
+    if self.reminderList then
+        self.reminderList:ReleaseChildren()
+    end
+    if self.items then
+        for _, v in pairs(self.items) do
+            if v.spellContainer then
+                v.spellContainer:Release()
             end
         end
-        if self.reminderPins then
-            for _, pin in ipairs(self.reminderPins) do
-                if pin and pin.Hide then pin:Hide() end
-                if pin and pin.SetParent then pin:SetParent(nil) end
+    end
+    if self.reminderPins then
+        for _, pin in ipairs(self.reminderPins) do
+            if pin and pin.Hide then pin:Hide() end
+            if pin and pin.SetParent then pin:SetParent(nil) end
+        end
+    end
+    self.reminderPins = {}
+    -- Extra safety: also clear any stray timeline children
+    if self.timeline and self.timeline.GetChildren then
+        local children = { self.timeline:GetChildren() }
+        for _, child in ipairs(children) do
+            if child and child.isReminderPin then
+                child:Hide()
+                child:SetParent(nil)
             end
         end
-        self.reminderPins = {}
-        -- Extra safety: also clear any stray timeline children
-        if self.timeline and self.timeline.GetChildren then
-            local children = { self.timeline:GetChildren() }
-            for _, child in ipairs(children) do
-                if child and child.isReminderPin then
-                    child:Hide()
-                    child:SetParent(nil)
-                end
-            end
-        end
-        self.reminderRows = {}
-        self.items = {}
+    end
+    self.reminderRows = {}
+    self.items = {}
 end
 
 local ITEMS = {}
@@ -111,7 +110,7 @@ local function AddItem(self, item)
     t:SetText(item.rowText)
 
     local separator = CreateFrame("Frame", nil, self.rightContent, "BackdropTemplate")
-    separator:SetPoint("LEFT",  self.rightContent, "LEFT",  0, -10 - (i + 1) * 36)
+    separator:SetPoint("LEFT", self.rightContent, "LEFT", 0, -10 - (i + 1) * 36)
     separator:SetPoint("RIGHT", self.rightContent, "RIGHT", 0, -10 - (i + 1) * 36)
     separator:SetHeight(20)
     separator:SetBackdrop({
@@ -121,7 +120,7 @@ local function AddItem(self, item)
         edgeSize = 32,
         insets = { left = 0, right = 0, top = 0, bottom = 0 }
     })
-    separator:SetBackdropColor(0.2,0.2,0.2,0.9)
+    separator:SetBackdropColor(0.2, 0.2, 0.2, 0.9)
     separator:SetFrameLevel(self.rightContent:GetFrameLevel() + 50)
     separator:Show()
 
@@ -134,7 +133,6 @@ local function AddItem(self, item)
         separator = separator,
         data = item,
     })
-
 end
 
 local function HandleTicks(self)
@@ -156,7 +154,8 @@ end
 
 local function UpdateTimelineWidth(self)
     if not self.rightContent or not self.timeline or not self.rightViewport or not self.hslider then return end
-    local width = math.max(variables.FrameRightSize, math.floor((self.combatDuration or 0) * variables.timelinePixelsPerSecond) + 200)
+    local width = math.max(variables.FrameRightSize,
+        math.floor((self.combatDuration or 0) * variables.timelinePixelsPerSecond) + 200)
     self.rightContent:SetWidth(width)
     self.timeline:SetWidth(width)
     local maxScroll = math.max(0, width - self.rightViewport:GetWidth())
@@ -185,14 +184,12 @@ local function getReminderTexture(reminder)
     private.Debug(reminder, "Reminder")
     private.Debug("No iconId found in reminder")
     if reminder.spellId then
-        print("Getting spell icon for spell ID: ".. tostring(reminder.spellId))
-        local icon =  C_Spell.GetSpellTexture(reminder.spellId)
-        print(icon)
-        if icon then 
-            return icon 
-            end
-    elseif reminder.iconId then 
-        return reminder.iconId 
+        local icon = C_Spell.GetSpellTexture(reminder.spellId)
+        if icon then
+            return icon
+        end
+    elseif reminder.iconId then
+        return reminder.iconId
     end
     return 134400
 end
@@ -294,13 +291,13 @@ local function createPin(self, reminder, rowIndex)
     pin.icon = pin:CreateTexture(nil, "ARTWORK")
     pin.icon:SetAllPoints()
     local texture = getReminderTexture(reminder)
-    private.Debug("Setting texture: ".. texture)
+    private.Debug("Setting texture: " .. texture)
     pin.icon:SetTexture(texture)
     -- optional delay bar behind the icon representing CombatTimeDelay
     local delay = tonumber(reminder.CombatTimeDelay) or 0
     pin.delaySeconds = delay
     pin.delayBar = CreateFrame("Frame", nil, self.timeline, "BackdropTemplate")
-    pin.delayBar.isDelayBar = true  -- mark for cleanup
+    pin.delayBar.isDelayBar = true -- mark for cleanup
     pin.delayBar:SetFrameLevel(pin:GetFrameLevel() - 1)
     pin.delayBar:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8x8",
@@ -475,34 +472,45 @@ local function OpenReminderDialog(self, reminderIndex)
     local isEditing = reminderIndex ~= nil and self.reminders[reminderIndex] ~= nil
     local current = isEditing and copyReminder(self.reminders[reminderIndex]) or {}
     local dialog = AceGUI:Create("AtReminderCreator")
+    if isEditing then
+        dialog:SetTitle(private.getLocalisation("ReminderEditTitle"))
+    else
+        dialog:SetTitle(private.getLocalisation("ReminderAddTitle"))
+    end
+    dialog:SetLayout("Flow")
 
     local nameBox = AceGUI:Create("EditBox")
     nameBox:SetLabel(private.getLocalisation("ReminderNameLabel"))
     nameBox:SetText(current.name or current.spellName or "")
-    nameBox:SetFullWidth(true)
+    nameBox:SetRelativeWidth(0.55)
+    nameBox:DisableButton(true)
     dialog:AddChild(nameBox)
 
     local spellIdBox = AceGUI:Create("EditBox")
     spellIdBox:SetLabel(private.getLocalisation("ReminderSpellIdLabel"))
     spellIdBox:SetText(current.spellId and tostring(current.spellId) or "")
-    spellIdBox:SetFullWidth(true)
+    spellIdBox:SetRelativeWidth(0.30)
+    spellIdBox:DisableButton(true)
     dialog:AddChild(spellIdBox)
 
     local iconPreview = AceGUI:Create("Icon")
     iconPreview:SetImage(getReminderTexture(current))
-    iconPreview:SetImageSize(24, 24)
+    iconPreview:SetImageSize(32, 32)
+    iconPreview:SetRelativeWidth(0.15)
     dialog:AddChild(iconPreview)
 
     local timingBox = AceGUI:Create("EditBox")
     timingBox:SetLabel(private.getLocalisation("ReminderCreatorTimingLabel"))
     timingBox:SetText(tostring(current.CombatTime or 0))
-    timingBox:SetFullWidth(true)
+    timingBox:SetRelativeWidth(0.5)
+    timingBox:DisableButton(true)
     dialog:AddChild(timingBox)
 
     local delayBox = AceGUI:Create("EditBox")
     delayBox:SetLabel(private.getLocalisation("ReminderDelayLabel"))
     delayBox:SetText(tostring(current.CombatTimeDelay or 0))
-    delayBox:SetFullWidth(true)
+    delayBox:SetRelativeWidth(0.5)
+    delayBox:DisableButton(true)
     dialog:AddChild(delayBox)
 
     local severity = AceGUI:Create("Dropdown")
@@ -512,32 +520,47 @@ local function OpenReminderDialog(self, reminderIndex)
         [1] = "Alert",
         [2] = "Critical",
     })
+    severity:SetFullWidth(true)
     severity:SetValue(current.severity or 0)
     dialog:AddChild(severity)
 
     local function refreshSpellInfo()
-        local spellId = tonumber(spellIdBox:GetText())
+        local spellIdText = spellIdBox:GetText()
+        local spellId = tonumber(spellIdText)
+        local spellName, icon
         if spellId then
-            local spellName, _, icon = C_Spell.GetSpellInfo(spellId)
-            if spellName then
-                iconPreview:SetImage(icon)
-                if nameBox:GetText() == "" then
-                    nameBox:SetText(spellName)
-                end
-            end
+            spellName, _, icon = C_Spell.GetSpellInfo(spellId)
+        end
+
+        if icon then
+            iconPreview:SetImage(icon)
+        else
+            -- fallback: derive icon from current reminder or default
+            iconPreview:SetImage(getReminderTexture({
+                spellId = spellId or current.spellId,
+                spellName = spellName or current.spellName,
+                iconId = current.iconId,
+            }))
+        end
+
+        if spellName and nameBox:GetText() == "" then
+            nameBox:SetText(spellName)
         end
     end
 
     spellIdBox:SetCallback("OnEnterPressed", function()
         refreshSpellInfo()
     end)
+    spellIdBox:SetCallback("OnTextChanged", function()
+        refreshSpellInfo()
+    end)
 
-    local buttons = AceGUI:Create("SimpleGroup")
-    buttons:SetLayout("Flow")
-    buttons:SetFullWidth(true)
+    -- initialize preview when dialog opens
+    refreshSpellInfo()
 
     local saveButton = AceGUI:Create("Button")
     saveButton:SetText(private.getLocalisation("ReminderSaveButton"))
+    saveButton:SetRelativeWidth(0.5)
     saveButton:SetCallback("OnClick", function()
         local timeValue = tonumber(timingBox:GetText())
         if not timeValue then
@@ -567,28 +590,28 @@ local function OpenReminderDialog(self, reminderIndex)
         dialog:Release()
         self.addEntry = nil
     end)
-    buttons:AddChild(saveButton)
+    dialog:AddChild(saveButton)
 
     if isEditing then
         local deleteButton = AceGUI:Create("Button")
         deleteButton:SetText(private.getLocalisation("ReminderDeleteButton"))
+        deleteButton:SetRelativeWidth(0.5)
         deleteButton:SetCallback("OnClick", function()
             deleteReminder(self, reminderIndex)
             dialog:Release()
             self.addEntry = nil
         end)
-        buttons:AddChild(deleteButton)
+        dialog:AddChild(deleteButton)
+    else
+        local cancelButton = AceGUI:Create("Button")
+        cancelButton:SetText(private.getLocalisation("ReminderCancelButton"))
+        cancelButton:SetRelativeWidth(0.5)
+        cancelButton:SetCallback("OnClick", function()
+            dialog:Release()
+            self.addEntry = nil
+        end)
+        dialog:AddChild(cancelButton)
     end
-
-    local cancelButton = AceGUI:Create("Button")
-    cancelButton:SetText(private.getLocalisation("ReminderCancelButton"))
-    cancelButton:SetCallback("OnClick", function()
-        dialog:Release()
-        self.addEntry = nil
-    end)
-    buttons:AddChild(cancelButton)
-
-    dialog:AddChild(buttons)
 
     dialog.frame:Show()
     dialog.closeButton:SetScript("OnClick", function()
@@ -613,7 +636,8 @@ local function SetEncounter(self, dungeonId, encounterNumber, duration, encounte
     local Instancename = EJ_GetInstanceInfo(dungeonId)
     local EncounterName, _, journalEncounterID = EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
     self.encounterID = encounterID or journalEncounterID
-    self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), Instancename or "", EncounterName or ""))
+    self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), Instancename or "",
+        EncounterName or ""))
     -- Clear any existing pins/rows before loading new encounter data
     clearPins(self)
     clearReminderRows(self)
@@ -634,14 +658,14 @@ end
 
 
 local function Constructor()
-	local count = AceGUI:GetNextWidgetNum(Type)
+    local count = AceGUI:GetNextWidgetNum(Type)
 
     -- main window
     local container = AceGUI:Create("ATTimingsEditorContainer")
     local main = container.content
 
     -- LEFT column (fixed width)
-    local left = CreateFrame("Frame", Type .."_Left", main, "BackdropTemplate")
+    local left = CreateFrame("Frame", Type .. "_Left", main, "BackdropTemplate")
     left:SetPoint("TOPLEFT", main, "TOPLEFT", 10, -10)
     left:SetPoint("BOTTOMLEFT", main, "BOTTOMLEFT", 10, 40)
     left:SetWidth(variables.FrameLeftSize)
@@ -684,17 +708,17 @@ local function Constructor()
     reminderList.frame:SetFrameLevel(left:GetFrameLevel() + 50)
 
     -- RIGHT column: viewport with horizontal scroll for timeline
-    local rightViewport = CreateFrame("Frame", Type .."_RightViewport", main)
+    local rightViewport = CreateFrame("Frame", Type .. "_RightViewport", main)
     rightViewport:SetPoint("TOPLEFT", main, "TOPLEFT", variables.FrameLeftSize + 20, -10)
     rightViewport:SetPoint("TOPRIGHT", main, "TOPRIGHT", -10, -10)
     rightViewport:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", -10, 40)
 
     -- right horizontal ScrollFrame
-    local hscroll = CreateFrame("ScrollFrame", Type .."_RightHScroll", rightViewport)
+    local hscroll = CreateFrame("ScrollFrame", Type .. "_RightHScroll", rightViewport)
     hscroll:SetAllPoints(rightViewport)
 
     -- right content must be wider than viewport to allow horizontal scroll
-    local rightContent = CreateFrame("Frame", Type .."_RightContent", hscroll, "BackdropTemplate")
+    local rightContent = CreateFrame("Frame", Type .. "_RightContent", hscroll, "BackdropTemplate")
     rightContent:SetSize(2000, rightViewport:GetHeight())
     hscroll:SetScrollChild(rightContent)
 
@@ -703,12 +727,12 @@ local function Constructor()
         tile = true,
         tileSize = 32,
         edgeSize = 32,
-        insets = { left = 0, right = 0, top = 0, bottom = 0}
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
     })
     rightContent:SetBackdropColor(0.08, 0.08, 0.08, 0.9)
     rightContent:SetBackdropBorderColor(0.2, 0.2, 0.2, 0.9)
 
-    local timeline = CreateFrame("Frame", Type .."_Timeline", rightContent, "BackdropTemplate")
+    local timeline = CreateFrame("Frame", Type .. "_Timeline", rightContent, "BackdropTemplate")
     timeline:SetPoint("TOPLEFT", rightContent, "TOPLEFT", 10, -25)
     timeline:SetPoint("BOTTOMRIGHT", rightContent, "BOTTOMRIGHT", -10, 10)
     timeline:SetBackdrop({
@@ -716,7 +740,7 @@ local function Constructor()
         tile = true,
         tileSize = 32,
         edgeSize = 32,
-        insets = { left = 0, right = 0, top = 0, bottom = 0}
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
     })
     timeline:SetBackdropColor(0.05, 0.05, 0.06, 0.95)
     timeline:SetBackdropBorderColor(0.3, 0.3, 0.3, 0.9)
@@ -735,18 +759,18 @@ local function Constructor()
         hscroll:SetHorizontalScroll(value)
     end)
     private.Debug(hslider, "AT_TIMINGS_EDITOR_HSLIDER")
-    
+
     -- Create a dummy content frame for compatibility
     local content = rightContent
 
-	---@class AtTimingsEditorDataFrame : AceGUIWidget
-	local widget = {
-		OnAcquire = OnAcquire,
-		OnRelease = OnRelease,
-		frame = container.frame,
+    ---@class AtTimingsEditorDataFrame : AceGUIWidget
+    local widget = {
+        OnAcquire = OnAcquire,
+        OnRelease = OnRelease,
+        frame = container.frame,
         content = main,
-		type = Type,
-		count = count,
+        type = Type,
+        count = count,
         container = container,
         items = ITEMS,
         rightContent = rightContent,
@@ -769,14 +793,14 @@ local function Constructor()
         OpenReminderDialog = OpenReminderDialog,
         SaveReminders = SaveReminders,
         SortReminders = SortReminders,
-	}
+    }
 
     durationBox:SetCallback("OnEnterPressed", function(_, _, value)
         widget:SetCombatDuration(value)
         widget:RefreshReminders()
     end)
 
-	return AceGUI:RegisterAsWidget(widget)
+    return AceGUI:RegisterAsWidget(widget)
 end
 
 AceGUI:RegisterWidgetType(Type, Constructor, Version)

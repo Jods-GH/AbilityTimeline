@@ -24,7 +24,8 @@ if L then
     L['TestIcon'] = "Test Icon"
 
     -- reminders
-    L["ReminderCreatorTitle"] = "Create Reminder"
+    L["ReminderEditTitle"] = "Edit Reminder"
+    L["ReminderAddTitle"] = "Add New Reminder"
     L["ReminderCreatorTimingLabel"] = "Time (seconds)"
     L["ReminderCreatorAddButton"] = "Save Reminder"
     L["ReminderNameLabel"] = "Name"

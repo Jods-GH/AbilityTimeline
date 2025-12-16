@@ -3,8 +3,8 @@ local AceGUI = LibStub("AceGUI-3.0")
 local Type = "AtReminderCreator"
 local Version = 1
 local variables = {
-    x = 400,
-    y = 200,
+    x = 420,
+    y = 280,
     titleBar = {
         height = 30,
         padding = {
@@ -35,6 +35,7 @@ local function OnRelease(self)
     self.frame:Hide()
 end
 
+
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
     local frame = CreateFrame("Frame", Type .. count, private.TIMINGS_EDITOR_WINDOW.frame, "BackdropTemplate")
@@ -47,11 +48,23 @@ local function Constructor()
         edgeSize = 32,
         insets = { left = 0, right = 0, top = 0, bottom = 0 }
     })
+    frame:SetBackdropColor(0, 0, 0, 0.95)
+    frame:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
+    frame:SetAlpha(1)
+
+    -- Add an explicit dark overlay to guarantee opacity
+    local overlay = frame:CreateTexture(nil, "BACKGROUND")
+    overlay:SetAllPoints()
+    overlay:SetColorTexture(0, 0, 0, 0.95)
     frame:SetPoint("CENTER", private.TIMINGS_EDITOR_WINDOW.frame, "CENTER")
     local titleBar = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     titleBar:SetPoint("TOP", frame, "TOP", variables.titleBar.padding.x, variables.titleBar.padding.y)
-    titleBar:SetText(private.getLocalisation("ReminderCreatorTitle"))
+    titleBar:SetText(private.getLocalisation("ReminderAddTitle"))
     titleBar:SetHeight(variables.titleBar.height)
+
+    local function SetTitle (self, title)
+        titleBar:SetText(title)
+    end
 
     local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
     closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT")
@@ -82,6 +95,7 @@ local function Constructor()
         frame = frame,
         closeButton = closeButton,
         content = contentFrame,
+        SetTitle = SetTitle,
     }
 
     return AceGUI:RegisterAsContainer(widget)
