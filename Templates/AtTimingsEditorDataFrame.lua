@@ -20,6 +20,8 @@ local variables = {
 	Padding = { x = 2, y = 2 },
     sliderSize = 1100,
     timelinePixelsPerSecond = 6,
+    RowHeight = 44,
+    RowPadding = 8,
 }
 
 local function formatTime(seconds)
@@ -197,6 +199,13 @@ end
 
 local function clearPins(self)
     if not self.reminderPins then return end
+    if self.rowBands then
+        for _, band in ipairs(self.rowBands) do
+            if band and band.Hide then band:Hide() end
+            if band and band.SetParent then band:SetParent(nil) end
+        end
+    end
+    self.rowBands = {}
     -- Hide and destroy all tracked pins and their delay bars
     for _, pin in ipairs(self.reminderPins) do
         if pin and pin.delayBar then
@@ -236,21 +245,23 @@ local function clearPins(self)
     end
 end
 
-local function anchorPin(self, pin, time)
+local function anchorPin(self, pin, time, rowIndex)
     local width = self.timeline and self.timeline:GetWidth() or 0
     if width <= 0 or not self.combatDuration or self.combatDuration <= 0 then return end
     local pos = (time / self.combatDuration) * width
+    local rowHeight = variables.RowHeight
+    local rowPadding = variables.RowPadding
+    local y = -rowPadding - (rowIndex - 1) * (rowHeight + rowPadding) - (rowHeight * 0.5)
     pin:ClearAllPoints()
-    pin:SetPoint("CENTER", self.timeline, "LEFT", pos, -10)
-    -- position/size delay bar if present (extends left from the icon)
+    pin:SetPoint("CENTER", self.timeline, "TOPLEFT", pos, y)
+    -- position/size delay bar if present (extends right from the icon)
     if pin.delayBar then
         local delay = tonumber(pin.delaySeconds) or 0
         if delay > 0 then
             local pixelsPerSecond = variables.timelinePixelsPerSecond or 6
             local barWidth = math.max(0, delay * pixelsPerSecond)
             pin.delayBar:ClearAllPoints()
-            -- Place the bar to the right of the icon, starting slightly to the right of center
-            pin.delayBar:SetPoint("LEFT", self.timeline, "LEFT", pos + 2, -10)
+            pin.delayBar:SetPoint("LEFT", self.timeline, "TOPLEFT", pos + 2, y)
             pin.delayBar:SetSize(barWidth, 6)
             pin.delayBar:Show()
         else
@@ -275,7 +286,7 @@ local function SaveReminders(self)
     private.db.profile.reminders[self.encounterID] = copy
 end
 
-local function createPin(self, reminder)
+local function createPin(self, reminder, rowIndex)
     local pin = CreateFrame("Button", nil, self.timeline, "BackdropTemplate")
     pin:SetSize(20, 20)
     -- mark so we can reliably clear later
@@ -308,7 +319,7 @@ local function createPin(self, reminder)
     pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
     -- Disable dragging for now to prevent XY drag bugs and duplication
     -- If needed later, implement X-only dragging with constrained repositioning.
-    anchorPin(self, pin, reminder.CombatTime or 0)
+    anchorPin(self, pin, reminder.CombatTime or 0, rowIndex)
     table.insert(self.reminderPins, pin)
 end
 
@@ -380,12 +391,77 @@ local function RefreshReminders(self)
     end
 
     SortReminders(self)
-    local maxTime = 0
-    for idx, reminder in ipairs(self.reminders) do
-        maxTime = math.max(maxTime, reminder.CombatTime or 0)
-        createRow(self, reminder, idx)
-        createPin(self, reminder)
+
+    -- Build a map from reminder reference to its index in the master list so edit/delete target the correct entry
+    local reminderIndexMap = {}
+    for i, r in ipairs(self.reminders) do
+        reminderIndexMap[r] = i
     end
+
+    -- Group reminders by spell (or name) so each spell gets its own row on the timeline
+    local groups = {}
+    local order = {}
+    for _, reminder in ipairs(self.reminders) do
+        local rawKey = reminder.spellId or reminder.spellName or reminder.name or reminder.iconId or "Unknown"
+        local key = tostring(rawKey)
+        local name = reminder.spellName or reminder.name or "Unknown"
+        if type(name) ~= "string" then name = tostring(name) end
+        if not groups[key] then
+            groups[key] = {
+                key = key,
+                name = name,
+                icon = getReminderTexture(reminder),
+                reminders = {},
+            }
+            table.insert(order, key)
+        end
+        table.insert(groups[key].reminders, reminder)
+    end
+
+    table.sort(order, function(a, b)
+        return tostring(groups[a].name or "") < tostring(groups[b].name or "")
+    end)
+
+    local rowHeight = variables.RowHeight
+    local rowPadding = variables.RowPadding
+    local rowsCount = #order
+    local totalRowsHeight = rowsCount * (rowHeight + rowPadding) + rowPadding
+
+    -- Ensure the timeline and its scroll child are tall enough to show all rows
+    local targetHeight = math.max(totalRowsHeight + 20, self.rightViewport:GetHeight())
+    self.timeline:SetHeight(targetHeight)
+    self.rightContent:SetHeight(targetHeight + 20)
+
+    -- Alternate row backgrounds for readability
+    self.rowBands = self.rowBands or {}
+    for idx, key in ipairs(order) do
+        local top = -rowPadding - (idx - 1) * (rowHeight + rowPadding)
+        local band = self.timeline:CreateTexture(nil, "BACKGROUND", nil, -8)
+        local shade = (idx % 2 == 0) and 0.10 or 0.14
+        band:SetColorTexture(shade, shade, shade, 0.55)
+        band:SetPoint("TOPLEFT", self.timeline, "TOPLEFT", 0, top)
+        band:SetPoint("TOPRIGHT", self.timeline, "TOPRIGHT", 0, top)
+        band:SetHeight(rowHeight)
+        table.insert(self.rowBands, band)
+    end
+
+    -- Build rows in the reminder list (kept sorted by time within each spell)
+    local maxTime = 0
+    local rowIndex = 0
+    for _, key in ipairs(order) do
+        rowIndex = rowIndex + 1
+        local group = groups[key]
+        table.sort(group.reminders, function(a, b)
+            return (a.CombatTime or 0) < (b.CombatTime or 0)
+        end)
+        for _, reminder in ipairs(group.reminders) do
+            maxTime = math.max(maxTime, reminder.CombatTime or 0)
+            local actualIndex = reminderIndexMap[reminder]
+            createRow(self, reminder, actualIndex)
+            createPin(self, reminder, rowIndex)
+        end
+    end
+
     SetCombatDuration(self, math.max(self.combatDuration or 0, maxTime + 10))
     UpdateTimelineWidth(self)
     HandleTicks(self)
