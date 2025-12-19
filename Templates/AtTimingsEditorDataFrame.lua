@@ -230,13 +230,6 @@ local function SaveReminders(self)
         table.insert(copy, r)
     end
     private.db.profile.reminders[self.encounterID] = copy
-    -- persist lightweight metadata for recent lookups
-    private.db.profile.reminderMeta[self.encounterID] = private.db.profile.reminderMeta[self.encounterID] or {}
-    if self.journalEncounterID then private.db.profile.reminderMeta[self.encounterID].journalEncounterID = self.journalEncounterID end
-    if self.journalInstanceID then private.db.profile.reminderMeta[self.encounterID].journalInstanceID = self.journalInstanceID end
-    if self.container and self.container.title then
-        private.db.profile.reminderMeta[self.encounterID].name = self.container.title:GetText() or private.db.profile.reminderMeta[self.encounterID].name
-    end
 end
 
 local function createPin(self, reminder, rowIndex)
@@ -495,6 +488,24 @@ local function OpenReminderDialog(self, reminderIndex)
     severity:SetValue(current.severity or 0)
     dialog:AddChild(severity)
 
+    local effects = AceGUI:Create("Dropdown")
+    effects:SetLabel(private.getLocalisation("ReminderEffectTypesLabel"))
+    effects:SetList({
+        [1] = private.getLocalisation("DeadlyEffect"),
+        [2] = private.getLocalisation("EnrageEffect"),
+        [4] = private.getLocalisation("BleedEffect"),
+        [8] = private.getLocalisation("MagicEffect"),
+        [16] = private.getLocalisation("DiseaseEffect"),
+        [32] = private.getLocalisation("CurseEffect"),
+        [64] = private.getLocalisation("PoisonEffect"),
+        [128] = private.getLocalisation("TankRole"),
+        [256] = private.getLocalisation("HealerRole"),
+        [512] = private.getLocalisation("DpsRole")
+    })
+    effects:SetFullWidth(true)
+    effects:SetValue(current.effectTypes)
+    dialog:AddChild(effects)
+
     local function refreshSpellInfo()
         local spellIdText = spellIdBox:GetText()
         local spellId = tonumber(spellIdText)
@@ -546,8 +557,9 @@ local function OpenReminderDialog(self, reminderIndex)
             spellName = spellInfo and spellInfo.name or nil,
             iconId = spellInfo and spellInfo.iconID or getReminderTexture(current),
             CombatTime = timeValue,
-            CombatTimeDelay = tonumber(delayBox:GetText()) or 0,
-            severity = severity:GetValue() or 0,
+            CombatTimeDelay = tonumber(delayBox:GetText()),
+            severity = severity:GetValue(),
+            effectTypes = effects:GetValue(),
         }
         if isEditing then
             self.reminders[reminderIndex] = reminder
@@ -599,64 +611,32 @@ local function loadReminders(self, encounterID)
     for _, reminder in ipairs(stored) do
         table.insert(self.reminders, copyReminder(reminder))
     end
-    -- restore EJ ids if saved with reminders
-    if stored and #stored > 0 then
-        local first = stored[1]
-        if first.journalEncounterID then self.journalEncounterID = first.journalEncounterID end
-        if first.journalInstanceID then self.journalInstanceID = first.journalInstanceID end
-    else
-        self.journalEncounterID = nil
-        self.journalInstanceID = nil
-    end
     SortReminders(self)
 end
 
-local function SetEncounter(self, dungeonId, encounterNumber, duration, encounterID)
-    -- Support two modes:
-    -- 1) legacy: (dungeonId (instanceID), encounterNumber (index), duration, encounterID)
-    -- 2) new: pass a table with keys { journalEncounterID=, journalInstanceID=, dungeonEncounterID=, duration= }
-    local titleInstanceName, EncounterName
-    if type(dungeonId) == "table" then
-        local t = dungeonId
-        -- prefer explicit provided ids
-        self.journalEncounterID = t.journalEncounterID or t.journalID or self.journalEncounterID
-        self.journalInstanceID = t.journalInstanceID or t.instanceID or self.journalInstanceID
-        self.encounterID = tonumber(t.dungeonEncounterID or t.encounterID) or self.encounterID
-        duration = t.duration or duration
-        -- try to fetch names via EJ_GetEncounterInfo if we have an id
-        local queryKey = self.journalEncounterID or self.encounterID
-        if queryKey then
-            local n, _, jeID, _, _, jiID, deID = EJ_GetEncounterInfo(queryKey)
-            EncounterName = n or EncounterName
-            self.journalEncounterID = jeID or self.journalEncounterID
-            self.journalInstanceID = jiID or self.journalInstanceID
-            self.encounterID = deID or self.encounterID
-        end
-        if self.journalInstanceID then
-            titleInstanceName = select(1, EJ_GetInstanceInfo(self.journalInstanceID))
-        elseif t.instanceName then
-            titleInstanceName = t.instanceName
-        end
-    else
-        titleInstanceName = EJ_GetInstanceInfo(dungeonId)
-        EncounterName, _, self.journalEncounterID, _, _, self.journalInstanceID, self.encounterID = EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
-    end
-    -- Ensure encounterID is numeric if possible
-    self.encounterID = tonumber(self.encounterID) or self.encounterID
-    -- store both EJ ids for later use; `dungeonEncounterID` is the id fired by ENCOUNTER_START
-    self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), titleInstanceName or "", EncounterName or ""))
+local function SetEncounter(self, encounterParams)
+
+    assert(type(encounterParams) == "table", "SetEncounter requires a table parameter")
+    assert(encounterParams.journalEncounterID and encounterParams.journalInstanceID or encounterParams.dungeonEncounterID,
+        "SetEncounter requires journalEncounterID, journalInstanceID, and dungeonEncounterID")
+    self.journalEncounterID = encounterParams.journalEncounterID 
+    self.journalInstanceID = encounterParams.journalInstanceID 
+    self.encounterID =encounterParams.dungeonEncounterID
+
+    local instanceName = EJ_GetInstanceInfo(self.journalInstanceID)
+    local encounterName = EJ_GetEncounterInfo(self.journalEncounterID)
+    self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), instanceName or "", encounterName or ""))
     -- Clear any existing pins/rows before loading new encounter data
     clearPins(self)
     clearReminderRows(self)
     loadReminders(self, self.encounterID)
-    SetCombatDuration(self, duration or private.db.profile.editor.defaultEncounterDuration)
+    SetCombatDuration(self, private.db.profile.editor.defaultEncounterDuration)
     UpdateTimelineWidth(self)
     HandleTicks(self)
     self:RefreshReminders()
     self.addEntryButton:SetCallback("OnClick", function()
         self:OpenReminderDialog(nil)
     end)
-    -- Ensure everything is visible
     if self.container and self.container.frame then
         self.container.frame:Show()
     end

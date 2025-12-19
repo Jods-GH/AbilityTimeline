@@ -2,53 +2,17 @@ local appName, private = ...
 
 local AceGUI = LibStub("AceGUI-3.0")
 
-local updateTimelineEditorFrame = function(a, encounterNumber, encounterID)
+local updateTimelineEditorFrame = function(encounterParams)
     local frame = private.getTimingsEditorFrame()
-    if type(a) == "table" then
-        -- new API: pass a table containing EJ ids: { journalEncounterID=, journalInstanceID=, dungeonEncounterID=, duration= }
-        frame:SetEncounter(a)
-    else
-        -- legacy API: (dungeonId, encounterNumber, encounterID)
-        frame:SetEncounter(a, encounterNumber, nil, encounterID)
-    end
+    frame:SetEncounter(encounterParams)
     private.Debug(frame, "AT_TIMINGS_EDITOR_FRAME")
     return frame
 end
 
-private.openTimingsEditor = function(a, encounterNumber, encounterID)
-    -- Open the timing editor. Supports new table form or legacy args.
-    if type(a) == "table" then
-        private.Debug("Opening timing editor (table) for encounter: " .. tostring(a.dungeonEncounterID or a.journalEncounterID or "nil"))
-        -- Persist lightweight reminderMeta immediately so UI lists can use it even before saving reminders
-        local key = tonumber(a.dungeonEncounterID) or tonumber(a.journalEncounterID)
-        if key then
-            if a.journalEncounterID then private.db.profile.reminderMeta[key].journalEncounterID = a.journalEncounterID end
-            if a.journalInstanceID then private.db.profile.reminderMeta[key].journalInstanceID = a.journalInstanceID end
-            if a.name then private.db.profile.reminderMeta[key].name = a.name end
-        end
-        local frame = updateTimelineEditorFrame(a)
-        frame.frame:Show()
-    else
-        private.Debug("Opening timing editor for dungeon " .. tostring(a) .. ", encounter " .. tostring(encounterNumber or "nil") .. ", encounterID " .. tostring(encounterID or "nil"))
-        -- If called with legacy args (instanceID, encounterIndex), persist reminderMeta so Options can display instance/encounter names
-        if type(a) == "number" and (encounterNumber ~= nil) then
-            local inst = tonumber(a)
-            local idx = tonumber(encounterNumber) or 1
-            if inst and idx and EJ_GetEncounterInfoByIndex then
-                local EncounterName, _, journalEncounterID, _, _, journalInstanceID, dungeonEncounterID = EJ_GetEncounterInfoByIndex(idx, inst)
-                local key = tonumber(dungeonEncounterID) or tonumber(journalEncounterID) or tonumber(encounterID)
-                if key then
-                    private.db.profile.reminderMeta[key] = private.db.profile.reminderMeta[key] or {}
-                    if journalEncounterID then private.db.profile.reminderMeta[key].journalEncounterID = journalEncounterID end
-                    if journalInstanceID then private.db.profile.reminderMeta[key].journalInstanceID = journalInstanceID end
-                    if EncounterName then private.db.profile.reminderMeta[key].name = EncounterName end
-                end
-            end
-        end
-
-        local frame = updateTimelineEditorFrame(a, encounterNumber, encounterID)
-        frame.frame:Show()
-    end
+private.openTimingsEditor = function(encounterParams)
+    private.Debug("Opening timing editor (table) for encounter: " .. tostring(encounterParams.dungeonEncounterID or encounterParams.journalEncounterID or "nil"))
+    local frame = updateTimelineEditorFrame(encounterParams)
+    frame.frame:Show()
 end
 
 

@@ -76,20 +76,6 @@ local function createTestBars(duration)
     private.Debug("Creating test bar with duration: " .. duration .. " seconds")
 end
 
-local function findEncounterIndex(instanceID, encounterJournalID)
-    if not instanceID or not encounterJournalID then return 1 end
-    local idx = 1
-    while true do
-        local _, _, journalEncounterID = EJ_GetEncounterInfoByIndex(idx, instanceID)
-        if not journalEncounterID then break end
-        if journalEncounterID == encounterJournalID then
-            return idx
-        end
-        idx = idx + 1
-    end
-    return 1
-end
-
 
 function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
     if not C_EncounterTimeline.IsFeatureEnabled() then
@@ -107,23 +93,6 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
         end
     elseif string.find(string.lower(msg), "rect") then
         private.Debug(private.TIMELINE_FRAME.frame:GetBoundsRect())
-    elseif msg == "editor" then
-        local target = private.lastEncounterInfo or {}
-        if not target.instanceID then
-            local mapID = select(8, GetInstanceInfo())
-            if mapID and EJ_GetInstanceForMap then
-                target.instanceID = EJ_GetInstanceForMap(mapID)
-            end
-            if (not target.instanceID) and EJ_GetCurrentInstance then
-                target.instanceID = EJ_GetCurrentInstance()
-            end
-            target.encounterIndex = target.encounterIndex or 1
-        end
-        if target.instanceID then
-            private.openTimingsEditor(target.instanceID, target.encounterIndex or 1, target.encounterID)
-        else
-            AbilityTimeline:Print(private.getLocalisation("TimelineNotSupportedMessage"))
-        end
     elseif msg == "eventlist" then
        private.Debug(C_EncounterTimeline.GetEventList(), "EventList")
     elseif string.find(string.lower(msg), "pause (.-)") then

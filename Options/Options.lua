@@ -20,35 +20,14 @@ private.options = {
             local out = {}
             if private.db and private.db.profile and private.db.profile.reminders then
               for id, stored in pairs(private.db.profile.reminders) do
-                local encName = nil
-                local instName = nil
-                -- Prefer explicit reminderMeta mapping if present
-                if private.db.profile.reminderMeta and private.db.profile.reminderMeta[id] then
-                  local m = private.db.profile.reminderMeta[id]
-                  if m.name then
-                    encName = m.name
-                  elseif m.journalEncounterID then
-                    encName = EJ_GetEncounterInfo(m.journalEncounterID)
-                  end
-                  if m.journalInstanceID then
-                    instName = EJ_GetInstanceInfo(m.journalInstanceID)
-                  end
+                local first = stored[1]
+                if first then
+                  DevTools_Dump(first)
+                  local encName = EJ_GetEncounterInfo(first.journalEncounterID)
+                  local instName = EJ_GetInstanceInfo(first.journalInstanceID)
+                  local display = string.format("%s — %s", instName, encName)
+                  out[tostring(id)] = display
                 end
-                -- Fallback to stored reminder entries if needed
-                if not encName and type(stored) == "table" and #stored > 0 then
-                  local first = stored[1]
-                  if first and first.journalEncounterID then
-                    encName = EJ_GetEncounterInfo(first.journalEncounterID)
-                  end
-                  if first and first.journalInstanceID then
-                    instName = EJ_GetInstanceInfo(first.journalInstanceID)
-                  end
-                end
-                local display = encName or ("Encounter " .. tostring(id))
-                if instName and instName ~= "" then
-                  display = string.format("%s — %s", instName, display)
-                end
-                out[tostring(id)] = display
               end
             end
             return out
@@ -67,24 +46,12 @@ private.options = {
             local sel = private._recentSelected
             -- Open the selected saved encounter (keyed by dungeonEncounterID)
             private.RegisterEncounter(sel, nil, false)
-            if private.openTimingsEditor then
-              local params = nil
-              -- Prefer stored reminderMeta if available
-              if private.db.profile.reminderMeta and private.db.profile.reminderMeta[sel] then
-                local m = private.db.profile.reminderMeta[sel]
-                params = { journalEncounterID = m.journalEncounterID, journalInstanceID = m.journalInstanceID, dungeonEncounterID = tonumber(sel), name = m.name }
-              else
-                local stored = private.db.profile.reminders[sel]
-                if type(stored) == "table" and #stored > 0 then
-                  local first = stored[1]
-                  if first and (first.journalEncounterID or first.journalInstanceID) then
-                    params = { journalEncounterID = first.journalEncounterID, journalInstanceID = first.journalInstanceID, dungeonEncounterID = tonumber(sel) }
-                  end
-                end
-              end
-              if params then
-                private.openTimingsEditor(params)
-              end
+            local stored = private.db.profile.reminders[sel]
+            local first = stored[1]
+            if first then
+              local params = { journalEncounterID = first.journalEncounterID, journalInstanceID = first.journalInstanceID, dungeonEncounterID =
+              tonumber(sel) }
+              private.openTimingsEditor(params)
             end
           end,
         },
@@ -98,7 +65,8 @@ private.options = {
       type = "toggle",
       set = function(info, val) private.db.profile.debugMode = val end, --Sets value of SavedVariables depending on toggles
       get = function(info)
-        return private.db.profile.debugMode                                                 --Sets value of toggles depending on SavedVariables
+        return private.db.profile
+        .debugMode                                                      --Sets value of toggles depending on SavedVariables
       end,
     },
     useAudioCountdowns = {
@@ -109,7 +77,7 @@ private.options = {
       type = "toggle",
       set = function(info, val) private.db.profile.useAudioCountdowns = val end, --Sets value of SavedVariables depending on toggles
       get = function(info)
-        return private.db.profile.useAudioCountdowns  --Sets value of toggles depending on SavedVariables
+        return private.db.profile.useAudioCountdowns                             --Sets value of toggles depending on SavedVariables
       end,
     },
     enableKeyRerollTimer = {
@@ -120,7 +88,7 @@ private.options = {
       type = "toggle",
       set = function(info, val) private.db.profile.enableKeyRerollTimer = val end, --Sets value of SavedVariables depending on toggles
       get = function(info)
-        return private.db.profile.enableKeyRerollTimer  --Sets value of toggles depending on SavedVariables
+        return private.db.profile.enableKeyRerollTimer                             --Sets value of toggles depending on SavedVariables
       end,
     },
     encounterOptions = {
@@ -150,7 +118,7 @@ private.buildInstanceOptions = function()
     }
     for encounterNumber, encounterID in pairs(dungeonValue.encounters) do
       local EncounterName, Encounterdescription, journalEncounterID, rootSectionID, link, journalInstanceID, dungeonEncounterID, instanceID =
-      EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
+          EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
       private.options.args.encounterOptions.args["dungeon" .. dungeonId].args["encounter" .. encounterNumber] = {
         name = EncounterName,
         -- description = Encounterdescription,
@@ -162,9 +130,10 @@ private.buildInstanceOptions = function()
             name = private.getLocalisation("EditTimingsForEncounter") .. ": " .. EncounterName,
             type = "execute",
             order = 0,
-            func = function() 
-              local encounterID = private.Instances[dungeonId] and private.Instances[dungeonId].encounters and private.Instances[dungeonId].encounters[encounterNumber]
-              private.openTimingsEditor(dungeonId, encounterNumber, encounterID) 
+            func = function()
+              local params = { journalEncounterID = journalEncounterID, journalInstanceID = journalInstanceID, dungeonEncounterID =
+              dungeonEncounterID, name = EncounterName }
+              private.openTimingsEditor(params)         
             end
           },
         }

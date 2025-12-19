@@ -48,6 +48,18 @@ if L then
     L["ReminderSeverityLabel"] = "Severity"
     L["ReminderEditButton"] = "Edit"
     L["EditRemindersForEncounter"] = "Edit Reminders for Encounter"
+    L["ReminderEffectTypesLabel"] = "Effect Types"
+    L["DeadlyEffect"] = "Deadly"
+    L["EnrageEffect"] = "Enrage"
+    L["BleedEffect"] = "Bleed"
+    L["MagicEffect"] = "Magic"
+    L["DiseaseEffect"] = "Disease"
+    L["CurseEffect"] = "Curse"
+    L["PoisonEffect"] = "Poison"
+    L["TankRole"]= "Tank"
+    L["HealerRole"]= "Healer"
+    L["DpsRole"]= "DPS"
+
 
 
     --spell icon editor

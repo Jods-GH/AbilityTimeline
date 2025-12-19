@@ -20,7 +20,7 @@ private.createReminders = function(encounterID)
             iconFileID = reminder.iconId or icon or 134400,
             severity = reminder.severity or 1,
             paused = false,
-            icons = reminder.icons,
+            icons = reminder.effectTypes,
         }
 
         C_EncounterTimeline.AddScriptEvent(eventinfo)

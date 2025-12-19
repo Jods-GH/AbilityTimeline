@@ -35,42 +35,13 @@ private.RegisterEncounter = function(encounterID, meta, copyDefaults)
     private.db.profile.reminders[encounterID] = private.db.profile.reminders[encounterID] or {}
     -- If reminders already exist and copyDefaults requested, ask user whether to append defaults (non-destructive)
     if copyDefaults and private.db.profile.reminders[encounterID] and #private.db.profile.reminders[encounterID] > 0 then
-        StaticPopupDialogs["ABILITYTIMELINE_APPEND_DEFAULTS"] = StaticPopupDialogs["ABILITYTIMELINE_APPEND_DEFAULTS"] or {
-            text = private.getLocalisation and private.getLocalisation("AppendDefaultsPrompt") or "Reminders already exist for %s. Append default reminders?",
-            button1 = ACCEPT,
-            button2 = CANCEL,
-            timeout = 0,
-            whileDead = true,
-            hideOnEscape = true,
-                OnAccept = function(self, data)
-                copyDefaultsToEncounter(encounterID, meta)
-            end,
-            OnCancel = function() end,
-            OnShow = function(self, data)
-                local ename = (meta and meta.name) or select(1, EJ_GetEncounterInfo(encounterID)) or tostring(encounterID)
-                if self.text and self.text.GetText and self.text.SetFormattedText then
-                    local fmt = self.text:GetText() or "%s"
-                    self.text:SetFormattedText(fmt, ename)
-                else
-                    -- fallback: if the popup's font string isn't available, set raw text safely
-                    pcall(function() if type(ename) == "string" and self.SetText then self:SetText(ename) end end)
-                end
-            end,
-        }
-        StaticPopup_Show("ABILITYTIMELINE_APPEND_DEFAULTS")
+        copyDefaultsToEncounter(encounterID, meta)
     end
     if meta then
         meta = meta or {}
         meta.name = meta.name or (select(1, EJ_GetEncounterInfo(encounterID)) or "Unknown")
         meta.instanceID = meta.instanceID or select(6, EJ_GetEncounterInfo(encounterID))
         meta.source = meta.source or "ej"
-    end
-    if meta and (meta.instanceID or meta.journalID or meta.journalEncounterID or meta.name) then
-        private.db.profile.reminderMeta[encounterID] = private.db.profile.reminderMeta[encounterID] or {}
-        -- prefer explicit fields if provided
-        private.db.profile.reminderMeta[encounterID].journalEncounterID = meta.journalEncounterID or meta.journalID or private.db.profile.reminderMeta[encounterID].journalEncounterID
-        private.db.profile.reminderMeta[encounterID].journalInstanceID = meta.instanceID or meta.journalInstanceID or private.db.profile.reminderMeta[encounterID].journalInstanceID
-        private.db.profile.reminderMeta[encounterID].name = meta.name or private.db.profile.reminderMeta[encounterID].name
     end
     -- If copyDefaults requested but there were no existing reminders, copy immediately
     if copyDefaults and (#private.db.profile.reminders[encounterID] == 0) then
@@ -136,14 +107,12 @@ local function ensureEJButton()
                 local key = entry.dungeonEncounterID or entry.journalEncounterID or entry.raw
                 key = tonumber(key) or key
                 private.RegisterEncounter(key, { name = entry.name, instanceID = entry.journalInstanceID, journalID = entry.journalEncounterID }, true)
-                if private.openTimingsEditor then
-                    local params = {
-                        journalEncounterID = entry.journalEncounterID,
-                        journalInstanceID = entry.journalInstanceID,
-                        dungeonEncounterID = entry.dungeonEncounterID or key,
-                    }
-                    private.openTimingsEditor(params)
-                end
+                local params = {
+                    journalEncounterID = entry.journalEncounterID,
+                    journalInstanceID = entry.journalInstanceID,
+                    dungeonEncounterID = entry.dungeonEncounterID or key,
+                }
+                private.openTimingsEditor(params)
             end)
             EncounterJournalEncounterFrameInfoModelTab:HookScript("OnDisable", function(self)
                 btn:DesaturateHierarchy(100)
