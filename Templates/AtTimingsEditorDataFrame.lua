@@ -31,24 +31,12 @@ local function formatTime(seconds)
     return string.format("%d:%05.2f", minutes, secs)
 end
 
-local function clamp(v, lo, hi)
-    if v < lo then return lo end
-    if v > hi then return hi end
-    return v
-end
-
 local function copyReminder(reminder)
     local t = {}
     for k, v in pairs(reminder or {}) do
         t[k] = v
     end
     return t
-end
-
-local function ensureReminderDB()
-    if not private.db.profile.reminders then
-        private.db.profile.reminders = {}
-    end
 end
 
 ---@param self AtTimingsEditorDataFrame
@@ -65,9 +53,9 @@ local function OnRelease(self)
     if self.reminderList then
         self.reminderList:ReleaseChildren()
     end
-    if self.items then
+    if type(self.items) == "table" then
         for _, v in pairs(self.items) do
-            if v.spellContainer then
+            if v and type(v) == "table" and v.spellContainer then
                 v.spellContainer:Release()
             end
         end
@@ -91,48 +79,6 @@ local function OnRelease(self)
     end
     self.reminderRows = {}
     self.items = {}
-end
-
-local ITEMS = {}
-
-local function AddItem(self, item)
-    local spellContainer = AceGUI:Create("AtEditorSpellIcon")
-    spellContainer:SetAbility(item.spellicon, item.spellname)
-    local i = #self.items
-    spellContainer.frame:SetSize(variables.FrameLeftSize - 20, 30)
-    spellContainer.frame:SetPoint("TOPLEFT", self.leftContent, "TOPLEFT", 10, -10 - (i) * 36)
-
-    local row = CreateFrame("Frame", nil, self.rightContent)
-    row:SetSize(1400, 34)
-    row:SetPoint("TOPLEFT", self.rightContent, "TOPLEFT", 10, -10 - (i) * 36)
-    local t = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    t:SetPoint("LEFT", row, "LEFT", 4, 0)
-    t:SetText(item.rowText)
-
-    local separator = CreateFrame("Frame", nil, self.rightContent, "BackdropTemplate")
-    separator:SetPoint("LEFT", self.rightContent, "LEFT", 0, -10 - (i + 1) * 36)
-    separator:SetPoint("RIGHT", self.rightContent, "RIGHT", 0, -10 - (i + 1) * 36)
-    separator:SetHeight(20)
-    separator:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        tile = true,
-        tileSize = 32,
-        edgeSize = 32,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 }
-    })
-    separator:SetBackdropColor(0.2, 0.2, 0.2, 0.9)
-    separator:SetFrameLevel(self.rightContent:GetFrameLevel() + 50)
-    separator:Show()
-
-
-
-    -- Function to add an item to the data frame
-    table.insert(ITEMS, {
-        spellContainer = spellContainer,
-        row = row,
-        separator = separator,
-        data = item,
-    })
 end
 
 local function HandleTicks(self)
@@ -274,13 +220,23 @@ local function SortReminders(self)
 end
 
 local function SaveReminders(self)
-    ensureReminderDB()
     if not self.encounterID then return end
     local copy = {}
     for _, reminder in ipairs(self.reminders) do
-        table.insert(copy, copyReminder(reminder))
+        local r = copyReminder(reminder)
+        -- persist EJ ids so the encounter can be restored precisely
+        if self.journalEncounterID then r.journalEncounterID = self.journalEncounterID end
+        if self.journalInstanceID then r.journalInstanceID = self.journalInstanceID end
+        table.insert(copy, r)
     end
     private.db.profile.reminders[self.encounterID] = copy
+    -- persist lightweight metadata for recent lookups
+    private.db.profile.reminderMeta[self.encounterID] = private.db.profile.reminderMeta[self.encounterID] or {}
+    if self.journalEncounterID then private.db.profile.reminderMeta[self.encounterID].journalEncounterID = self.journalEncounterID end
+    if self.journalInstanceID then private.db.profile.reminderMeta[self.encounterID].journalInstanceID = self.journalInstanceID end
+    if self.container and self.container.title then
+        private.db.profile.reminderMeta[self.encounterID].name = self.container.title:GetText() or private.db.profile.reminderMeta[self.encounterID].name
+    end
 end
 
 local function createPin(self, reminder, rowIndex)
@@ -376,6 +332,21 @@ end
 local function RefreshReminders(self)
     clearReminderRows(self)
     clearPins(self)
+    -- Defensive: ensure reminderList AceGUI widget exists (may be lost after many create/release cycles)
+    if not self.reminderList or type(self.reminderList.AddChild) ~= "function" then
+        private.Debug("recreating missing reminderList AceGUI widget")
+        local rl = AceGUI:Create("ScrollFrame")
+        rl:SetLayout("List")
+        if self.left then
+            rl:SetParent(self.left)
+            if rl.frame and self.left then
+                rl.frame:SetPoint("TOPLEFT", self.left, "TOPLEFT", 0, -125)
+                rl.frame:SetPoint("BOTTOMRIGHT", self.left, "BOTTOMRIGHT", 0, 0)
+                rl.frame:SetFrameLevel(self.left:GetFrameLevel() + 50)
+            end
+        end
+        self.reminderList = rl
+    end
     if #self.reminders == 0 then
         local emptyLabel = AceGUI:Create("Label")
         emptyLabel:SetText(private.getLocalisation("ReminderListEmpty"))
@@ -568,12 +539,12 @@ local function OpenReminderDialog(self, reminderIndex)
             return
         end
         local spellId = tonumber(spellIdBox:GetText())
-        local spellName, _, icon = spellId and C_Spell.GetSpellInfo(spellId) or nil
+        local spellInfo  = spellId and C_Spell.GetSpellInfo(spellId) or nil
         local reminder = {
-            name = nameBox:GetText() ~= "" and nameBox:GetText() or spellName,
+            name = nameBox:GetText() ~= "" and nameBox:GetText() or nil,
             spellId = spellId,
-            spellName = spellName or nameBox:GetText(),
-            iconId = icon or getReminderTexture(current),
+            spellName = spellInfo and spellInfo.name or nil,
+            iconId = spellInfo and spellInfo.iconID or getReminderTexture(current),
             CombatTime = timeValue,
             CombatTimeDelay = tonumber(delayBox:GetText()) or 0,
             severity = severity:GetValue() or 0,
@@ -623,21 +594,57 @@ local function OpenReminderDialog(self, reminderIndex)
 end
 
 local function loadReminders(self, encounterID)
-    ensureReminderDB()
     local stored = private.db.profile.reminders[encounterID] or {}
     self.reminders = {}
     for _, reminder in ipairs(stored) do
         table.insert(self.reminders, copyReminder(reminder))
     end
+    -- restore EJ ids if saved with reminders
+    if stored and #stored > 0 then
+        local first = stored[1]
+        if first.journalEncounterID then self.journalEncounterID = first.journalEncounterID end
+        if first.journalInstanceID then self.journalInstanceID = first.journalInstanceID end
+    else
+        self.journalEncounterID = nil
+        self.journalInstanceID = nil
+    end
     SortReminders(self)
 end
 
 local function SetEncounter(self, dungeonId, encounterNumber, duration, encounterID)
-    local Instancename = EJ_GetInstanceInfo(dungeonId)
-    local EncounterName, _, journalEncounterID = EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
-    self.encounterID = encounterID or journalEncounterID
-    self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), Instancename or "",
-        EncounterName or ""))
+    -- Support two modes:
+    -- 1) legacy: (dungeonId (instanceID), encounterNumber (index), duration, encounterID)
+    -- 2) new: pass a table with keys { journalEncounterID=, journalInstanceID=, dungeonEncounterID=, duration= }
+    local titleInstanceName, EncounterName
+    if type(dungeonId) == "table" then
+        local t = dungeonId
+        -- prefer explicit provided ids
+        self.journalEncounterID = t.journalEncounterID or t.journalID or self.journalEncounterID
+        self.journalInstanceID = t.journalInstanceID or t.instanceID or self.journalInstanceID
+        self.encounterID = tonumber(t.dungeonEncounterID or t.encounterID) or self.encounterID
+        duration = t.duration or duration
+        -- try to fetch names via EJ_GetEncounterInfo if we have an id
+        local queryKey = self.journalEncounterID or self.encounterID
+        if queryKey then
+            local n, _, jeID, _, _, jiID, deID = EJ_GetEncounterInfo(queryKey)
+            EncounterName = n or EncounterName
+            self.journalEncounterID = jeID or self.journalEncounterID
+            self.journalInstanceID = jiID or self.journalInstanceID
+            self.encounterID = deID or self.encounterID
+        end
+        if self.journalInstanceID then
+            titleInstanceName = select(1, EJ_GetInstanceInfo(self.journalInstanceID))
+        elseif t.instanceName then
+            titleInstanceName = t.instanceName
+        end
+    else
+        titleInstanceName = EJ_GetInstanceInfo(dungeonId)
+        EncounterName, _, self.journalEncounterID, _, _, self.journalInstanceID, self.encounterID = EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
+    end
+    -- Ensure encounterID is numeric if possible
+    self.encounterID = tonumber(self.encounterID) or self.encounterID
+    -- store both EJ ids for later use; `dungeonEncounterID` is the id fired by ENCOUNTER_START
+    self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), titleInstanceName or "", EncounterName or ""))
     -- Clear any existing pins/rows before loading new encounter data
     clearPins(self)
     clearReminderRows(self)
@@ -698,6 +705,8 @@ local function Constructor()
     addEntryButton:SetRelativeWidth(1)
     addEntryButton:SetHeight(20)
     controlsContainer:AddChild(addEntryButton)
+
+    -- encounter picker removed; use Options -> Encounter Browser to add encounters or the EJ button.
 
     -- Reminder list below controls, filling remaining space
     local reminderList = AceGUI:Create("ScrollFrame")
@@ -794,6 +803,8 @@ local function Constructor()
         SaveReminders = SaveReminders,
         SortReminders = SortReminders,
     }
+
+    -- no inline encounter picker
 
     durationBox:SetCallback("OnEnterPressed", function(_, _, value)
         widget:SetCombatDuration(value)

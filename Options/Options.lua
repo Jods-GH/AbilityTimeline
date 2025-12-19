@@ -5,6 +5,91 @@ private.options = {
   name = private.getLocalisation("addonOptions"),
   type = "group",
   args = {
+    reminderBrowser = {
+      name = private.getLocalisation("reminderBrowser"),
+      desc = private.getLocalisation("reminderBrowserDescription"),
+      type = "group",
+      order = 10,
+      args = {
+        recent_encounters = {
+          name = private.getLocalisation("CreatedReminders"),
+          desc = private.getLocalisation("CreatedRemindersDescription"),
+          type = "select",
+          order = 21,
+          values = function()
+            local out = {}
+            if private.db and private.db.profile and private.db.profile.reminders then
+              for id, stored in pairs(private.db.profile.reminders) do
+                local encName = nil
+                local instName = nil
+                -- Prefer explicit reminderMeta mapping if present
+                if private.db.profile.reminderMeta and private.db.profile.reminderMeta[id] then
+                  local m = private.db.profile.reminderMeta[id]
+                  if m.name then
+                    encName = m.name
+                  elseif m.journalEncounterID then
+                    encName = EJ_GetEncounterInfo(m.journalEncounterID)
+                  end
+                  if m.journalInstanceID then
+                    instName = EJ_GetInstanceInfo(m.journalInstanceID)
+                  end
+                end
+                -- Fallback to stored reminder entries if needed
+                if not encName and type(stored) == "table" and #stored > 0 then
+                  local first = stored[1]
+                  if first and first.journalEncounterID then
+                    encName = EJ_GetEncounterInfo(first.journalEncounterID)
+                  end
+                  if first and first.journalInstanceID then
+                    instName = EJ_GetInstanceInfo(first.journalInstanceID)
+                  end
+                end
+                local display = encName or ("Encounter " .. tostring(id))
+                if instName and instName ~= "" then
+                  display = string.format("%s — %s", instName, display)
+                end
+                out[tostring(id)] = display
+              end
+            end
+            return out
+          end,
+          set = function(info, val) private._recentSelected = tonumber(val) end,
+          get = function(info) return tostring(private._recentSelected or "") end,
+          width = "full",
+        },
+        open_recent = {
+          name = private.getLocalisation("OpenSelectedReminderEditor"),
+          desc = private.getLocalisation("OpenSelectedReminderEditorDescription"),
+          type = "execute",
+          order = 22,
+          disabled = function() return not private._recentSelected end,
+          func = function()
+            local sel = private._recentSelected
+            -- Open the selected saved encounter (keyed by dungeonEncounterID)
+            private.RegisterEncounter(sel, nil, false)
+            if private.openTimingsEditor then
+              local params = nil
+              -- Prefer stored reminderMeta if available
+              if private.db.profile.reminderMeta and private.db.profile.reminderMeta[sel] then
+                local m = private.db.profile.reminderMeta[sel]
+                params = { journalEncounterID = m.journalEncounterID, journalInstanceID = m.journalInstanceID, dungeonEncounterID = tonumber(sel), name = m.name }
+              else
+                local stored = private.db.profile.reminders[sel]
+                if type(stored) == "table" and #stored > 0 then
+                  local first = stored[1]
+                  if first and (first.journalEncounterID or first.journalInstanceID) then
+                    params = { journalEncounterID = first.journalEncounterID, journalInstanceID = first.journalInstanceID, dungeonEncounterID = tonumber(sel) }
+                  end
+                end
+              end
+              if params then
+                private.openTimingsEditor(params)
+              end
+            end
+          end,
+        },
+      },
+    },
     debugMode = {
       name = private.getLocalisation("debugMode"),
       desc = private.getLocalisation("debugModeDescription"),
@@ -39,7 +124,8 @@ private.options = {
       end,
     },
     encounterOptions = {
-      name = private.getLocalisation("encounterOptions"),
+      name = private.getLocalisation("reminderOptions"),
+      desc = private.getLocalisation("reminderOptionsDescription"),
       type = "group",
       args = {
 
@@ -64,7 +150,7 @@ private.buildInstanceOptions = function()
     }
     for encounterNumber, encounterID in pairs(dungeonValue.encounters) do
       local EncounterName, Encounterdescription, journalEncounterID, rootSectionID, link, journalInstanceID, dungeonEncounterID, instanceID =
-      EJ_GetEncounterInfoByIndex(encounterNumber)
+      EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
       private.options.args.encounterOptions.args["dungeon" .. dungeonId].args["encounter" .. encounterNumber] = {
         name = EncounterName,
         -- description = Encounterdescription,

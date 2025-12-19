@@ -103,4 +103,8 @@ private.modernize = function()
             },
         }
     end
+
+    if not private.db.profile.reminderMeta then
+        private.db.profile.reminderMeta = {}
+    end
 end

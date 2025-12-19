@@ -29,6 +29,7 @@ Util\Debug.lua
 Util\EditMode.lua
 Util\ModernizeSettings.lua
 Util\Tooltip.lua
+Util\EncounterBrowser.lua
 
 # Locales
 Locales\enUS.lua

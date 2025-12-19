@@ -11,7 +11,8 @@ if L then
 
     --options
     L['addonOptions'] = "Ability Timeline Options"
-    L['encounterOptions'] = "Encounter Options"
+    L['reminderOptions'] = "Reminder Options"
+    L['reminderOptionsDescription'] = "Easy access to create current Seasons Reminders"
     L['EditTimingsForEncounter'] = "Edit Timings for Encounter"
     L['TimingsEditorTitle'] = "Timings Editor for: "
     L['TimingsEditorAddEntryButton'] = "Add Reminder"
@@ -22,6 +23,12 @@ if L then
     L['enableKeyRerollTimer'] = "Enable Key Reroll Timer"
     L['enableKeyRerollTimerDescription'] = "Enables a timer for you to reroll your Mythic+ key after completing a dungeon."
     L['TestIcon'] = "Test Icon"
+    L['OpenSelectedReminderEditor'] = "Open Reminder Editor"
+    L['OpenSelectedReminderEditorDescription'] = "Opens the Reminder Editor for the selected encounter."
+    L['reminderBrowser'] = "Reminder Browser"
+    L['reminderBrowserDescription'] = "Browse and manage your created encounter reminders."
+    L["CreatedReminders"] = "Created Reminders"
+    L["CreatedRemindersDescription"] = "Select an encounter to edit its reminders."
 
     -- reminders
     L["ReminderEditTitle"] = "Edit Reminder"
@@ -40,6 +47,7 @@ if L then
     L["ReminderDurationLabel"] = "Encounter Duration (seconds)"
     L["ReminderSeverityLabel"] = "Severity"
     L["ReminderEditButton"] = "Edit"
+    L["EditRemindersForEncounter"] = "Edit Reminders for Encounter"
 
 
     --spell icon editor

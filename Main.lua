@@ -160,14 +160,17 @@ end
 
 function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, difficultyID, groupSize, playerDifficultyID)
     -- createTestBars(15)
-    private.Debug("Encounter started: " .. encounterName)
-    local name, _, journalEncounterID, _, _, journalInstanceID = EJ_GetEncounterInfo(encounterID)
+    private.Debug("Encounter started: " .. tostring(encounterName))
+    -- store last encounter info (use runtime dungeonEncounterID as provided by ENCOUNTER_START)
     private.lastEncounterInfo = {
-        encounterID = journalEncounterID or encounterID,
-        instanceID = journalInstanceID,
-        encounterIndex = findEncounterIndex(journalInstanceID, journalEncounterID or encounterID),
-        encounterName = name or encounterName,
+        encounterID = encounterID,
+        encounterName = encounterName,
     }
+
+    if private.db.profile.debugMode and encounterID == 3463 then
+        encounterID = 1701
+    end
+
     private.createReminders(encounterID)
 end
 
