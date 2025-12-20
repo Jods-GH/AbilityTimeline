@@ -319,6 +319,14 @@ local function createRow(self, reminder, index)
     row:AddChild(deleteBtn)
 
     self.reminderList:AddChild(row)
+    -- Ensure the row and reminderList frames are visible and at correct level
+    if row.frame then row.frame:Show() end
+    if self.reminderList and self.reminderList.frame then
+        self.reminderList.frame:Show()
+        if self.left and self.left.GetFrameLevel then
+            self.reminderList.frame:SetFrameLevel(self.left:GetFrameLevel() + 50)
+        end
+    end
     table.insert(self.reminderRows, row)
 end
 
@@ -345,6 +353,8 @@ local function RefreshReminders(self)
         emptyLabel:SetText(private.getLocalisation("ReminderListEmpty"))
         emptyLabel:SetFullWidth(true)
         self.reminderList:AddChild(emptyLabel)
+        if emptyLabel.frame then emptyLabel.frame:Show() end
+        if self.reminderList and self.reminderList.frame then self.reminderList.frame:Show() end
         table.insert(self.reminderRows, emptyLabel)
         UpdateTimelineWidth(self)
         HandleTicks(self)
@@ -426,6 +436,13 @@ local function RefreshReminders(self)
     SetCombatDuration(self, math.max(self.combatDuration or 0, maxTime + 10))
     UpdateTimelineWidth(self)
     HandleTicks(self)
+    -- Make sure reminderList is visible after building rows
+    if self.reminderList and self.reminderList.frame then
+        self.reminderList.frame:Show()
+        if self.left and self.left.GetFrameLevel then
+            self.reminderList.frame:SetFrameLevel(self.left:GetFrameLevel() + 50)
+        end
+    end
 end
 
 local function OpenReminderDialog(self, reminderIndex)
@@ -546,7 +563,6 @@ local function OpenReminderDialog(self, reminderIndex)
     saveButton:SetCallback("OnClick", function()
         local timeValue = tonumber(timingBox:GetText())
         if not timeValue then
-            print(private.getLocalisation("ReminderInvalidTime"))
             return
         end
         local spellId = tonumber(spellIdBox:GetText())

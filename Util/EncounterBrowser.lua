@@ -62,7 +62,6 @@ local function ensureEJButton()
     end
     -- Hook the display call so we can show a button for the currently shown encounter
     hooksecurefunc("EncounterJournal_DisplayEncounter", function(encounterIndexOrID)
-        print("EJ Displayed encounter: " .. tostring(encounterIndexOrID))
         -- Try to resolve passed value as either a journalEncounterID, a dungeonEncounterID, or an encounter index.
         -- Prefer the dungeonEncounterID (the numeric id fired by ENCOUNTER_START) when available.
         local name, _, journalEncounterID, _, _, journalInstanceID, dungeonEncounterID = EJ_GetEncounterInfo(encounterIndexOrID)

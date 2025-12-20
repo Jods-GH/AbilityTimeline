@@ -22,7 +22,6 @@ private.options = {
               for id, stored in pairs(private.db.profile.reminders) do
                 local first = stored[1]
                 if first then
-                  DevTools_Dump(first)
                   local encName = EJ_GetEncounterInfo(first.journalEncounterID)
                   local instName = EJ_GetInstanceInfo(first.journalInstanceID)
                   local display = string.format("%s — %s", instName, encName)
