@@ -21,6 +21,11 @@ Continuation of the ever-popular [RaidAbilityTimeline Weakaura](https://wago.io/
 - adding of pulltimer and readycheck to the timeline
 - adding of smart /pull feature automagically deciding on duration depending if you are in a dungeon or raid
 
+
+# Preview:
+
+[![Youtube Video](https://github.com/user-attachments/assets/8de8153b-48e7-4fbc-bc16-1a75e284a9d6)](https://www.youtube.com/watch?v=U1TDGhFtalo)
+
 ## Get it on:
 - [Curseforge](https://www.curseforge.com/wow/addons/better-timeline)
 - [Wago addons](https://addons.wago.io/addons/better-timeline)
