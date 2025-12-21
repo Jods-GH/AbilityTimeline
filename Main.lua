@@ -93,8 +93,6 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
         end
     elseif string.find(string.lower(msg), "rect") then
         private.Debug(private.TIMELINE_FRAME.frame:GetBoundsRect())
-    elseif msg == "editor" then
-        private.openTimingsEditor(1203, 1)
     elseif msg == "eventlist" then
        private.Debug(C_EncounterTimeline.GetEventList(), "EventList")
     elseif string.find(string.lower(msg), "pause (.-)") then
@@ -131,7 +129,18 @@ end
 
 function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, difficultyID, groupSize, playerDifficultyID)
     -- createTestBars(15)
-    private.Debug("Encounter started: " .. encounterName)
+    private.Debug("Encounter started: " .. tostring(encounterName))
+    -- store last encounter info (use runtime dungeonEncounterID as provided by ENCOUNTER_START)
+    private.lastEncounterInfo = {
+        encounterID = encounterID,
+        encounterName = encounterName,
+    }
+
+    if private.db.profile.debugMode and encounterID == 3463 then
+        encounterID = 1701
+    end
+
+    private.createReminders(encounterID)
 end
 
 function AbilityTimeline:READY_CHECK(event, initiatorName, readyCheckTimeLeft)

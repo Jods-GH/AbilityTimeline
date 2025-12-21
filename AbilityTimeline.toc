@@ -29,6 +29,7 @@ Util\Debug.lua
 Util\EditMode.lua
 Util\ModernizeSettings.lua
 Util\Tooltip.lua
+Util\EncounterBrowser.lua
 
 # Locales
 Locales\enUS.lua
@@ -46,6 +47,7 @@ Locales\zhTW.lua
 Locales\Locales.lua
 
 #templates
+Templates\AtReminderCreator.lua
 Templates\AtTimelineTick.lua
 Templates\AtEditorSpellIcon.lua
 Templates\AtTimingsEditorTimelineFrame.lua
@@ -60,13 +62,15 @@ Templates\AtTextHighlight.lua
 Templates\AtSpellIconSettingsFrame.lua
 
 #data
-Data\encounters.lua
+Data\dungeons.xml
+Data\seasons.lua
 
 #plugins
 Plugins\TextHighlight.lua
 Plugins\BigIcon.lua
 Plugins\SoundAlert.lua
 Plugins\Glow.lua
+Plugins\Reminders.lua
 
 # Core
 Options\Options.lua

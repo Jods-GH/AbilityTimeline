@@ -263,6 +263,7 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 	-- OnUpdate we want to update the position of the icon based on elapsed time
 	self.frame.frameIsMoving = false
 	if not disableOnUpdate then
+		C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 1023, self.frame.RoleIcons ); -- TODO actually implement proper icons
 		self.frame:SetScript("OnUpdate", function(self)
 			local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(self.eventInfo.id)
 			local timeRemaining = C_EncounterTimeline.GetEventTimeRemaining(self.eventInfo.id)
@@ -309,6 +310,9 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 				private.TRIGGER_HIGHLIGHT(self.eventInfo)
 			end
 		end)
+	else
+		self.frame.RoleIcons[1]:SetTexture(7494373) --TODO test values
+		self.frame.RoleIcons[1]:SetTexCoord(0.01221,0.11465,0.02608,0.25011) --TODO test values
 	end
 	self.frame:Show()
 end
@@ -408,7 +412,18 @@ local function Constructor()
 	frame.Cooldown = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
 	frame.Cooldown:SetPoint("CENTER", frame, "CENTER")
 
-
+	frame.RoleIcons = {} 
+	frame.RoleIconHolder = CreateFrame("Frame", nil, frame, "EncounterTimelineIndicatorIconGridTemplate")
+	frame.RoleIconHolder:ClearAllPoints()
+	frame.RoleIconHolder:SetPoint("LEFT", frame, "RIGHT", 32, 32)
+	frame.RoleIconHolder:Show()
+	for i = 1, 4 do
+		local texture = frame:CreateTexture(nil, "ARTWORK" )
+		texture:SetPoint("LEFT", frame, "RIGHT", 18 * (i -1), 0)
+		texture:SetSize(16, 16)
+		texture:Show()
+		table.insert( frame.RoleIcons, texture)
+	end
 	---@class AtAbilitySpellIcon : AceGUIWidget
 	local widget = {
 		OnAcquire = OnAcquire,

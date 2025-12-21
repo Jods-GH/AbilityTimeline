@@ -7,6 +7,17 @@ private.modernize = function()
     if not private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT] then
         private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT] = {}
     end
+
+    if not private.db.profile.reminders then
+        private.db.profile.reminders = {}
+    end
+
+    if not private.db.profile.editor then
+        private.db.profile.editor = {}
+    end
+    if not private.db.profile.editor.defaultEncounterDuration then
+        private.db.profile.editor.defaultEncounterDuration = 300
+    end
     if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].height then
         private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travelSize = private.db.profile.timeline_frame
         [private.ACTIVE_EDITMODE_LAYOUT].height

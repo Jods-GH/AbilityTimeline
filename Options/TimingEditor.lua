@@ -2,40 +2,17 @@ local appName, private = ...
 
 local AceGUI = LibStub("AceGUI-3.0")
 
-local updateTimelineEditorFrame = function(dungeonId, encounterNumber)
-    local Instancename, Instancedescription, _, InstanceImage, _, _, _, _, _ = EJ_GetInstanceInfo(dungeonId)
-    local EncounterName, Encounterdescription, journalEncounterID, rootSectionID, link, journalInstanceID, dungeonEncounterID, instanceID =
-    EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
+local updateTimelineEditorFrame = function(encounterParams)
     local frame = private.getTimingsEditorFrame()
-    frame.container:SetTitle(private.getLocalisation("TimingsEditorTitle") .. ": " .. Instancename .. " - " .. EncounterName)
+    frame:SetEncounter(encounterParams)
     private.Debug(frame, "AT_TIMINGS_EDITOR_FRAME")
-    for key, value in pairs(private.encounterTable[dungeonId][encounterNumber].spells) do
-        local spellInfo = C_Spell.GetSpellInfo(value.spellID);
-        frame:AddItem({
-            spellname = spellInfo.name,
-            spellicon = spellInfo.iconID,
-            timings = value.timings,
-            rowText = "Spell: " .. spellInfo.name .. " (ID: " .. value.spellID .. ")",
-            type = value.type,
-        })
-    end
-    frame.leftContent:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
-    frame.leftContent:SetBackdropBorderColor(0.25, 0.25, 0.25, 0.9)
-    frame.leftContent:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true,
-        tileSize = 16,
-        edgeSize = 16,
-        insets = { left = 4, right = 4, top = 4, bottom = 4 },
-    })
     return frame
 end
 
-private.openTimingsEditor = function(dungeonId, encounterNumber)
-    -- Open the timing editor for the specified dungeon and encounter
-    private.Debug("Opening timing editor for dungeon " .. dungeonId .. ", encounter " .. encounterNumber)
-    local frame = updateTimelineEditorFrame(dungeonId, encounterNumber)
+private.openTimingsEditor = function(encounterParams)
+    private.Debug("Opening timing editor (table) for encounter: " .. tostring(encounterParams.dungeonEncounterID or encounterParams.journalEncounterID or "nil"))
+    local frame = updateTimelineEditorFrame(encounterParams)
+    frame.frame:Show()
 end
 
 

@@ -131,7 +131,8 @@ local handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, 
 handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, widget, cooldownColorChanges)
     parentGroup:ReleaseChildren()
     for i, value in pairs(cooldownColorChanges) do
-        local time, color, useGlow, glowType, glowColor = value.time, value.color, value.useGlow, value.glowType, value.glowColor
+        local time, color, useGlow, glowType, glowColor = value.time, value.color, value.useGlow, value.glowType,
+        value.glowColor
         local group = AceGUI:Create("InlineGroup")
         group:SetLayout("Flow")
         group:SetFullWidth(true)

@@ -5,6 +5,57 @@ private.options = {
   name = private.getLocalisation("addonOptions"),
   type = "group",
   args = {
+    reminderBrowser = {
+      name = private.getLocalisation("reminderBrowser"),
+      desc = private.getLocalisation("reminderBrowserDescription"),
+      type = "group",
+      order = 10,
+      args = {
+        recent_encounters = {
+          name = private.getLocalisation("CreatedReminders"),
+          desc = private.getLocalisation("CreatedRemindersDescription"),
+          type = "select",
+          order = 21,
+          values = function()
+            local out = {}
+            if private.db and private.db.profile and private.db.profile.reminders then
+              for id, stored in pairs(private.db.profile.reminders) do
+                local first = stored[1]
+                if first then
+                  local encName = EJ_GetEncounterInfo(first.journalEncounterID)
+                  local instName = EJ_GetInstanceInfo(first.journalInstanceID)
+                  local display = string.format("%s — %s", instName, encName)
+                  out[tostring(id)] = display
+                end
+              end
+            end
+            return out
+          end,
+          set = function(info, val) private._recentSelected = tonumber(val) end,
+          get = function(info) return tostring(private._recentSelected or "") end,
+          width = "full",
+        },
+        open_recent = {
+          name = private.getLocalisation("OpenSelectedReminderEditor"),
+          desc = private.getLocalisation("OpenSelectedReminderEditorDescription"),
+          type = "execute",
+          order = 22,
+          disabled = function() return not private._recentSelected end,
+          func = function()
+            local sel = private._recentSelected
+            -- Open the selected saved encounter (keyed by dungeonEncounterID)
+            private.RegisterEncounter(sel, nil, false)
+            local stored = private.db.profile.reminders[sel]
+            local first = stored[1]
+            if first then
+              local params = { journalEncounterID = first.journalEncounterID, journalInstanceID = first.journalInstanceID, dungeonEncounterID =
+              tonumber(sel) }
+              private.openTimingsEditor(params)
+            end
+          end,
+        },
+      },
+    },
     debugMode = {
       name = private.getLocalisation("debugMode"),
       desc = private.getLocalisation("debugModeDescription"),
@@ -13,7 +64,8 @@ private.options = {
       type = "toggle",
       set = function(info, val) private.db.profile.debugMode = val end, --Sets value of SavedVariables depending on toggles
       get = function(info)
-        return private.db.profile.debugMode                                                 --Sets value of toggles depending on SavedVariables
+        return private.db.profile
+        .debugMode                                                      --Sets value of toggles depending on SavedVariables
       end,
     },
     useAudioCountdowns = {
@@ -24,7 +76,7 @@ private.options = {
       type = "toggle",
       set = function(info, val) private.db.profile.useAudioCountdowns = val end, --Sets value of SavedVariables depending on toggles
       get = function(info)
-        return private.db.profile.useAudioCountdowns  --Sets value of toggles depending on SavedVariables
+        return private.db.profile.useAudioCountdowns                             --Sets value of toggles depending on SavedVariables
       end,
     },
     enableKeyRerollTimer = {
@@ -35,11 +87,12 @@ private.options = {
       type = "toggle",
       set = function(info, val) private.db.profile.enableKeyRerollTimer = val end, --Sets value of SavedVariables depending on toggles
       get = function(info)
-        return private.db.profile.enableKeyRerollTimer  --Sets value of toggles depending on SavedVariables
+        return private.db.profile.enableKeyRerollTimer                             --Sets value of toggles depending on SavedVariables
       end,
     },
     encounterOptions = {
-      name = private.getLocalisation("encounterOptions"),
+      name = private.getLocalisation("reminderOptions"),
+      desc = private.getLocalisation("reminderOptionsDescription"),
       type = "group",
       args = {
 
@@ -51,7 +104,7 @@ private.options = {
 OPTIONS_INITIALIZED = false
 private.buildInstanceOptions = function()
   if OPTIONS_INITIALIZED then return end
-  for dungeonId, dungeonValue in pairs(private.encounterTable) do
+  for dungeonId, dungeonValue in pairs(private.Instances) do
     EJ_SelectInstance(dungeonId)
     local Instancename, Instancedescription, _, InstanceImage, _, _, _, _, _ = EJ_GetInstanceInfo()
     private.options.args.encounterOptions.args["dungeon" .. dungeonId] = {
@@ -62,12 +115,9 @@ private.buildInstanceOptions = function()
       order = dungeonId,
       args = {}
     }
-    for encounterNumber, encounterValue in pairs(dungeonValue) do
+    for encounterNumber, encounterID in pairs(dungeonValue.encounters) do
       local EncounterName, Encounterdescription, journalEncounterID, rootSectionID, link, journalInstanceID, dungeonEncounterID, instanceID =
-      EJ_GetEncounterInfoByIndex(encounterNumber)
-      local id, name, description, displayInfo, iconImage, uiModelSceneID = EJ_GetCreatureInfo(1,
-        encounterValue.journalId)
-
+          EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
       private.options.args.encounterOptions.args["dungeon" .. dungeonId].args["encounter" .. encounterNumber] = {
         name = EncounterName,
         -- description = Encounterdescription,
@@ -79,7 +129,11 @@ private.buildInstanceOptions = function()
             name = private.getLocalisation("EditTimingsForEncounter") .. ": " .. EncounterName,
             type = "execute",
             order = 0,
-            func = function() private.openTimingsEditor(dungeonId, encounterNumber) end
+            func = function()
+              local params = { journalEncounterID = journalEncounterID, journalInstanceID = journalInstanceID, dungeonEncounterID =
+              dungeonEncounterID, name = EncounterName }
+              private.openTimingsEditor(params)         
+            end
           },
         }
       }

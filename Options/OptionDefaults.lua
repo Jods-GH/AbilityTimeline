@@ -8,6 +8,10 @@ private.OptionDefaults = {
 		icon_settings ={
 			size = 50,
 			iconMargin = 5,
-		}
+		},
+		reminders = {},
+		editor = {
+			defaultEncounterDuration = 300,
+		},
 	}
 }

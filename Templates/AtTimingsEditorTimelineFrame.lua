@@ -20,11 +20,11 @@ local variables = {
     SpellFrameWidth = 200,
 }
 
----@param self AtTimingsEditorDataFrame
+---@param self AtTimingsEditorTimelineFrame
 local function OnAcquire(self)
 end
 
----@param self AtTimingsEditorDataFrame
+---@param self AtTimingsEditorTimelineFrame
 local function OnRelease(self)
 end
 
@@ -57,7 +57,7 @@ local function Constructor()
 
     ScrollUtil.InitScrollBoxWithScrollBar(horizScrollBox, horizScrollBar, horizView)
 
-	---@class AtTimingsEditorDataFrame : AceGUIWidget
+	---@class AtTimingsEditorTimelineFrame : AceGUIWidget
 	local widget = {
 		OnAcquire = OnAcquire,
 		OnRelease = OnRelease,
