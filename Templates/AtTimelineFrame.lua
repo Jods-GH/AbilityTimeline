@@ -31,19 +31,19 @@ local function OnRelease(self)
 end
 local function onPositionChanged(frame, layoutName, point, x, y)
     -- from here you can save the position into a savedvariable
-    private.db.profile.timeline_frame[layoutName] = private.db.profile.timeline_frame[layoutName] or {}
-    private.db.profile.timeline_frame[layoutName].x = x
-    private.db.profile.timeline_frame[layoutName].y = y
-    private.db.profile.timeline_frame[layoutName].point = point
+    private.db.global.timeline_frame[layoutName] = private.db.global.timeline_frame[layoutName] or {}
+    private.db.global.timeline_frame[layoutName].x = x
+    private.db.global.timeline_frame[layoutName].y = y
+    private.db.global.timeline_frame[layoutName].point = point
 
-    private.TIMELINE_FRAME:SetPoint(private.db.profile.timeline_frame[layoutName].point,
-        private.db.profile.timeline_frame[layoutName].x, private.db.profile.timeline_frame[layoutName].y)
+    private.TIMELINE_FRAME:SetPoint(private.db.global.timeline_frame[layoutName].point,
+        private.db.global.timeline_frame[layoutName].x, private.db.global.timeline_frame[layoutName].y)
 end
 
 local function HandleTickVisibility(layoutName)
     for _, tick in ipairs(private.TIMELINE_FRAME.frame.Ticks) do
-        if private.db.profile.timeline_frame[layoutName].ticks_enabled then
-            tick:SetTick(private.TIMELINE_FRAME.frame, tick.tick, private.TIMELINE_FRAME:GetMoveSize() ,private.AT_THRESHHOLD_TIME, private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL)
+        if private.db.global.timeline_frame[layoutName].ticks_enabled then
+            tick:SetTick(private.TIMELINE_FRAME.frame, tick.tick, private.TIMELINE_FRAME:GetMoveSize() ,private.AT_THRESHHOLD_TIME, private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL)
             tick.frame:Show()
         else
             tick.frame:Hide()
@@ -59,58 +59,58 @@ end
 LibEditMode:RegisterCallback('layout', function(layoutName)
     -- this will be called every time the Edit Mode layout is changed (which also happens at login),
     -- use it to load the saved button position from savedvariables and position it
-    if not private.db.profile.timeline_frame then
-        private.db.profile.timeline_frame = {}
+    if not private.db.global.timeline_frame then
+        private.db.global.timeline_frame = {}
     end
-    if not private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].point then
-        private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].point = variables.position.point
+    if not private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].point then
+        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].point = variables.position.point
     end
-    if not private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].x then
-        private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].x = variables.position.x
+    if not private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].x then
+        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].x = variables.position.x
     end
-    if not private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].y then
-        private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].y = variables.position.y
+    if not private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].y then
+        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].y = variables.position.y
     end
-    if not private.db.profile.timeline_frame[layoutName].ticks_enabled then
-        private.db.profile.timeline_frame[layoutName].ticks_enabled = variables.ticks_enabled
+    if not private.db.global.timeline_frame[layoutName].ticks_enabled then
+        private.db.global.timeline_frame[layoutName].ticks_enabled = variables.ticks_enabled
     end
-    if not private.db.profile.timeline_frame[layoutName].otherSize then
-        private.db.profile.timeline_frame[layoutName].otherSize = variables.otherSize
+    if not private.db.global.timeline_frame[layoutName].otherSize then
+        private.db.global.timeline_frame[layoutName].otherSize = variables.otherSize
     end
-    if not private.db.profile.timeline_frame[layoutName].travelSize then
-        private.db.profile.timeline_frame[layoutName].travelSize = variables.travelSize
+    if not private.db.global.timeline_frame[layoutName].travelSize then
+        private.db.global.timeline_frame[layoutName].travelSize = variables.travelSize
     end
-    if not private.db.profile.timeline_frame[layoutName].inverse_travel_direction then
-        private.db.profile.timeline_frame[layoutName].inverse_travel_direction = variables.inverse_travel_direction
+    if not private.db.global.timeline_frame[layoutName].inverse_travel_direction then
+        private.db.global.timeline_frame[layoutName].inverse_travel_direction = variables.inverse_travel_direction
     end
-    if not private.db.profile.timeline_frame[layoutName].text_anchor then
-        private.db.profile.timeline_frame[layoutName].text_anchor = 'LEFT'
+    if not private.db.global.timeline_frame[layoutName].text_anchor then
+        private.db.global.timeline_frame[layoutName].text_anchor = 'LEFT'
     end
-    if not private.db.profile.timeline_frame[layoutName].horizontal then
-        private.db.profile.timeline_frame[layoutName].horizontal = false
+    if not private.db.global.timeline_frame[layoutName].horizontal then
+        private.db.global.timeline_frame[layoutName].horizontal = false
     end
-    if not private.db.profile.timeline_frame[layoutName].timeline_texture then
-        private.db.profile.timeline_frame[layoutName].timeline_texture = variables.timelineTexture
+    if not private.db.global.timeline_frame[layoutName].timeline_texture then
+        private.db.global.timeline_frame[layoutName].timeline_texture = variables.timelineTexture
     end
 
 
     if private.TIMELINE_FRAME then
         private.TIMELINE_FRAME:ClearAllPoints()
-        private.TIMELINE_FRAME:SetPoint(private.db.profile.timeline_frame[layoutName].point,
-            private.db.profile.timeline_frame[layoutName].x, private.db.profile.timeline_frame[layoutName].y)
+        private.TIMELINE_FRAME:SetPoint(private.db.global.timeline_frame[layoutName].point,
+            private.db.global.timeline_frame[layoutName].x, private.db.global.timeline_frame[layoutName].y)
         HandleTickVisibility(layoutName)
         local width, height
-        if private.db.profile.timeline_frame[layoutName].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
-            width = private.db.profile.timeline_frame[layoutName].travelSize
-            height = private.db.profile.timeline_frame[layoutName].otherSize
+        if private.db.global.timeline_frame[layoutName].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
+            width = private.db.global.timeline_frame[layoutName].travelSize
+            height = private.db.global.timeline_frame[layoutName].otherSize
         else
-            width = private.db.profile.timeline_frame[layoutName].otherSize
-            height = private.db.profile.timeline_frame[layoutName].travelSize
+            width = private.db.global.timeline_frame[layoutName].otherSize
+            height = private.db.global.timeline_frame[layoutName].travelSize
         end
         SetFrameSize(private.TIMELINE_FRAME, width, height)
         private.TIMELINE_FRAME:HandleTicks()
         private.TIMELINE_FRAME.SetBackDrop(private.TIMELINE_FRAME.frame,
-            private.db.profile.timeline_frame[layoutName].timeline_texture)
+            private.db.global.timeline_frame[layoutName].timeline_texture)
     end
 end)
 
@@ -123,19 +123,19 @@ local function HandleTicks(self)
     for i, tick in ipairs(private.TIMELINE_TICKS) do
         local widget = AceGUI:Create("AtTimelineTicks")
         self.frame.Ticks[i] = widget
-        widget:SetTick(self.frame, tick, self:GetMoveSize() ,private.AT_THRESHHOLD_TIME, private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL)
+        widget:SetTick(self.frame, tick, self:GetMoveSize() ,private.AT_THRESHHOLD_TIME, private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL)
         widget.frame:Show()
     end
 end
 local function HandleSizeChanges(self)
     local layoutName = private.ACTIVE_EDITMODE_LAYOUT
     local width, height
-    if private.db.profile.timeline_frame[layoutName].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
-        width = private.db.profile.timeline_frame[layoutName].travelSize
-        height = private.db.profile.timeline_frame[layoutName].otherSize
+    if private.db.global.timeline_frame[layoutName].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
+        width = private.db.global.timeline_frame[layoutName].travelSize
+        height = private.db.global.timeline_frame[layoutName].otherSize
     else
-        width = private.db.profile.timeline_frame[layoutName].otherSize
-        height = private.db.profile.timeline_frame[layoutName].travelSize
+        width = private.db.global.timeline_frame[layoutName].otherSize
+        height = private.db.global.timeline_frame[layoutName].travelSize
     end
     SetFrameSize(self, width, height)
 end
@@ -153,7 +153,7 @@ end
 
 
 local function GetMoveSize(self)
-    if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
+    if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
         return self.frame:GetWidth()
     end
     return self.frame:GetHeight()
@@ -182,10 +182,10 @@ local function SetupEditModeSettings(frame)
             kind = LibEditMode.SettingType.Checkbox,
             default = true,
             get = function(layoutName)
-                return private.db.profile.timeline_frame[layoutName].ticks_enabled
+                return private.db.global.timeline_frame[layoutName].ticks_enabled
             end,
             set = function(layoutName, value)
-                private.db.profile.timeline_frame[layoutName].ticks_enabled = value
+                private.db.global.timeline_frame[layoutName].ticks_enabled = value
                 HandleTickVisibility(layoutName)
             end,
         },
@@ -195,10 +195,10 @@ local function SetupEditModeSettings(frame)
             kind = LibEditMode.SettingType.Checkbox,
             default = false,
             get = function(layoutName)
-                return private.db.profile.timeline_frame[layoutName].inverse_travel_direction
+                return private.db.global.timeline_frame[layoutName].inverse_travel_direction
             end,
             set = function(layoutName, value)
-                private.db.profile.timeline_frame[layoutName].inverse_travel_direction = value
+                private.db.global.timeline_frame[layoutName].inverse_travel_direction = value
                 HandleTickVisibility(layoutName)
             end,
         },
@@ -208,10 +208,10 @@ local function SetupEditModeSettings(frame)
             kind = LibEditMode.SettingType.Dropdown,
 
             get = function(layoutName)
-                return private.db.profile.timeline_frame[layoutName].text_anchor
+                return private.db.global.timeline_frame[layoutName].text_anchor
             end,
             set = function(layoutName, value)
-                private.db.profile.timeline_frame[layoutName].text_anchor = value
+                private.db.global.timeline_frame[layoutName].text_anchor = value
             end,
             default = 'LEFT',
             height = 100,
@@ -234,10 +234,10 @@ local function SetupEditModeSettings(frame)
             kind = LibEditMode.SettingType.Dropdown,
 
             get = function(layoutName)
-                return private.db.profile.timeline_frame[layoutName].travel_direction
+                return private.db.global.timeline_frame[layoutName].travel_direction
             end,
             set = function(layoutName, value)
-                private.db.profile.timeline_frame[layoutName].travel_direction = value
+                private.db.global.timeline_frame[layoutName].travel_direction = value
                 HandleSizeChanges(private.TIMELINE_FRAME)
                 HandleTickVisibility(layoutName)
             end,
@@ -262,10 +262,10 @@ local function SetupEditModeSettings(frame)
             kind = LibEditMode.SettingType.Dropdown,
 
             get = function(layoutName)
-                return private.db.profile.timeline_frame[layoutName].timeline_texture
+                return private.db.global.timeline_frame[layoutName].timeline_texture
             end,
             set = function(layoutName, value)
-                private.db.profile.timeline_frame[layoutName].timeline_texture = value
+                private.db.global.timeline_frame[layoutName].timeline_texture = value
                 SetBackDrop(private.TIMELINE_FRAME.frame, value)
             end,
             default = variables.timelineTexture,
@@ -279,10 +279,10 @@ local function SetupEditModeSettings(frame)
             kind = LibEditMode.SettingType.Slider,
             default = variables.otherSize,
             get = function(layoutName)
-                return private.db.profile.timeline_frame[layoutName].otherSize
+                return private.db.global.timeline_frame[layoutName].otherSize
             end,
             set = function(layoutName, value)
-                private.db.profile.timeline_frame[layoutName].otherSize = value
+                private.db.global.timeline_frame[layoutName].otherSize = value
                 HandleSizeChanges(private.TIMELINE_FRAME)
                 HandleTicks(private.TIMELINE_FRAME)
             end,
@@ -296,10 +296,10 @@ local function SetupEditModeSettings(frame)
             kind = LibEditMode.SettingType.Slider,
             default = variables.travelSize,
             get = function(layoutName)
-                return private.db.profile.timeline_frame[layoutName].travelSize
+                return private.db.global.timeline_frame[layoutName].travelSize
             end,
             set = function(layoutName, value)
-                private.db.profile.timeline_frame[layoutName].travelSize = value
+                private.db.global.timeline_frame[layoutName].travelSize = value
                 HandleSizeChanges(private.TIMELINE_FRAME)
                 HandleTicks(private.TIMELINE_FRAME)
             end,
@@ -312,10 +312,10 @@ local function SetupEditModeSettings(frame)
         --     kind = LibEditMode.SettingType.Dropdown,
 
         --     get = function(layoutName)
-        --         return private.db.profile.timeline_frame[layoutName].style
+        --         return private.db.global.timeline_frame[layoutName].style
         --     end,
         --     set = function(layoutName, value)
-        --         private.db.profile.timeline_frame[layoutName].style = value
+        --         private.db.global.timeline_frame[layoutName].style = value
         --     end,
         --     height = 500,
         --     values = {

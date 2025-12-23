@@ -24,34 +24,34 @@ local function OnRelease(self)
 end
 local function onPositionChanged(frame, layoutName, point, x, y)
     -- from here you can save the position into a savedvariable
-    private.db.profile.text_highlight_frame[layoutName] = private.db.profile.text_highlight_frame[layoutName] or {}
-    private.db.profile.text_highlight_frame[layoutName].x = x
-    private.db.profile.text_highlight_frame[layoutName].y = y
-    private.db.profile.text_highlight_frame[layoutName].point = point
+    private.db.global.text_highlight_frame[layoutName] = private.db.global.text_highlight_frame[layoutName] or {}
+    private.db.global.text_highlight_frame[layoutName].x = x
+    private.db.global.text_highlight_frame[layoutName].y = y
+    private.db.global.text_highlight_frame[layoutName].point = point
 
-    private.TEXT_HIGHLIGHT_FRAME:SetPoint(private.db.profile.text_highlight_frame[layoutName].point,
-        private.db.profile.text_highlight_frame[layoutName].x, private.db.profile.text_highlight_frame[layoutName].y)
+    private.TEXT_HIGHLIGHT_FRAME:SetPoint(private.db.global.text_highlight_frame[layoutName].point,
+        private.db.global.text_highlight_frame[layoutName].x, private.db.global.text_highlight_frame[layoutName].y)
 end
 
 LibEditMode:RegisterCallback('layout', function(layoutName)
     -- this will be called every time the Edit Mode layout is changed (which also happens at login),
     -- use it to load the saved button position from savedvariables and position it
-    if not private.db.profile.text_highlight_frame then
-        private.db.profile.text_highlight_frame = {}
+    if not private.db.global.text_highlight_frame then
+        private.db.global.text_highlight_frame = {}
     end
-    if not private.db.profile.text_highlight_frame[layoutName] then
-        private.db.profile.text_highlight_frame[layoutName] = CopyTable(private.TextHighlight.defaultPosition)
+    if not private.db.global.text_highlight_frame[layoutName] then
+        private.db.global.text_highlight_frame[layoutName] = CopyTable(private.TextHighlight.defaultPosition)
     end
-    if not private.db.profile.text_highlight_enabled then
-        private.db.profile.text_highlight_enabled = {}
+    if not private.db.global.text_highlight_enabled then
+        private.db.global.text_highlight_enabled = {}
     end
-    if not private.db.profile.text_highlight_enabled[layoutName] then
-        private.db.profile.text_highlight_enabled[layoutName] = true
+    if not private.db.global.text_highlight_enabled[layoutName] then
+        private.db.global.text_highlight_enabled[layoutName] = true
     end
     if private.TEXT_HIGHLIGHT_FRAME then
         private.TEXT_HIGHLIGHT_FRAME:ClearAllPoints()
-        private.TEXT_HIGHLIGHT_FRAME:SetPoint(private.db.profile.text_highlight_frame[layoutName].point,
-            private.db.profile.text_highlight_frame[layoutName].x, private.db.profile.text_highlight_frame[layoutName].y)
+        private.TEXT_HIGHLIGHT_FRAME:SetPoint(private.db.global.text_highlight_frame[layoutName].point,
+            private.db.global.text_highlight_frame[layoutName].x, private.db.global.text_highlight_frame[layoutName].y)
     end
 
 end)
@@ -73,10 +73,10 @@ local function Constructor()
             kind = LibEditMode.SettingType.Checkbox,
             default = true,
             get = function(layoutName)
-                return private.db.profile.text_highlight_enabled[layoutName]
+                return private.db.global.text_highlight_enabled[layoutName]
             end,
             set = function(layoutName, value)
-                private.db.profile.text_highlight_enabled[layoutName] = value
+                private.db.global.text_highlight_enabled[layoutName] = value
             end,
         }
     })

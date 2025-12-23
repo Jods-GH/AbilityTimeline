@@ -27,34 +27,34 @@ local function OnRelease(self)
 end
 local function onPositionChanged(frame, layoutName, point, x, y)
     -- from here you can save the position into a savedvariable
-    private.db.profile.bigicon_frame[layoutName] = private.db.profile.bigicon_frame[layoutName] or {}
-    private.db.profile.bigicon_frame[layoutName].x = x
-    private.db.profile.bigicon_frame[layoutName].y = y
-    private.db.profile.bigicon_frame[layoutName].point = point
+    private.db.global.bigicon_frame[layoutName] = private.db.global.bigicon_frame[layoutName] or {}
+    private.db.global.bigicon_frame[layoutName].x = x
+    private.db.global.bigicon_frame[layoutName].y = y
+    private.db.global.bigicon_frame[layoutName].point = point
 
-    private.BIGICON_FRAME:SetPoint(private.db.profile.bigicon_frame[layoutName].point,
-        private.db.profile.bigicon_frame[layoutName].x, private.db.profile.bigicon_frame[layoutName].y)
+    private.BIGICON_FRAME:SetPoint(private.db.global.bigicon_frame[layoutName].point,
+        private.db.global.bigicon_frame[layoutName].x, private.db.global.bigicon_frame[layoutName].y)
 end
 
 LibEditMode:RegisterCallback('layout', function(layoutName)
     -- this will be called every time the Edit Mode layout is changed (which also happens at login),
     -- use it to load the saved button position from savedvariables and position it
-    if not private.db.profile.bigicon_frame then
-        private.db.profile.bigicon_frame = {}
+    if not private.db.global.bigicon_frame then
+        private.db.global.bigicon_frame = {}
     end
-    if not private.db.profile.bigicon_frame[layoutName] then
-        private.db.profile.bigicon_frame[layoutName] = CopyTable(private.BigIcon.defaultPosition)
+    if not private.db.global.bigicon_frame[layoutName] then
+        private.db.global.bigicon_frame[layoutName] = CopyTable(private.BigIcon.defaultPosition)
     end
-     if not private.db.profile.bigicon_enabled then
-        private.db.profile.bigicon_enabled = {}
+     if not private.db.global.bigicon_enabled then
+        private.db.global.bigicon_enabled = {}
     end
-    if not private.db.profile.bigicon_enabled[layoutName] then
-        private.db.profile.bigicon_enabled[layoutName] = true
+    if not private.db.global.bigicon_enabled[layoutName] then
+        private.db.global.bigicon_enabled[layoutName] = true
     end
     if private.BIGICON_FRAME then
         private.BIGICON_FRAME:ClearAllPoints()
-        private.BIGICON_FRAME:SetPoint(private.db.profile.bigicon_frame[layoutName].point,
-            private.db.profile.bigicon_frame[layoutName].x, private.db.profile.bigicon_frame[layoutName].y)
+        private.BIGICON_FRAME:SetPoint(private.db.global.bigicon_frame[layoutName].point,
+            private.db.global.bigicon_frame[layoutName].x, private.db.global.bigicon_frame[layoutName].y)
     end
 end)
 
@@ -74,10 +74,10 @@ local function Constructor()
             kind = LibEditMode.SettingType.Checkbox,
             default = true,
             get = function(layoutName)
-                return private.db.profile.bigicon_enabled[layoutName]
+                return private.db.global.bigicon_enabled[layoutName]
             end,
             set = function(layoutName, value)
-                private.db.profile.bigicon_enabled[layoutName] = value
+                private.db.global.bigicon_enabled[layoutName] = value
             end,
         }
     })

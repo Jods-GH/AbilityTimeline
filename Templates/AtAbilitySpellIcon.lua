@@ -33,12 +33,12 @@ local handleTextAnchor   = function(self, isStopped)
 	self.SpellName:ClearAllPoints()
 	local relPos, anchorPos, xOffset, yOffset
 	if isStopped then
-		relPos = private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
+		relPos = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
 		anchorPos = TEXT_RELATIVE_POSITIONS
-			[private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor]
+			[private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor]
 	else
-		relPos = TEXT_RELATIVE_POSITIONS[private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor]
-		anchorPos = private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
+		relPos = TEXT_RELATIVE_POSITIONS[private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor]
+		anchorPos = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
 	end
 	if relPos == 'LEFT' then
 		if private.db.profile.icon_settings and private.db.profile.icon_settings.TextOffset then
@@ -72,7 +72,7 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 	local timelineMainPosition = 0
 	local isMoving = false
 	if isStopped then
-		if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor == 'RIGHT' then
+		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor == 'RIGHT' then
 			timelineOtherPosition = 0 - iconSize - variables.IconMargin
 		else
 			timelineOtherPosition = iconSize + variables.IconMargin
@@ -80,13 +80,13 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 	end
 	if not (remainingDuration < private.AT_THRESHHOLD_TIME) then
 		-- We are out of range of the moving timeline
-		if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
+		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
 			timelineMainPosition = 0 - (iconSize / 2)
 		else
 			timelineMainPosition = moveHeight + (iconSize / 2)
 		end
 	else
-		if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
+		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
 			timelineMainPosition = moveHeight - ((remainingDuration) / private.AT_THRESHHOLD_TIME) * moveHeight -
 				(iconSize / 2)
 			isMoving = true
@@ -95,7 +95,7 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 			isMoving = true
 		end
 	end
-	if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
+	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
 		return timelineMainPosition, timelineOtherPosition, isMoving
 	else
 		return timelineOtherPosition, timelineMainPosition, isMoving
@@ -160,7 +160,7 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 				local lowerXBound = x - iconSize / 2 - variables.IconMargin
 				local upperYBound = y + iconSize / 2 + variables.IconMargin
 				local lowerYBound = y - iconSize / 2 - variables.IconMargin
-				if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.VERTICAL then
+				if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.VERTICAL then
 					if upperYBound >= sourceLowerYBound and upperYBound <= sourceUpperYBound or
 						lowerYBound >= sourceLowerYBound and lowerYBound <= sourceUpperYBound then
 						conflictingYEvents = conflictingYEvents + 1
@@ -201,7 +201,7 @@ local calculateIconPosition = function(self, timeElapsed, moveHeight, isStopped)
 		-- only add offset for waiting icons
 		local xOffset, yOffset = calculateOffset(variables.IconSize.height, moveHeight, self.eventInfo.id, timeElapsed, x,
 			y)
-		if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
+		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
 			return x - xOffset, y - yOffset, isMoving
 		end
 		return x + xOffset, y + yOffset, isMoving
@@ -254,7 +254,7 @@ end
 local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 	self.frame.eventInfo = eventInfo
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
-	if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
+	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
 		self.frame.SpellName:SetText("")
 	else
 		self.frame.SpellName:SetText(eventInfo.spellName)
@@ -292,7 +292,7 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 				end
 				self.frameIsMoving = isMoving
 			end
-			if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
+			if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
 				self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "LEFT", xPos, yPos)
 			else
 				self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "BOTTOM", xPos, yPos)

@@ -142,10 +142,10 @@ private.SetZoom = function(icon, zoom)
 end
 
 private.TRIGGER_HIGHLIGHT = function(eventInfo)
-   if private.db.profile.bigicon_enabled[private.ACTIVE_EDITMODE_LAYOUT] and not private.HIGHLIGHT_EVENTS.BigIcons[eventInfo.id] then
+   if private.db.global.bigicon_enabled[private.ACTIVE_EDITMODE_LAYOUT] and not private.HIGHLIGHT_EVENTS.BigIcons[eventInfo.id] then
       private.createBigIcon(eventInfo)
    end
-   if private.db.profile.text_highlight_enabled[private.ACTIVE_EDITMODE_LAYOUT] and not private.HIGHLIGHT_EVENTS.HighlightTexts[eventInfo.id] then
+   if private.db.global.text_highlight_enabled[private.ACTIVE_EDITMODE_LAYOUT] and not private.HIGHLIGHT_EVENTS.HighlightTexts[eventInfo.id] then
       private.createTextHighlight(eventInfo)
    end
    if private.db.profile.useAudioCountdowns then

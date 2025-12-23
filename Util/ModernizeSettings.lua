@@ -1,11 +1,23 @@
 local addonName, private = ...
 
 private.modernize = function()
-    if not private.db.profile.timeline_frame then
-        private.db.profile.timeline_frame = {}
+    if not private.db.global.timeline_frame then
+        private.db.global.timeline_frame = {}
     end
-    if not private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT] then
-        private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT] = {}
+    if private.db.profile.timeline_frame then
+        private.db.global.timeline_frame = private.db.profile.timeline_frame
+        private.db.profile.timeline_frame = nil
+    end
+    if private.db.profile.bigicon_frame then
+        private.db.global.bigicon_frame = private.db.profile.bigicon_frame
+        private.db.profile.bigicon_frame = nil
+    end
+    if private.db.profile.text_highlight_frame then
+        private.db.global.text_highlight_frame = private.db.profile.text_highlight_frame
+        private.db.profile.text_highlight_frame = nil
+    end
+    if not private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT] then
+        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT] = {}
     end
 
     if not private.db.profile.reminders then
@@ -18,18 +30,18 @@ private.modernize = function()
     if not private.db.profile.editor.defaultEncounterDuration then
         private.db.profile.editor.defaultEncounterDuration = 300
     end
-    if private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].height then
-        private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travelSize = private.db.profile.timeline_frame
+    if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].height then
+        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travelSize = private.db.global.timeline_frame
         [private.ACTIVE_EDITMODE_LAYOUT].height
-        private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].height = nil
+        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].height = nil
     end
-    if not private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].otherSize then
-        private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].otherSize = private.db.profile.timeline_frame
+    if not private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].otherSize then
+        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].otherSize = private.db.global.timeline_frame
         [private.ACTIVE_EDITMODE_LAYOUT].width
     end
 
-    if not private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction then
-        private.db.profile.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction = private.TIMELINE_DIRECTIONS.VERTICAL
+    if not private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction then
+        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction = private.TIMELINE_DIRECTIONS.VERTICAL
     end
 
     if not private.db.profile.icon_settings then
