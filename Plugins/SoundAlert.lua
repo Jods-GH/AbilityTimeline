@@ -12,7 +12,10 @@ local VOICES = {
     "Male_1",
     "Male_2",
     "Female_1",
-    "Female_2",
+    "AI_Male_1",
+    "AI_Male_2",
+    "AI_Female_1",
+    "AI_Female_2",
 }
 for _, voice in ipairs(VOICES) do
     for _, line in ipairs(VOICE_LINES) do
