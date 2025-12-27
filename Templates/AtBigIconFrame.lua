@@ -48,9 +48,6 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
      if not private.db.global.bigicon_enabled then
         private.db.global.bigicon_enabled = {}
     end
-    if not private.db.global.bigicon_enabled[layoutName] then
-        private.db.global.bigicon_enabled[layoutName] = true
-    end
     if private.BIGICON_FRAME then
         private.BIGICON_FRAME:ClearAllPoints()
         private.BIGICON_FRAME:SetPoint(private.db.global.bigicon_frame[layoutName].point,

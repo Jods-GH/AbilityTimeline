@@ -45,9 +45,6 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.global.text_highlight_enabled then
         private.db.global.text_highlight_enabled = {}
     end
-    if not private.db.global.text_highlight_enabled[layoutName] then
-        private.db.global.text_highlight_enabled[layoutName] = true
-    end
     if private.TEXT_HIGHLIGHT_FRAME then
         private.TEXT_HIGHLIGHT_FRAME:ClearAllPoints()
         private.TEXT_HIGHLIGHT_FRAME:SetPoint(private.db.global.text_highlight_frame[layoutName].point,
