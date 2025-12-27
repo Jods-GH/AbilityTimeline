@@ -24,8 +24,7 @@ Continuation of the ever-popular [RaidAbilityTimeline Weakaura](https://wago.io/
 
 # Preview:
 
-[![Youtube Video](https://github.com/user-attachments/assets/8de8153b-48e7-4fbc-bc16-1a75e284a9d6)](https://www.youtube.com/watch?v=U1TDGhFtalo)
-
+[![Youtube Video](https://github.com/user-attachments/assets/8de8153b-48e7-4fbc-bc16-1a75e284a9d6)](https://www.youtube.com/watch?list=TLGGvwm3Ft5G0j4yNzEyMjAyNQ&v=_rC3vVAC3NE)
 ## Get it on:
 - [Curseforge](https://www.curseforge.com/wow/addons/better-timeline)
 - [Wago addons](https://addons.wago.io/addons/better-timeline)
