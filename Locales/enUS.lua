@@ -8,6 +8,7 @@ if L then
     L["TimelineNotSupportedMessage"] = "The timeline feature is not supported on this version."
     L["ReadyCheckBy"] = "Ready Check by"
     L["PullTimerBy"] = "Pull Timer by"
+    L["RerollKey"] = "Reroll Mythic + Key"
 
     --options
     L['addonOptions'] = "Ability Timeline Options"
