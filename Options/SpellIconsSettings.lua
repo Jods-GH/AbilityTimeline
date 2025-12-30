@@ -39,6 +39,26 @@ local createGeneralSettings = function(widget)
     end)
     scroll:AddChild(zoomSetting)
 
+    local dispellIconSetting = AceGUI:Create("CheckBox")
+    dispellIconSetting:SetLabel(private.getLocalisation("IconDispellIcon"))
+    private.AddFrameTooltip(dispellIconSetting.frame, "IconDispellIconDescription")
+    dispellIconSetting:SetValue(private.db.profile.icon_settings.dispellIcons)
+    dispellIconSetting:SetCallback("OnValueChanged", function(_, _, value)
+        private.db.profile.icon_settings.dispellIcons = value
+        widget:ApplySettings()
+    end)
+    scroll:AddChild(dispellIconSetting)
+
+    local dispellBorderSetting = AceGUI:Create("CheckBox")
+    dispellBorderSetting:SetLabel(private.getLocalisation("IconDispellBorder"))
+    private.AddFrameTooltip(dispellBorderSetting.frame, "IconDispellBorderDescription")
+    dispellBorderSetting:SetValue(private.db.profile.icon_settings.dispellBorders)
+    dispellBorderSetting:SetCallback("OnValueChanged", function(_, _, value)
+        private.db.profile.icon_settings.dispellBorders = value
+        widget:ApplySettings()
+    end)
+    scroll:AddChild(dispellBorderSetting)
+
     return scrollContainer
 end
 

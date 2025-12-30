@@ -263,16 +263,19 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 	-- OnUpdate we want to update the position of the icon based on elapsed time
 	self.frame.frameIsMoving = false
 	if not disableOnUpdate then
-		C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, self.frame.DispellTypeIcons)
-		
-		for i, dispellValue in ipairs(private.dispellTypeList) do
-			
-			for _, edgeTexture in ipairs(self.frame.DispellTypeBorderEdges[i]) do
-				local textureArray = {}
-				table.insert(textureArray, edgeTexture)
-				C_EncounterTimeline.SetEventIconTextures(eventInfo.id, dispellValue.mask, textureArray)
-				edgeTexture:SetTexture(nil)
-				edgeTexture:SetColorTexture(dispellValue.color.r, dispellValue.color.g, dispellValue.color.b, dispellValue.color.a)
+		if private.db.profile.icon_settings.dispellIcons then
+			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, self.frame.DispellTypeIcons)
+		end
+		if private.db.profile.icon_settings.dispellBorders then
+			for i, dispellValue in ipairs(private.dispellTypeList) do
+				
+				for _, edgeTexture in ipairs(self.frame.DispellTypeBorderEdges[i]) do
+					local textureArray = {}
+					table.insert(textureArray, edgeTexture)
+					C_EncounterTimeline.SetEventIconTextures(eventInfo.id, dispellValue.mask, textureArray)
+					edgeTexture:SetTexture(nil)
+					edgeTexture:SetColorTexture(dispellValue.color.r, dispellValue.color.g, dispellValue.color.b, dispellValue.color.a)
+				end
 			end
 		end
 
@@ -323,8 +326,11 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 			end
 		end)
 	else
-		self.frame.RoleIcons[1]:SetTexture(7494373) --TODO test values
-		self.frame.RoleIcons[1]:SetTexCoord(0.01221,0.11465,0.02608,0.25011) --TODO test values
+		self.frame.DispellTypeIcons[1]:SetTexture(7494373) --TODO test values
+		self.frame.DispellTypeIcons[1]:SetTexCoord(0.01221,0.11465,0.02608,0.25011) --TODO test values
+		for _, edgeTexture in pairs (self.frame.DispellTypeBorderEdges[2]) do
+			edgeTexture:SetColorTexture(private.dispellTypeList[2].color.r, private.dispellTypeList[2].color.g, private.dispellTypeList[2].color.b, private.dispellTypeList[2].color.a)
+		end
 	end
 	self.frame:Show()
 end
@@ -367,6 +373,23 @@ local function ApplySettings(self)
 		end
 		private.SetZoom(self.frame.SpellIcon, 1-private.db.profile.icon_settings.zoom)
 		self.frame.SpellIcon.zoomApplied = 1-private.db.profile.icon_settings.zoom
+	end
+
+	for i, edges in ipairs(self.frame.DispellTypeBorderEdges) do
+		for _, edgeTexture in ipairs(edges) do
+			if private.db.profile.icon_settings.dispellBorders then
+				edgeTexture:Show()
+			else
+				edgeTexture:Hide()
+			end
+		end
+	end
+	for i,texture in ipairs(self.frame.DispellTypeIcons) do
+		if private.db.profile.icon_settings.dispellIcons then
+			texture:Show()
+		else
+			texture:Hide()	
+		end
 	end
 end
 

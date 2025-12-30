@@ -69,6 +69,10 @@ if L then
     L["IconSizeDescription"] = "Sets the size of the spell icon."
     L["IconZoom"] = "Icon Zoom"
     L["IconZoomDescription"] = "Sets the zoom level of the spell icon."
+    L["IconDispellBorder"] = "Dispell Border"
+    L["IconDispellBorderDescription"] = "Toggles the dispell type border around the spell icon."
+    L["IconDispellIcon"] = "Dispell Icon"
+    L["IconDispellIconDescription"] = "Toggles the dispell type icon overlay on the spell icon."
 
     L['TextSettings'] = "Text Settings"
     L["IconSizeDescription"] = "Sets the size of the spell icon."
