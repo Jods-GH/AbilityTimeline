@@ -64,6 +64,7 @@ Templates\AtSpellIconSettingsFrame.lua
 #data
 Data\dungeons.xml
 Data\seasons.lua
+Data\dispellTypes.lua
 
 #plugins
 Plugins\TextHighlight.lua

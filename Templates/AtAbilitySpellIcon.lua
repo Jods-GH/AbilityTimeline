@@ -263,7 +263,19 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 	-- OnUpdate we want to update the position of the icon based on elapsed time
 	self.frame.frameIsMoving = false
 	if not disableOnUpdate then
-		C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 1023, self.frame.RoleIcons ); -- TODO actually implement proper icons
+		C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, self.frame.DispellTypeIcons)
+		
+		for i, dispellValue in ipairs(private.dispellTypeList) do
+			
+			for _, edgeTexture in ipairs(self.frame.DispellTypeBorderEdges[i]) do
+				local textureArray = {}
+				table.insert(textureArray, edgeTexture)
+				C_EncounterTimeline.SetEventIconTextures(eventInfo.id, dispellValue.mask, textureArray)
+				edgeTexture:SetTexture(nil)
+				edgeTexture:SetColorTexture(dispellValue.color.r, dispellValue.color.g, dispellValue.color.b, dispellValue.color.a)
+			end
+		end
+
 		self.frame:SetScript("OnUpdate", function(self)
 			local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(self.eventInfo.id)
 			local timeRemaining = C_EncounterTimeline.GetEventTimeRemaining(self.eventInfo.id)
@@ -413,10 +425,7 @@ local function Constructor()
 	frame.Cooldown:SetPoint("CENTER", frame, "CENTER")
 
 	frame.RoleIcons = {} 
-	frame.RoleIconHolder = CreateFrame("Frame", nil, frame, "EncounterTimelineIndicatorIconGridTemplate")
-	frame.RoleIconHolder:ClearAllPoints()
-	frame.RoleIconHolder:SetPoint("LEFT", frame, "RIGHT", 32, 32)
-	frame.RoleIconHolder:Show()
+
 	for i = 1, 4 do
 		local texture = frame:CreateTexture(nil, "ARTWORK" )
 		texture:SetPoint("LEFT", frame, "RIGHT", 18 * (i -1), 0)
@@ -424,6 +433,50 @@ local function Constructor()
 		texture:Show()
 		table.insert( frame.RoleIcons, texture)
 	end
+
+	frame.DispellTypeIcons = {}
+
+	local texture = frame:CreateTexture(nil, "ARTWORK" )
+	texture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -3, 3)
+	texture:SetSize(16, 16)
+	texture:Show()
+	table.insert( frame.DispellTypeIcons, texture)
+
+
+	frame.DispellTypeBorderEdges = {}
+	
+	for i, value in pairs (private.dispellTypeList) do
+		local topTexture = frame:CreateTexture(nil, "OVERLAY")
+		topTexture:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+		topTexture:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+		topTexture:SetHeight(3)
+		topTexture:Show()
+		
+		-- Bottom edge
+		local bottomTexture = frame:CreateTexture(nil, "OVERLAY")
+		bottomTexture:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
+		bottomTexture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+		bottomTexture:SetHeight(3)
+		bottomTexture:Show()
+		
+		-- Left edge
+		local leftTexture = frame:CreateTexture(nil, "OVERLAY")
+		leftTexture:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+		leftTexture:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
+		leftTexture:SetWidth(3)
+		leftTexture:Show()
+		
+		-- Right edge
+		local rightTexture = frame:CreateTexture(nil, "OVERLAY")
+		rightTexture:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+		rightTexture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+		rightTexture:SetWidth(3)
+		rightTexture:Show()
+		
+		frame.DispellTypeBorderEdges[i] = {topTexture, bottomTexture, leftTexture, rightTexture}
+	end
+
+
 	---@class AtAbilitySpellIcon : AceGUIWidget
 	local widget = {
 		OnAcquire = OnAcquire,
