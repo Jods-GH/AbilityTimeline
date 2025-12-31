@@ -38,7 +38,7 @@ jobs:
         id: check
         run: |
           # Stage the Data directory (no error if missing)
-          git add Data\Encounters || true
+          git add Data || true
 
           # Determine if there are staged changes
           if git diff --cached --quiet; then
