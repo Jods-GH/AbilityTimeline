@@ -12,6 +12,9 @@ on:
     tags-ignore:
       - '**'
   workflow_dispatch:
+concurrency:
+  group: "release"
+  cancel-in-progress: true  
 # a workflow is built up as jobs, and within these jobs are steps
 jobs:
 
