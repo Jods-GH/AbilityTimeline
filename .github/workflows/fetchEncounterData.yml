@@ -54,7 +54,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'chore: update encounter data'
           branch: update/encounter-data-${{ github.run_id }}
-          base: main
+          base: master
           title: "Update encounter data"
           body: |
             Automated update of encounter data for Reminders.
