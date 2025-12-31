@@ -11,6 +11,11 @@ on:
       - master
     tags-ignore:
       - '**'
+    paths-ignore:
+      - '.github/**'
+      - 'README.md'
+      - '.gitignore'
+      - '.gitattributes'
   workflow_dispatch:
 concurrency:
   group: "release"
