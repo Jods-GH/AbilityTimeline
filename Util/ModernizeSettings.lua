@@ -62,6 +62,9 @@ private.modernize = function()
     if private.db.profile.icon_settings.dispellIcons == nil then
         private.db.profile.icon_settings.dispellIcons = true
     end
+    if private.db.profile.icon_settings.dangerIcon == nil then
+        private.db.profile.icon_settings.dangerIcon = true
+    end
     if not private.db.profile.text_settings then
         private.db.profile.text_settings = {}
     end

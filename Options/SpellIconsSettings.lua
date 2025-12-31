@@ -59,6 +59,17 @@ local createGeneralSettings = function(widget)
     end)
     scroll:AddChild(dispellBorderSetting)
 
+    local dangerIconSetting = AceGUI:Create("CheckBox")
+    dangerIconSetting:SetLabel(private.getLocalisation("IconDangerIcon"))
+    private.AddFrameTooltip(dangerIconSetting.frame, "IconDangerIconDescription")
+    dangerIconSetting:SetValue(private.db.profile.icon_settings.dangerIcon)
+    dangerIconSetting:SetCallback("OnValueChanged", function(_, _, value)
+        private.db.profile.icon_settings.dangerIcon = value
+        widget:ApplySettings()
+    end)
+    scroll:AddChild(dangerIconSetting)
+    
+
     return scrollContainer
 end
 
@@ -362,7 +373,7 @@ local createSpellIconSettingsFrame = function()
         maxQueueDuration = 0,
         spellName = private.getLocalisation("TestIcon"),
         spellID = 0,
-        iconFileID = 135808,
+        iconFileID = 237538,
         severity = 1,
         paused = false
     }

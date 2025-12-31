@@ -27,7 +27,7 @@ setmetatable(TEXT_RELATIVE_POSITIONS, {
 	end,
 })
 ---handles the Text anchoring depending on the selected text anchor
----@param self AtAbilitySpellIcon
+---@param self Frame
 ---@param isStopped boolean
 local handleTextAnchor   = function(self, isStopped)
 	self.SpellName:ClearAllPoints()
@@ -58,6 +58,10 @@ local handleTextAnchor   = function(self, isStopped)
 		end
 	end
 	self.SpellName:SetPoint(relPos, self, anchorPos, xOffset, yOffset)
+	for _, texture in pairs(self.DangerIcon) do
+		texture:ClearAllPoints()
+		texture:SetPoint(relPos, self, anchorPos, 0, 0)
+	end
 end
 ---returns a raw icon position without any overlap handling
 ---@param iconSize number -- the size of the icon
@@ -267,8 +271,7 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, self.frame.DispellTypeIcons)
 		end
 		if private.db.profile.icon_settings.dispellBorders then
-			for i, dispellValue in ipairs(private.dispellTypeList) do
-				
+			for i, dispellValue in ipairs(private.dispellTypeList) do	
 				for _, edgeTexture in ipairs(self.frame.DispellTypeBorderEdges[i]) do
 					local textureArray = {}
 					table.insert(textureArray, edgeTexture)
@@ -278,7 +281,9 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 				end
 			end
 		end
-
+		if private.db.profile.icon_settings.dangerIcon then
+			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 1, self.frame.DangerIcon)
+		end
 		self.frame:SetScript("OnUpdate", function(self)
 			local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(self.eventInfo.id)
 			local timeRemaining = C_EncounterTimeline.GetEventTimeRemaining(self.eventInfo.id)
@@ -326,11 +331,11 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 			end
 		end)
 	else
-		self.frame.DispellTypeIcons[1]:SetTexture(7494373) --TODO test values
-		self.frame.DispellTypeIcons[1]:SetTexCoord(0.01221,0.11465,0.02608,0.25011) --TODO test values
-		for _, edgeTexture in pairs (self.frame.DispellTypeBorderEdges[2]) do
-			edgeTexture:SetColorTexture(private.dispellTypeList[2].color.r, private.dispellTypeList[2].color.g, private.dispellTypeList[2].color.b, private.dispellTypeList[2].color.a)
+		self.frame.DispellTypeIcons[1]:SetAtlas('icons_16x16_magic')
+		for _, edgeTexture in pairs (self.frame.DispellTypeBorderEdges[3]) do
+			edgeTexture:SetColorTexture(private.dispellTypeList[3].color.r, private.dispellTypeList[3].color.g, private.dispellTypeList[3].color.b, private.dispellTypeList[3].color.a)
 		end
+		self.frame.DangerIcon[1]:SetAtlas('icons_16x16_deadly')
 	end
 	self.frame:Show()
 end
@@ -391,6 +396,13 @@ local function ApplySettings(self)
 			texture:Hide()	
 		end
 	end
+	for i,texture in ipairs(self.frame.DangerIcon) do
+		if private.db.profile.icon_settings.dangerIcon then
+			texture:Show()
+		else
+			texture:Hide()	
+		end
+	end
 end
 
 ---@param self AtAbilitySpellIcon
@@ -441,7 +453,6 @@ local function Constructor()
 	frame.Border:Hide()
 	-- spell name
 	frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-	handleTextAnchor(frame, false)
 	frame.SpellName:Show()
 	-- cooldown
 	frame.Cooldown = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
@@ -450,47 +461,54 @@ local function Constructor()
 	frame.RoleIcons = {} 
 
 	for i = 1, 4 do
-		local texture = frame:CreateTexture(nil, "ARTWORK" )
+		local texture = frame:CreateTexture(nil, "OVERLAY" )
 		texture:SetPoint("LEFT", frame, "RIGHT", 18 * (i -1), 0)
 		texture:SetSize(16, 16)
 		texture:Show()
 		table.insert( frame.RoleIcons, texture)
 	end
 
+	frame.DangerIcon = {}
+
+	local dangerTexture = frame:CreateTexture(nil, "OVERLAY" )
+	dangerTexture:SetSize(16, 16)
+	dangerTexture:SetPoint("CENTER", frame, "TOPLEFT", 0, 0)
+	dangerTexture:Show()
+	table.insert( frame.DangerIcon, dangerTexture)
+
 	frame.DispellTypeIcons = {}
 
-	local texture = frame:CreateTexture(nil, "ARTWORK" )
-	texture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -3, 3)
-	texture:SetSize(16, 16)
-	texture:Show()
-	table.insert( frame.DispellTypeIcons, texture)
-
+	local dispellTypeTexture = frame:CreateTexture(nil, "OVERLAY" )
+	dispellTypeTexture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -3, 3)
+	dispellTypeTexture:SetSize(16, 16)
+	dispellTypeTexture:Show()
+	table.insert( frame.DispellTypeIcons, dispellTypeTexture)
 
 	frame.DispellTypeBorderEdges = {}
 	
 	for i, value in pairs (private.dispellTypeList) do
-		local topTexture = frame:CreateTexture(nil, "OVERLAY")
+		local topTexture = frame:CreateTexture(nil, "ARTWORK")
 		topTexture:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
 		topTexture:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
 		topTexture:SetHeight(3)
 		topTexture:Show()
 		
 		-- Bottom edge
-		local bottomTexture = frame:CreateTexture(nil, "OVERLAY")
+		local bottomTexture = frame:CreateTexture(nil, "ARTWORK")
 		bottomTexture:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
 		bottomTexture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
 		bottomTexture:SetHeight(3)
 		bottomTexture:Show()
 		
 		-- Left edge
-		local leftTexture = frame:CreateTexture(nil, "OVERLAY")
+		local leftTexture = frame:CreateTexture(nil, "ARTWORK")
 		leftTexture:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
 		leftTexture:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
 		leftTexture:SetWidth(3)
 		leftTexture:Show()
 		
 		-- Right edge
-		local rightTexture = frame:CreateTexture(nil, "OVERLAY")
+		local rightTexture = frame:CreateTexture(nil, "ARTWORK")
 		rightTexture:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
 		rightTexture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
 		rightTexture:SetWidth(3)
@@ -499,7 +517,7 @@ local function Constructor()
 		frame.DispellTypeBorderEdges[i] = {topTexture, bottomTexture, leftTexture, rightTexture}
 	end
 
-
+	handleTextAnchor(frame, false)
 	---@class AtAbilitySpellIcon : AceGUIWidget
 	local widget = {
 		OnAcquire = OnAcquire,
