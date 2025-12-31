@@ -19,6 +19,8 @@ local variables = {
 local TEXT_RELATIVE_POSITIONS = {
 	RIGHT = "LEFT",
 	LEFT = "RIGHT",
+	TOP = "BOTTOM",
+	BOTTOM = "TOP",
 }
 
 setmetatable(TEXT_RELATIVE_POSITIONS, {
@@ -29,7 +31,7 @@ setmetatable(TEXT_RELATIVE_POSITIONS, {
 ---handles the Text anchoring depending on the selected text anchor
 ---@param self Frame
 ---@param isStopped boolean
-local handleTextAnchor   = function(self, isStopped)
+local handleAnchors   = function(self, isStopped)
 	self.SpellName:ClearAllPoints()
 	local relPos, anchorPos, xOffset, yOffset
 	if isStopped then
@@ -40,6 +42,21 @@ local handleTextAnchor   = function(self, isStopped)
 		relPos = TEXT_RELATIVE_POSITIONS[private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor]
 		anchorPos = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
 	end
+
+	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
+		-- in horizontal mode we need to adjust position accordingly
+		if relPos == 'LEFT' then
+			relPos = 'TOP'
+		else
+			relPos = 'BOTTOM'
+		end
+		if anchorPos == 'LEFT' then
+			anchorPos = 'TOP'
+		else
+			anchorPos = 'BOTTOM'
+		end
+	end
+
 	if relPos == 'LEFT' then
 		if private.db.profile.icon_settings and private.db.profile.icon_settings.TextOffset then
 			xOffset = private.db.profile.icon_settings.TextOffset.x
@@ -48,13 +65,29 @@ local handleTextAnchor   = function(self, isStopped)
 			xOffset = variables.TextOffset.x
 			yOffset = variables.TextOffset.y
 		end
-	else
+	elseif relPos == 'RIGHT' then
 		if private.db.profile.icon_settings and private.db.profile.icon_settings.TextOffset then
 			xOffset = -private.db.profile.icon_settings.TextOffset.x
 			yOffset = -private.db.profile.icon_settings.TextOffset.y
 		else
 			xOffset = -variables.TextOffset.x
 			yOffset = -variables.TextOffset.y
+		end
+	elseif relPos == 'TOP' then
+		if private.db.profile.icon_settings and private.db.profile.icon_settings.TextOffset then
+			xOffset = private.db.profile.icon_settings.TextOffset.y
+			yOffset = -private.db.profile.icon_settings.TextOffset.x
+		else
+			xOffset = variables.TextOffset.y
+			yOffset = -variables.TextOffset.x
+		end
+	else -- BOTTOM
+		if private.db.profile.icon_settings and private.db.profile.icon_settings.TextOffset then
+			xOffset = -private.db.profile.icon_settings.TextOffset.y
+			yOffset = private.db.profile.icon_settings.TextOffset.x
+		else
+			xOffset = -variables.TextOffset.y
+			yOffset = variables.TextOffset.x
 		end
 	end
 	self.SpellName:SetPoint(relPos, self, anchorPos, xOffset, yOffset)
@@ -294,7 +327,7 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 			self.isStopped = isStopped
 			if state ~= self.state then
 				self.state = state
-				handleTextAnchor(self, isStopped)
+				handleAnchors(self, isStopped)
 			elseif state == private.ENCOUNTER_STATES.Paused then
 				return
 			end
@@ -348,7 +381,7 @@ local function ApplySettings(self)
 		self.frame:SetSize(variables.IconSize.width, variables.IconSize.height)
 	end
 	if private.db.profile.icon_settings and private.db.profile.icon_settings.TextOffset then
-		handleTextAnchor(self.frame, self.isStopped)
+		handleAnchors(self.frame, self.isStopped)
 	end
 	if private.db.profile.text_settings and private.db.profile.text_settings.font and private.db.profile.text_settings.fontSize then
 		self.frame.SpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.text_settings.font),
@@ -417,7 +450,7 @@ local function OnRelease(self)
 	self.frame.eventInfo = nil
 	self.frame.SpellIcon:SetTexture(nil)
 	self.frame.SpellName:SetText("")
-	handleTextAnchor(self.frame, false)
+	handleAnchors(self.frame, false)
 	self.frame:SetScript("OnUpdate", nil)
 	self.frame.frameIsMoving = false
 end
@@ -517,7 +550,7 @@ local function Constructor()
 		frame.DispellTypeBorderEdges[i] = {topTexture, bottomTexture, leftTexture, rightTexture}
 	end
 
-	handleTextAnchor(frame, false)
+	handleAnchors(frame, false)
 	---@class AtAbilitySpellIcon : AceGUIWidget
 	local widget = {
 		OnAcquire = OnAcquire,
