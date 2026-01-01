@@ -1,5 +1,6 @@
 local addonName, private = ...
 
+private.sheduledReminders = {}
 
 private.createReminders = function(encounterID)
     local reminders = private.db.profile.reminders and private.db.profile.reminders[encounterID] or {}
@@ -12,17 +13,42 @@ private.createReminders = function(encounterID)
         local delay = tonumber(reminder.CombatTimeDelay) or 0
         local spellId = reminder.spellId or 0
         local spellName, _, icon = C_Spell.GetSpellInfo(spellId)
-        local eventinfo = {
-            duration = duration,
-            maxQueueDuration = delay,
-            overrideName = reminder.name or reminder.spellName or spellName,
-            spellID = spellId,
-            iconFileID = reminder.iconId or icon or 134400,
-            severity = reminder.severity or 1,
-            paused = false,
-            icons = reminder.effectTypes,
-        }
-
-        C_EncounterTimeline.AddScriptEvent(eventinfo)
+        if reminder.StartTimerAfter and reminder.StartTimerAfter > 0 then
+            local eventinfo = {
+                duration = duration - reminder.StartTimerAfter,
+                maxQueueDuration = delay,
+                overrideName = reminder.name or reminder.spellName or spellName,
+                spellID = spellId,
+                iconFileID = reminder.iconId or icon or 134400,
+                severity = reminder.severity or 1,
+                paused = false,
+                icons = reminder.effectTypes,
+            }
+            local timerObject = C_Timer.NewTimer(reminder.StartTimerAfter, function()
+                C_EncounterTimeline.AddScriptEvent(eventinfo)
+            end)
+            table.insert(private.sheduledReminders, timerObject)
+        else
+            local eventinfo = {
+                duration = duration,
+                maxQueueDuration = delay,
+                overrideName = reminder.name or reminder.spellName or spellName,
+                spellID = spellId,
+                iconFileID = reminder.iconId or icon or 134400,
+                severity = reminder.severity or 1,
+                paused = false,
+                icons = reminder.effectTypes,
+            }
+            C_EncounterTimeline.AddScriptEvent(eventinfo)
+        end
     end
+end
+
+private.cancelSheduledReminders= function()
+    for _, timerObject in ipairs(private.sheduledReminders) do
+        if timerObject and timerObject.Cancel then
+            timerObject:Cancel()
+        end
+    end
+    private.sheduledReminders = {}
 end

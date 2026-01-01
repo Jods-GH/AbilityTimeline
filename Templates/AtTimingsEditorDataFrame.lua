@@ -489,10 +489,19 @@ local function OpenReminderDialog(self, reminderIndex)
 
     local delayBox = AceGUI:Create("EditBox")
     delayBox:SetLabel(private.getLocalisation("ReminderDelayLabel"))
+    private.AddFrameTooltip(delayBox.frame, "ReminderDelayDescription")
     delayBox:SetText(tostring(current.CombatTimeDelay or 0))
     delayBox:SetRelativeWidth(0.5)
     delayBox:DisableButton(true)
     dialog:AddChild(delayBox)
+
+    local startTimerAfterBox = AceGUI:Create("EditBox")
+    startTimerAfterBox:SetLabel(private.getLocalisation("StartTimerAfterLabel"))
+    private.AddFrameTooltip(startTimerAfterBox.frame, "StartTimerAfterDescription")
+    startTimerAfterBox:SetText(tostring(current.StartTimerAfter or 0))
+    startTimerAfterBox:SetRelativeWidth(0.5)
+    startTimerAfterBox:DisableButton(true)
+    dialog:AddChild(startTimerAfterBox)
 
     local severity = AceGUI:Create("Dropdown")
     severity:SetLabel(private.getLocalisation("ReminderSeverityLabel"))
@@ -565,6 +574,7 @@ local function OpenReminderDialog(self, reminderIndex)
         if not timeValue then
             return
         end
+        local startTimeAfter = tonumber(startTimerAfterBox:GetText())
         local spellId = tonumber(spellIdBox:GetText())
         local spellInfo  = spellId and C_Spell.GetSpellInfo(spellId) or nil
         local reminder = {
@@ -574,6 +584,7 @@ local function OpenReminderDialog(self, reminderIndex)
             iconId = spellInfo and spellInfo.iconID or getReminderTexture(current),
             CombatTime = timeValue,
             CombatTimeDelay = tonumber(delayBox:GetText()),
+            StartTimerAfter = startTimeAfter,
             severity = severity:GetValue(),
             effectTypes = effects:GetValue(),
         }

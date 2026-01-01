@@ -14,6 +14,7 @@ function AbilityTimeline:OnInitialize()
     AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_REMOVED")
     AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED")
     AbilityTimeline:RegisterEvent("ENCOUNTER_START")
+    AbilityTimeline:RegisterEvent("ENCOUNTER_END")
     AbilityTimeline:RegisterEvent("PLAYER_ENTERING_WORLD")
     AbilityTimeline:RegisterEvent("READY_CHECK")
     AbilityTimeline:RegisterEvent("READY_CHECK_FINISHED")
@@ -129,7 +130,7 @@ end
 
 function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, difficultyID, groupSize, playerDifficultyID)
     -- createTestBars(15)
-    private.Debug("Encounter started: " .. tostring(encounterName))
+    private.Debug("Encounter started: " .. tostring(encounterName) .. " ".. tostring(encounterID))
     -- store last encounter info (use runtime dungeonEncounterID as provided by ENCOUNTER_START)
     private.lastEncounterInfo = {
         encounterID = encounterID,
@@ -141,6 +142,12 @@ function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, diff
     end
 
     private.createReminders(encounterID)
+end
+
+function AbilityTimeline:ENCOUNTER_END(event, encounterID, encounterName, difficultyID, groupSize, playerDifficultyID, success)
+    private.Debug("Encounter ended: " .. tostring(encounterName) .. " ".. tostring(encounterID) .. ", success: " .. tostring(success))
+
+    private.cancelSheduledReminders()
 end
 
 function AbilityTimeline:READY_CHECK(event, initiatorName, readyCheckTimeLeft)
