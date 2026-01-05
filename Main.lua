@@ -148,6 +148,9 @@ function AbilityTimeline:ENCOUNTER_END(event, encounterID, encounterName, diffic
     private.Debug("Encounter ended: " .. tostring(encounterName) .. " ".. tostring(encounterID) .. ", success: " .. tostring(success))
 
     private.cancelSheduledReminders()
+    if private.db.profile.disableAllOnEncounterEnd then
+        C_EncounterTimeline.CancelAllScriptEvents()
+    end
 end
 
 function AbilityTimeline:READY_CHECK(event, initiatorName, readyCheckTimeLeft)

@@ -68,6 +68,17 @@ private.options = {
         .debugMode                                                      --Sets value of toggles depending on SavedVariables
       end,
     },
+    disableAllOnEncounterEnd = {
+      name = private.getLocalisation("disableAllOnEncounterEnd"),
+      desc = private.getLocalisation("disableAllOnEncounterEndDescription"),
+      order = 35,
+      width = "full",
+      type = "toggle",
+      set = function(info, val) private.db.profile.disableAllOnEncounterEnd = val end,
+      get = function(info)
+        return private.db.profile.disableAllOnEncounterEnd
+      end,
+    },
     useAudioCountdowns = {
       name = private.getLocalisation("useAudioCountdowns"),
       desc = private.getLocalisation("useAudioCountdownsDescription"),

@@ -13,5 +13,6 @@ private.OptionDefaults = {
 		editor = {
 			defaultEncounterDuration = 300,
 		},
+		disableAllOnEncounterEnd = true,
 	}
 }
