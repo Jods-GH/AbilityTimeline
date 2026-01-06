@@ -35,8 +35,8 @@ local SetEventInfo = function(widget, eventInfo)
                 break
             end
         end
-        private.evaluateBigIconPositions()
         widget:Release()
+        private.evaluateBigIconPositions()
     end)
     local xOffset = (private.BIG_ICON_SIZE + private.BIG_ICON_MARGIN) * (#private.BIG_ICONS)
     widget.frame:SetPoint("LEFT", private.BIGICON_FRAME.frame, "LEFT", xOffset, 0)
