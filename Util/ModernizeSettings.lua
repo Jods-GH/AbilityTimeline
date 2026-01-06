@@ -74,9 +74,19 @@ private.modernize = function()
     if not private.db.profile.text_settings.font then
         private.db.profile.text_settings.font = "Friz Quadrata TT"
     end
+    if private.db.profile.text_settings.useBackground == nil then
+        private.db.profile.text_settings.useBackground = false
+    end
+    if not private.db.profile.text_settings.backgroundTexture then
+        private.db.profile.text_settings.backgroundTexture = "Blizzard Dialog Background"
+    end
 
     if not private.db.profile.text_settings.defaultColor then
         private.db.profile.text_settings.defaultColor = { r = 1, g = 1, b = 1 }
+    end
+
+    if not private.db.profile.text_settings.backgroundTextureOffset then
+        private.db.profile.text_settings.backgroundTextureOffset = { x = 10, y = 10 }
     end
 
     if not private.db.profile.cooldown_settings then

@@ -117,6 +117,14 @@ if L then
     L['EnableCooldownGlowChangeDescription'] = "Enables glow effect for this cooldown timing."
     L['CooldownGlowType'] = "Glow Type"
     L['CooldownGlowTypeDescription'] = "Sets the glow type for this cooldown timing."
+    L['SpellnameBackgroundDescription'] = "Enables a background behind the spell name text."
+    L['SpellnameBackground'] = "Enable Text Background"
+    L['SpellnameBackgroundTexture'] = "Text Background Texture"
+    L['SpellnameBackgroundTextureDescription'] = "Sets the texture of the background behind the spell name."
+    L['TextBackgroundOffsetX'] = "Text Background Offset X"
+    L['TextBackgroundOffsetXDescription'] = "Sets the X offset of the background relative to the text."
+    L['TextBackgroundOffsetY'] = "Text Background Offset Y"
+    L['TextBackgroundOffsetYDescription'] = "Sets the Y offset of the background relative to the text."
 
 
 

@@ -149,6 +149,65 @@ local createTextSettings = function(widget)
     end)
     scroll:AddChild(textDefaultColorSetting)
 
+    local textBackgroundToggle = AceGUI:Create("CheckBox")
+    textBackgroundToggle:SetValue(private.db.profile.text_settings.useBackground)
+    textBackgroundToggle:SetLabel(private.getLocalisation("SpellnameBackground"))
+    private.AddFrameTooltip(textBackgroundToggle.frame, "SpellnameBackgroundDescription")
+    textBackgroundToggle:SetCallback("OnValueChanged", function(_, _, value)
+        private.db.profile.text_settings.useBackground = value
+        widget:ApplySettings()
+    end)
+    scroll:AddChild(textBackgroundToggle)
+
+    local TextureSettings = {
+    }
+    for _, texName in ipairs(SharedMedia:List("background")) do
+        local texPath = SharedMedia:Fetch("background", texName) or ""
+        local display = ("|T%s:16:128|t %s"):format(tostring(texPath), texName)
+        table.insert(TextureSettings, {
+            text = display,
+            value = texName,
+            isRadio = false,
+        })
+    end
+    local textBackgroundTextureSetting = AceGUI:Create("Dropdown")
+    textBackgroundTextureSetting:SetText(private.db.profile.text_settings.backgroundTexture)
+    textBackgroundTextureSetting:SetLabel(private.getLocalisation("SpellnameBackgroundTexture"))
+    private.AddFrameTooltip(textBackgroundTextureSetting.frame, "SpellnameBackgroundTextureDescription")
+    for _, setting in ipairs(TextureSettings) do
+        textBackgroundTextureSetting:AddItem(setting.value, setting.text)
+    end
+    textBackgroundTextureSetting:SetCallback("OnValueChanged", function(_, _, value)
+        private.db.profile.text_settings.backgroundTexture = value
+        widget:ApplySettings()
+    end)
+    textBackgroundTextureSetting:SetRelativeWidth(1.0)
+    scroll:AddChild(textBackgroundTextureSetting)
+
+    local textBackgroundTextureOffsetX = AceGUI:Create("Slider")
+    textBackgroundTextureOffsetX:SetLabel(private.getLocalisation("TextBackgroundOffsetX"))
+    private.AddFrameTooltip(textBackgroundTextureOffsetX.frame, "TextBackgroundOffsetXDescription")
+    textBackgroundTextureOffsetX:SetSliderValues(-50, 50, 1)
+    textBackgroundTextureOffsetX:SetValue(private.db.profile.text_settings.backgroundTextureOffset.x)
+    textBackgroundTextureOffsetX:SetCallback("OnValueChanged", function(_, _, value)
+        private.db.profile.text_settings.backgroundTextureOffset.x = value
+        widget:ApplySettings()
+    end)
+    textBackgroundTextureOffsetX:SetRelativeWidth(0.5)
+    scroll:AddChild(textBackgroundTextureOffsetX)
+
+    local textBackgroundTextureOffsetX = AceGUI:Create("Slider")
+    textBackgroundTextureOffsetX:SetLabel(private.getLocalisation("TextBackgroundOffsetY"))
+    private.AddFrameTooltip(textBackgroundTextureOffsetX.frame, "TextBackgroundOffsetYDescription")
+    textBackgroundTextureOffsetX:SetSliderValues(-50, 50, 1)
+    textBackgroundTextureOffsetX:SetValue(private.db.profile.text_settings.backgroundTextureOffset.y)
+    textBackgroundTextureOffsetX:SetCallback("OnValueChanged", function(_, _, value)
+        private.db.profile.text_settings.backgroundTextureOffset.y = value
+        widget:ApplySettings()
+    end)
+    textBackgroundTextureOffsetX:SetRelativeWidth(0.5)
+    scroll:AddChild(textBackgroundTextureOffsetX)
+
     return scrollContainer
 end
 

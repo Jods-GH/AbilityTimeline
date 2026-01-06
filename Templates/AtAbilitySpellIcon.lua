@@ -436,6 +436,17 @@ local function ApplySettings(self)
 			texture:Hide()	
 		end
 	end
+	if private.db.profile.text_settings.useBackground then
+		local texture = SharedMedia:Fetch("background", private.db.profile.text_settings.backgroundTexture)
+		self.frame.SpellNameBackground:SetPoint("LEFT", self.frame.SpellName, "LEFT", -private.db.profile.text_settings.backgroundTextureOffset.x, 0)
+		self.frame.SpellNameBackground:SetPoint("RIGHT", self.frame.SpellName, "RIGHT", private.db.profile.text_settings.backgroundTextureOffset.x, 0)
+		self.frame.SpellNameBackground:SetPoint("TOP", self.frame.SpellName, "TOP", 0, private.db.profile.text_settings.backgroundTextureOffset.y)
+		self.frame.SpellNameBackground:SetPoint("BOTTOM", self.frame.SpellName, "BOTTOM", 0, -private.db.profile.text_settings.backgroundTextureOffset.y)
+		self.frame.SpellNameBackground:SetTexture(texture)
+		self.frame.SpellNameBackground:Show()
+	else
+		self.frame.SpellNameBackground:Hide()
+	end
 end
 
 ---@param self AtAbilitySpellIcon
@@ -487,6 +498,14 @@ local function Constructor()
 	-- spell name
 	frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
 	frame.SpellName:Show()
+	-- spell name background
+	frame.SpellNameBackground = frame:CreateTexture(nil, "BACKGROUND")
+	frame.SpellNameBackground:SetPoint("LEFT", frame.SpellName, "LEFT", -private.db.profile.text_settings.backgroundTextureOffset.x, 0)
+	frame.SpellNameBackground:SetPoint("RIGHT", frame.SpellName, "RIGHT", private.db.profile.text_settings.backgroundTextureOffset.x, 0)
+	frame.SpellNameBackground:SetPoint("TOP", frame.SpellName, "TOP", 0, private.db.profile.text_settings.backgroundTextureOffset.y)
+	frame.SpellNameBackground:SetPoint("BOTTOM", frame.SpellName, "BOTTOM", 0, -private.db.profile.text_settings.backgroundTextureOffset.y)
+	frame.SpellNameBackground:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
+	frame.SpellNameBackground:Hide()
 	-- cooldown
 	frame.Cooldown = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
 	frame.Cooldown:SetPoint("CENTER", frame, "CENTER")
