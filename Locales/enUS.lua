@@ -131,6 +131,12 @@ if L then
     --edit mode
     L["EnableBigIcon"] = "Enable Big Icon"
     L["EnableBigIconDescription"] = "Toggles the visibility of the big icon frame."
+    L["GrowDirection"] = "Grow Direction"
+    L["GrowDirectionDescription"] = "Sets the direction icons grow."
+    L["GrowDirectionRight"] = "Right"
+    L["GrowDirectionLeft"] = "Left"
+    L["GrowDirectionUp"] = "Up"
+    L["GrowDirectionDown"] = "Down"
     L["EnableTicks"] = "Enable Ticks"
     L["EnableTicksDescription"] = "Toggles the visibility of the timeline ticks."
     L["EnableTextHighlight"] = "Enable Text Highlight"

@@ -8,14 +8,14 @@ local variables = {
         x = 30,
         y = -10,
     },
-    width = 400,
-    height =100,
+    width = 100,
+    height = 100,
 }
 private.BigIcon = {}
 private.BigIcon.defaultPosition = {
-    point = 'RIGHT',
+    point = 'CENTER',
     y = -200,
-    x = -280,
+    x = 410,
 }
 
 ---@param self AtBigIconFrame
@@ -45,8 +45,16 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.global.bigicon_frame[layoutName] then
         private.db.global.bigicon_frame[layoutName] = CopyTable(private.BigIcon.defaultPosition)
     end
-     if not private.db.global.bigicon_enabled then
+    if not private.db.global.bigicon_enabled then
         private.db.global.bigicon_enabled = {}
+    end
+    if not private.db.global.bigicon then
+        private.db.global.bigicon = {}
+    end
+    if not private.db.global.bigicon[layoutName] then
+        private.db.global.bigicon[layoutName] = {
+            grow_direction = 'RIGHT',
+        }
     end
     if private.BIGICON_FRAME then
         private.BIGICON_FRAME:ClearAllPoints()
@@ -76,7 +84,45 @@ local function Constructor()
             set = function(layoutName, value)
                 private.db.global.bigicon_enabled[layoutName] = value
             end,
-        }
+        },
+        {
+            name = private.getLocalisation("GrowDirection"),
+            desc = private.getLocalisation("GrowDirectionDescription"),
+            kind = LibEditMode.SettingType.Dropdown,
+
+            get = function(layoutName)
+                return private.db.global.bigicon[layoutName].grow_direction
+            end,
+            set = function(layoutName, value)
+                private.db.global.bigicon[layoutName].grow_direction = value
+                private.evaluateBigIconPositions()
+            end,
+            default = 'RIGHT',
+            height = 100,
+            values = {
+                {
+                    text = private.getLocalisation("GrowDirectionRight"),
+                    value = 'RIGHT',
+                    isRadio = true,
+                },
+                {
+                    text = private.getLocalisation("GrowDirectionLeft"),
+                    value = 'LEFT',
+                    isRadio = true,
+                },
+                {
+                    text = private.getLocalisation("GrowDirectionUp"),
+                    value = 'UP',
+                    isRadio = true,
+                },
+                {
+                    text = private.getLocalisation("GrowDirectionDown"),
+                    value = 'DOWN',
+                    isRadio = true,
+                },
+            },
+        },
+
     })
 
     ---@class AtBigIconFrame : AceGUIWidget
