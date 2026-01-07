@@ -125,6 +125,14 @@ local function Constructor()
 
     })
 
+    local buttons = {
+        {
+            text = private.getLocalisation("OpenIconEditor"),
+            click = function() private.openSpellIconSettings(true) end
+        }
+    }
+    LibEditMode:AddFrameSettingsButtons(frame, buttons) 
+
     ---@class AtBigIconFrame : AceGUIWidget
     local widget = {
         OnAcquire = OnAcquire,
