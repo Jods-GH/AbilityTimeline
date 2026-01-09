@@ -268,12 +268,14 @@ local function Constructor()
 	frame.SpellNameBackground:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
 	frame.SpellNameBackground:Hide()
 
-
+	frame.TextureHolder = CreateFrame("Frame", nil, frame)
+	frame.TextureHolder:SetAllPoints(frame)
+	frame.TextureHolder:SetFrameStrata("HIGH")
 	frame.RoleIcons = {} 
 
 	for i = 1, 4 do
-		local texture = frame:CreateTexture(nil, "OVERLAY" )
-		texture:SetPoint("LEFT", frame, "RIGHT", 18 * (i -1), 0)
+		local texture = frame.TextureHolder:CreateTexture(nil, "OVERLAY" )
+		texture:SetPoint("LEFT", frame.TextureHolder, "RIGHT", 18 * (i -1), 0)
 		texture:SetSize(16, 16)
 		texture:Show()
 		table.insert( frame.RoleIcons, texture)
@@ -281,16 +283,16 @@ local function Constructor()
 
 	frame.DangerIcon = {}
 
-	local dangerTexture = frame:CreateTexture(nil, "OVERLAY" )
+	local dangerTexture = frame.TextureHolder:CreateTexture(nil, "OVERLAY" )
 	dangerTexture:SetSize(16, 16)
-	dangerTexture:SetPoint("CENTER", frame, "TOPLEFT", 0, 0)
+	dangerTexture:SetPoint("CENTER", frame.TextureHolder, "TOPLEFT", 0, 0)
 	dangerTexture:Show()
 	table.insert( frame.DangerIcon, dangerTexture)
 
 	frame.DispellTypeIcons = {}
 
-	local dispellTypeTexture = frame:CreateTexture(nil, "OVERLAY" )
-	dispellTypeTexture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -3, 3)
+	local dispellTypeTexture = frame.TextureHolder:CreateTexture(nil, "OVERLAY" )
+	dispellTypeTexture:SetPoint("BOTTOMRIGHT", frame.TextureHolder, "BOTTOMRIGHT", -3, 3)
 	dispellTypeTexture:SetSize(16, 16)
 	dispellTypeTexture:Show()
 	table.insert( frame.DispellTypeIcons, dispellTypeTexture)
@@ -298,30 +300,30 @@ local function Constructor()
 	frame.DispellTypeBorderEdges = {}
 	
 	for i, value in pairs (private.dispellTypeList) do
-		local topTexture = frame:CreateTexture(nil, "BORDER")
-		topTexture:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-		topTexture:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+		local topTexture = frame.TextureHolder:CreateTexture(nil, "BORDER")
+		topTexture:SetPoint("TOPLEFT", frame.TextureHolder, "TOPLEFT", 0, 0)
+		topTexture:SetPoint("TOPRIGHT", frame.TextureHolder, "TOPRIGHT", 0, 0)
 		topTexture:SetHeight(3)
 		topTexture:Show()
 		
 		-- Bottom edge
-		local bottomTexture = frame:CreateTexture(nil, "BORDER")
-		bottomTexture:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
-		bottomTexture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+		local bottomTexture = frame.TextureHolder:CreateTexture(nil, "BORDER")
+		bottomTexture:SetPoint("BOTTOMLEFT", frame.TextureHolder, "BOTTOMLEFT", 0, 0)
+		bottomTexture:SetPoint("BOTTOMRIGHT", frame.TextureHolder, "BOTTOMRIGHT", 0, 0)
 		bottomTexture:SetHeight(3)
 		bottomTexture:Show()
 		
 		-- Left edge
-		local leftTexture = frame:CreateTexture(nil, "BORDER")
-		leftTexture:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-		leftTexture:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
+		local leftTexture = frame.TextureHolder:CreateTexture(nil, "BORDER")
+		leftTexture:SetPoint("TOPLEFT", frame.TextureHolder, "TOPLEFT", 0, 0)
+		leftTexture:SetPoint("BOTTOMLEFT", frame.TextureHolder, "BOTTOMLEFT", 0, 0)
 		leftTexture:SetWidth(3)
 		leftTexture:Show()
 		
 		-- Right edge
-		local rightTexture = frame:CreateTexture(nil, "BORDER")
-		rightTexture:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
-		rightTexture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+		local rightTexture = frame.TextureHolder:CreateTexture(nil, "BORDER")
+		rightTexture:SetPoint("TOPRIGHT", frame.TextureHolder, "TOPRIGHT", 0, 0)
+		rightTexture:SetPoint("BOTTOMRIGHT", frame.TextureHolder, "BOTTOMRIGHT", 0, 0)
 		rightTexture:SetWidth(3)
 		rightTexture:Show()
 		
