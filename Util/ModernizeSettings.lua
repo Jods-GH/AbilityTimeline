@@ -65,6 +65,30 @@ private.modernize = function()
     if private.db.profile.icon_settings.dangerIcon == nil then
         private.db.profile.icon_settings.dangerIcon = true
     end
+
+    if not private.db.profile.big_icon_settings then
+        private.db.profile.big_icon_settings = {}
+    end
+
+    if not private.db.profile.big_icon_settings.size then
+        private.db.profile.big_icon_settings.size = 100
+    end
+    if not private.db.profile.big_icon_settings.zoom then
+        private.db.profile.big_icon_settings.zoom = 0.3
+    end
+    if not private.db.profile.big_icon_settings.TextOffset then
+        private.db.profile.big_icon_settings.TextOffset = { x = 0, y = -10 }
+    end
+    if private.db.profile.big_icon_settings.dispellBorders == nil then
+        private.db.profile.big_icon_settings.dispellBorders = true
+    end
+    if private.db.profile.big_icon_settings.dispellIcons == nil then
+        private.db.profile.big_icon_settings.dispellIcons = true
+    end
+    if private.db.profile.big_icon_settings.dangerIcon == nil then
+        private.db.profile.big_icon_settings.dangerIcon = true
+    end
+
     if not private.db.profile.text_settings then
         private.db.profile.text_settings = {}
     end
@@ -87,6 +111,43 @@ private.modernize = function()
 
     if not private.db.profile.text_settings.backgroundTextureOffset then
         private.db.profile.text_settings.backgroundTextureOffset = { x = 10, y = 10 }
+    end
+
+    if not private.db.profile.text_settings.text_anchor then
+        private.db.profile.text_settings.text_anchor = "LEFT"
+    end
+
+    if not private.db.profile.big_icon_text_settings then
+        private.db.profile.big_icon_text_settings = {}
+    end
+    if not private.db.profile.big_icon_text_settings.fontSize then
+        private.db.profile.big_icon_text_settings.fontSize = 20
+    end
+    if not private.db.profile.big_icon_text_settings.font then
+        private.db.profile.big_icon_text_settings.font = "Friz Quadrata TT"
+    end
+    if private.db.profile.big_icon_text_settings.useBackground == nil then
+        private.db.profile.big_icon_text_settings.useBackground = false
+    end
+    if not private.db.profile.big_icon_text_settings.backgroundTexture then
+        private.db.profile.big_icon_text_settings.backgroundTexture = "Blizzard Dialog Background"
+    end
+
+    if not private.db.profile.big_icon_text_settings.defaultColor then
+        private.db.profile.big_icon_text_settings.defaultColor = { r = 1, g = 1, b = 1 }
+    end
+
+    if not private.db.profile.big_icon_text_settings.backgroundTextureOffset then
+        private.db.profile.big_icon_text_settings.backgroundTextureOffset = { x = 0, y = 0 }
+    end
+
+    if not private.db.profile.big_icon_text_settings.text_anchor then
+        private.db.profile.big_icon_text_settings.text_anchor = "BOTTOM"
+    end
+
+    if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor then
+        private.db.profile.big_icon_text_settings.text_anchor =  private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
+        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor = nil
     end
 
     if not private.db.profile.cooldown_settings then
@@ -134,4 +195,5 @@ private.modernize = function()
             },
         }
     end
+    
 end

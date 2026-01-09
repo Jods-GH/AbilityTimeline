@@ -83,9 +83,6 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.global.timeline_frame[layoutName].inverse_travel_direction then
         private.db.global.timeline_frame[layoutName].inverse_travel_direction = variables.inverse_travel_direction
     end
-    if not private.db.global.timeline_frame[layoutName].text_anchor then
-        private.db.global.timeline_frame[layoutName].text_anchor = 'LEFT'
-    end
     if not private.db.global.timeline_frame[layoutName].horizontal then
         private.db.global.timeline_frame[layoutName].horizontal = false
     end
@@ -201,32 +198,6 @@ local function SetupEditModeSettings(frame)
                 private.db.global.timeline_frame[layoutName].inverse_travel_direction = value
                 HandleTickVisibility(layoutName)
             end,
-        },
-        {
-            name = private.getLocalisation("TextAnchor"),
-            desc = private.getLocalisation("TextAnchorDescription"),
-            kind = LibEditMode.SettingType.Dropdown,
-
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].text_anchor
-            end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].text_anchor = value
-            end,
-            default = 'LEFT',
-            height = 100,
-            values = {
-                {
-                    text = private.getLocalisation("TextAnchorRight"),
-                    value = 'RIGHT',
-                    isRadio = true,
-                },
-                {
-                    text = private.getLocalisation("TextAnchorLeft"),
-                    value = 'LEFT',
-                    isRadio = true,
-                },
-            },
         },
         {
             name = private.getLocalisation("TravelDirection"),

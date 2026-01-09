@@ -128,7 +128,7 @@ local function Constructor()
     local buttons = {
         {
             text = private.getLocalisation("OpenIconEditor"),
-            click = function() private.openSpellIconSettings(true) end
+            click = function() private.openBigIconSettings() end
         }
     }
     LibEditMode:AddFrameSettingsButtons(frame, buttons) 

@@ -16,14 +16,14 @@ local variables = {
 	}
 }
 
-local TEXT_RELATIVE_POSITIONS = {
+private.TEXT_RELATIVE_POSITIONS = {
 	RIGHT = "LEFT",
 	LEFT = "RIGHT",
 	TOP = "BOTTOM",
 	BOTTOM = "TOP",
 }
 
-setmetatable(TEXT_RELATIVE_POSITIONS, {
+setmetatable(private.TEXT_RELATIVE_POSITIONS, {
 	__index = function(_, key)
 		error(string.format(private.getLocalisation('InvalidTextPosition') .. "%s", tostring(key)), 2);
 	end,
@@ -35,12 +35,12 @@ local handleAnchors   = function(self, isStopped)
 	self.SpellName:ClearAllPoints()
 	local relPos, anchorPos, xOffset, yOffset
 	if isStopped then
-		relPos = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
-		anchorPos = TEXT_RELATIVE_POSITIONS
-			[private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor]
+		relPos = private.db.profile.text_settings.text_anchor
+		anchorPos = private.TEXT_RELATIVE_POSITIONS
+			[private.db.profile.text_settings.text_anchor]
 	else
-		relPos = TEXT_RELATIVE_POSITIONS[private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor]
-		anchorPos = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
+		relPos = private.TEXT_RELATIVE_POSITIONS[private.db.profile.text_settings.text_anchor]
+		anchorPos = private.db.profile.text_settings.text_anchor
 	end
 
 	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
@@ -109,7 +109,7 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 	local timelineMainPosition = 0
 	local isMoving = false
 	if isStopped then
-		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor == 'RIGHT' then
+		if private.db.profile.text_settings.text_anchor == 'RIGHT' then
 			timelineOtherPosition = 0 - iconSize - variables.IconMargin
 		else
 			timelineOtherPosition = iconSize + variables.IconMargin
