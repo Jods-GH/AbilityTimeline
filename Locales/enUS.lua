@@ -155,6 +155,8 @@ if L then
     L["TextAnchorDescription"] = "Sets the anchor position of the text relative to the icons."
     L["TextAnchorLeft"] = "Left"
     L["TextAnchorRight"] = "Right"
+    L["TextAnchorTop"] = "Top"
+    L["TextAnchorBottom"] = "Bottom"
     L["TimelineTexture"] = "Timeline Texture"
     L["TimelineTextureDescription"] = "Sets the texture of the timeline background."
     L["OpenIconEditor"] = "Edit Icons"
