@@ -160,6 +160,8 @@ if L then
     L["TimelineTexture"] = "Timeline Texture"
     L["TimelineTextureDescription"] = "Sets the texture of the timeline background."
     L["OpenIconEditor"] = "Edit Icons"
+    L['BigIconMargin'] = "Margin"
+    L['BigIconMarginDescription'] = "Sets the space between big icons."
 
     -- errors
     L["InvalidTextPosition"] = "Invalid text anchor position please alert the author."

@@ -10,6 +10,7 @@ local variables = {
     },
     width = 100,
     height = 100,
+    margin = 10,
 }
 private.BigIcon = {}
 private.BigIcon.defaultPosition = {
@@ -60,6 +61,17 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
         private.BIGICON_FRAME:ClearAllPoints()
         private.BIGICON_FRAME:SetPoint(private.db.global.bigicon_frame[layoutName].point,
             private.db.global.bigicon_frame[layoutName].x, private.db.global.bigicon_frame[layoutName].y)
+    end
+    if not private.db.global.bigicon then
+        private.db.global.bigicon = {}
+    end
+    
+    if not private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT] then
+        private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT] = {}
+    end
+    
+    if not private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin then
+        private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin = variables.margin
     end
 end)
 
@@ -122,7 +134,22 @@ local function Constructor()
                 },
             },
         },
-
+        {
+            name = private.getLocalisation("BigIconMargin"),
+            desc = private.getLocalisation("BigIconMarginDescription"),
+            kind = LibEditMode.SettingType.Slider,
+            default = variables.margin,
+            get = function(layoutName)
+                return private.db.global.bigicon[layoutName].margin
+            end,
+            set = function(layoutName, value)
+                private.db.global.bigicon[layoutName].margin = value
+                private.evaluateBigIconPositions()
+            end,
+            minValue = 1,
+            maxValue = 50,
+            valueStep = 1,
+        },
     })
 
     local buttons = {

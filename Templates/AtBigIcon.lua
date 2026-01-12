@@ -10,9 +10,6 @@ local variables = {
     icon_text_offset_y = -10,
 }
 
-private.BIG_ICON_SIZE = 100
-private.BIG_ICON_MARGIN = 10
-
 ---handles the Text anchoring depending on the selected text anchor
 ---@param self Frame
 ---@param isStopped boolean
@@ -228,7 +225,7 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 		widget.frame.DangerIcon[1]:SetAtlas('icons_16x16_deadly')
 	end
 
-    local xOffset = (private.BIG_ICON_SIZE + private.BIG_ICON_MARGIN) * (#private.BIG_ICONS)
+    local xOffset = (private.db.profile.big_icon_settings.size + private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin) * (#private.BIG_ICONS)
     widget.frame:SetPoint("LEFT", private.BIGICON_FRAME.frame, "LEFT", xOffset, 0)
     widget.frame.xOffset = xOffset
     widget.frame.SpellIcon:SetAllPoints(widget.frame)
@@ -250,7 +247,7 @@ local function Constructor()
     frame.CooldownText = frame.Cooldown:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
     frame.CooldownText:SetPoint("CENTER", frame.Cooldown, "CENTER", 0, 0)
     
-    frame:SetSize(private.BIG_ICON_SIZE, private.BIG_ICON_SIZE)
+    frame:SetSize(private.db.profile.big_icon_settings.size, private.db.profile.big_icon_settings.size)
 
     frame.SpellIcon = frame:CreateTexture(nil, "BACKGROUND")
     frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")

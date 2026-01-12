@@ -17,7 +17,7 @@ private.evaluateBigIconPositions = function()
    for i, frame in ipairs(private.BIG_ICONS) do
       if frame and frame:IsShown() then
          if private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].grow_direction == 'RIGHT' then
-            local xOffset = (private.BIG_ICON_SIZE + private.BIG_ICON_MARGIN) * (visibleIcons)
+            local xOffset = (private.db.profile.big_icon_settings.size + private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin) * (visibleIcons)
             if frame.offset ~= xOffset or frame.growdirection ~= 'RIGHT' then
                frame.offset = xOffset
                frame:ClearAllPoints()
@@ -25,7 +25,7 @@ private.evaluateBigIconPositions = function()
                frame.growdirection = 'RIGHT'
             end
          elseif private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].grow_direction == 'LEFT' then
-            local xOffset = -1 * (private.BIG_ICON_SIZE + private.BIG_ICON_MARGIN) * (visibleIcons)
+            local xOffset = -1 * (private.db.profile.big_icon_settings.size + private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin) * (visibleIcons)
             if frame.offset ~= xOffset or frame.growdirection ~= 'LEFT' then
                frame.offset = xOffset
                frame:ClearAllPoints()
@@ -33,14 +33,14 @@ private.evaluateBigIconPositions = function()
                frame.growdirection = 'LEFT'
             end
          elseif private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].grow_direction == 'UP' then
-            local yOffset = (private.BIG_ICON_SIZE + private.BIG_ICON_MARGIN) * (visibleIcons)
+            local yOffset = (private.db.profile.big_icon_settings.size + private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin) * (visibleIcons)
             if frame.offset ~= yOffset or frame.growdirection ~= 'UP' then
                frame.offset = yOffset
                frame:SetPoint("BOTTOM", private.BIGICON_FRAME.frame, "BOTTOM", 0, yOffset)
                frame.growdirection = 'UP'
             end
          elseif private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].grow_direction == 'DOWN' then
-            local yOffset = -1 * (private.BIG_ICON_SIZE + private.BIG_ICON_MARGIN) * (visibleIcons)
+            local yOffset = -1 * (private.db.profile.big_icon_settings.size + private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin) * (visibleIcons)
             if frame.offset ~= yOffset or frame.growdirection ~= 'DOWN' then
                frame.offset = yOffset
                frame:ClearAllPoints()
