@@ -28,7 +28,7 @@ LibEditMode:RegisterCallback('rename', function(oldLayoutName, newLayoutName)
     end
 end)
 
-LibEditMode:RegisterCallback('create', function(layoutName)
+LibEditMode:RegisterCallback('create', function(layoutName, layoutIndex, sourceLayoutName)
 	if not  private.db.global.timeline_frame then
 		private.db.global.timeline_frame = {}
 	end
@@ -38,6 +38,23 @@ LibEditMode:RegisterCallback('create', function(layoutName)
     end
     if not private.db.global.bigicon_frame then
         private.db.global.bigicon_frame = {}
+    end
+
+    if sourceLayoutName then 
+        if private.db.global.timeline_frame[sourceLayoutName] then
+            local layout = CopyTable(private.db.global.timeline_frame[sourceLayoutName])
+            private.db.global.timeline_frame[layoutName] = layout
+        end
+
+        if private.db.global.text_highlight_frame[sourceLayoutName] then
+            local layout = CopyTable(private.db.global.text_highlight_frame[sourceLayoutName])
+            private.db.global.text_highlight_frame[layoutName] = layout
+        end
+
+        if private.db.global.bigicon_frame[sourceLayoutName] then
+            local layout = CopyTable(private.db.global.bigicon_frame[sourceLayoutName])
+            private.db.global.bigicon_frame[layoutName] = layout
+        end
     end
 end)
 
