@@ -89,7 +89,7 @@ local function Constructor()
         },
         {
             name = private.getLocalisation("GrowDirection"),
-            desc = private.getLocalisation("GrowDirectionDescription"),
+            desc = private.getLocalisation("TextGrowDirectionDescription"),
             kind = LibEditMode.SettingType.Dropdown,
 
             get = function(layoutName)
