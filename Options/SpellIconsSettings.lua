@@ -105,7 +105,7 @@ local createTextSettings = function(widget, parentWindow, iconSettings, textSett
         elseif activeAnchor == "BOTTOM" then
             textSettings.text_anchor = "LEFT"
         end
-    else
+    elseif isVerticalEnabled then 
         if activeAnchor == "RIGHT" then
             textSettings.text_anchor = "TOP"
         elseif activeAnchor == "LEFT" then
