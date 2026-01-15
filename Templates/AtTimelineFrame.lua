@@ -157,7 +157,7 @@ local function GetMoveSize(self)
 end
 
 local function SetupEditModeSettings(frame)
-    LibEditMode:AddFrame(frame, onPositionChanged, variables.position, "Ability Timeline")
+    LibEditMode:AddFrame(frame, onPositionChanged, variables.position, "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline")
 
 
     local TextureSettings = {

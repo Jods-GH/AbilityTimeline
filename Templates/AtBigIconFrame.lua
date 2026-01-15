@@ -83,7 +83,7 @@ local function Constructor()
     frame:Show()
     private.Debug(frame, "AT_BIGICON_FRAME_BASE")
 
-    LibEditMode:AddFrame(frame, onPositionChanged, private.BigIcon.defaultPosition, "Ability Timeline Big Icon")
+    LibEditMode:AddFrame(frame, onPositionChanged, private.BigIcon.defaultPosition, "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline Big Icon")
     LibEditMode:AddFrameSettings(frame, {
         {
             name = private.getLocalisation("EnableBigIcon"),

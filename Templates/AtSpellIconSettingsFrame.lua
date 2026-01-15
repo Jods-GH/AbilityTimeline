@@ -19,7 +19,8 @@ end
 
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
-    local frame = CreateFrame("Frame", "AtSpellIconSettingsFrame", UIParent, "DefaultPanelTemplate")
+    local frame = CreateFrame("Frame", "AtSpellIconSettingsFrame", UIParent, "PortraitFrameTemplateNoCloseButton")
+    frame:SetPortraitTextureRaw("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\portrait.tga")
     frame:SetPoint("CENTER", UIParent, "CENTER")
     frame:SetWidth(variables.width)
     frame:SetHeight(variables.height)

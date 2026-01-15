@@ -72,7 +72,7 @@ local function Constructor()
     frame:SetHeight(variables.height)
     frame:Show()
 
-    LibEditMode:AddFrame(frame, onPositionChanged, private.TextHighlight.defaultPosition, "Ability Timeline Text Highlight")
+    LibEditMode:AddFrame(frame, onPositionChanged, private.TextHighlight.defaultPosition, "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline Text Highlight")
     
     LibEditMode:AddFrameSettings(frame, {
         {

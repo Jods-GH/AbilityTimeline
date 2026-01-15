@@ -39,7 +39,8 @@ end
 local function Constructor()
 	local count = AceGUI:GetNextWidgetNum(Type)
 
-	local frame = CreateFrame("Frame", Type .. count, UIParent, "DefaultPanelTemplate")
+	local frame = CreateFrame("Frame", Type .. count, UIParent, "PortraitFrameTemplateNoCloseButton")
+    frame:SetPortraitTextureRaw("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\portrait.tga")
 	frame:SetSize(variables.FrameWidth, variables.FrameHeight)
 	private.Debug(frame, "AT_TIMINGS_EDITOR_FRAME_BASE")
     frame:SetPoint("CENTER", UIParent, "CENTER")
