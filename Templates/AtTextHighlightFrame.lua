@@ -5,7 +5,8 @@ local Type = "AtTextHighlightFrame"
 local Version = 1
 local variables = {
     width = 300,
-    height = 100,
+    height = 20,
+    margin = 5,
 }
 
 private.TextHighlight = {}
@@ -45,11 +46,21 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.global.text_highlight_enabled then
         private.db.global.text_highlight_enabled = {}
     end
+    if not private.db.global.text_highlight then
+        private.db.global.text_highlight = {}
+    end
+    if not private.db.global.text_highlight[layoutName] then
+        private.db.global.text_highlight[layoutName] = {
+            grow_direction = 'UP',
+            margin = variables.margin,
+        }
+    end
     if private.TEXT_HIGHLIGHT_FRAME then
         private.TEXT_HIGHLIGHT_FRAME:ClearAllPoints()
         private.TEXT_HIGHLIGHT_FRAME:SetPoint(private.db.global.text_highlight_frame[layoutName].point,
             private.db.global.text_highlight_frame[layoutName].x, private.db.global.text_highlight_frame[layoutName].y)
     end
+
 
 end)
 
@@ -75,7 +86,50 @@ local function Constructor()
             set = function(layoutName, value)
                 private.db.global.text_highlight_enabled[layoutName] = value
             end,
-        }
+        },
+        {
+            name = private.getLocalisation("GrowDirection"),
+            desc = private.getLocalisation("GrowDirectionDescription"),
+            kind = LibEditMode.SettingType.Dropdown,
+
+            get = function(layoutName)
+                return private.db.global.text_highlight[layoutName].grow_direction
+            end,
+            set = function(layoutName, value)
+                private.db.global.text_highlight[layoutName].grow_direction = value
+                private.evaluateTextPositions()
+            end,
+            default = 'UP',
+            height = 100,
+            values = {
+                {
+                    text = private.getLocalisation("GrowDirectionUp"),
+                    value = 'UP',
+                    isRadio = true,
+                },
+                {
+                    text = private.getLocalisation("GrowDirectionDown"),
+                    value = 'DOWN',
+                    isRadio = true,
+                },
+            },
+        },
+        {
+            name = private.getLocalisation("TextHighlightMargin"),
+            desc = private.getLocalisation("TextHighlightMarginDescription"),
+            kind = LibEditMode.SettingType.Slider,
+            default = variables.margin,
+            get = function(layoutName)
+                return private.db.global.text_highlight[layoutName].margin
+            end,
+            set = function(layoutName, value)
+                private.db.global.text_highlight[layoutName].margin = value
+                private.evaluateTextPositions()
+            end,
+            minValue = 1,
+            maxValue = 50,
+            valueStep = 1,
+        },
     })
 
     ---@class AtTextHighlightFrame : AceGUIWidget

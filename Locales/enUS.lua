@@ -162,6 +162,8 @@ if L then
     L["OpenIconEditor"] = "Edit Icons"
     L['BigIconMargin'] = "Margin"
     L['BigIconMarginDescription'] = "Sets the space between big icons."
+    L['TextHighlightMargin'] = "Margin"
+    L['TextHighlightMarginDescription'] = "Sets the space between text highlights."
 
     -- errors
     L["InvalidTextPosition"] = "Invalid text anchor position please alert the author."
