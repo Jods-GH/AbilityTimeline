@@ -2,6 +2,7 @@ local appName, private = ...
 local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 local AceDBOptions = LibStub("AceDBOptions-3.0")
+local CustomNames = C_AddOns.IsAddOnLoaded("CustomNames") and LibStub("CustomNames")
 ---@class MyAddon : AceAddon-3.0, AceConsole-3.0, AceConfig-3.0, AceGUI-3.0, AceConfigDialog-3.0
 local AbilityTimeline = LibStub("AceAddon-3.0"):NewAddon("AbilityTimeline", "AceConsole-3.0", "AceEvent-3.0")
 
@@ -153,10 +154,16 @@ function AbilityTimeline:ENCOUNTER_END(event, encounterID, encounterName, diffic
     end
 end
 
-function AbilityTimeline:READY_CHECK(event, initiatorName, readyCheckTimeLeft)
+function AbilityTimeline:READY_CHECK(event, initiator, readyCheckTimeLeft)
     local timeleft = tonumber(readyCheckTimeLeft) or 35
-    local _, classFilename, _ = UnitClass(initiatorName)
+    local _, classFilename, _ = UnitClass(initiator)
     local _, _, _, argbHex = GetClassColor(classFilename)
+    local initiatorName
+    if CustomNames then
+        initiatorName = CustomNames.Get(initiator)
+    else
+        initiatorName = initiator
+    end
     local eventinfo = {
         duration = timeleft,
         maxQueueDuration = 0,
@@ -199,6 +206,7 @@ end
 function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemaining, totalTime, informChat, initiatedByName)
     local timeleft = tonumber(timeRemaining) or 35
     local color
+    local name = initiatedByName
     if initiatedByName and UnitClass(initiatedByName) then
         local _, classFilename, _ = UnitClass(initiatedByName)
         local _, _, _, argbHex = GetClassColor(classFilename)
@@ -206,17 +214,21 @@ function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemainin
     else 
         color = 'ffffffff'
     end
+
+    if initiatedByName and CustomNames then
+        name = CustomNames.Get(initiatedByName)
+    end
     local eventinfo = {
         duration = timeleft,
         maxQueueDuration = 0,
-        overrideName = private.getLocalisation("PullTimerBy") .. " " .. WrapTextInColorCode(initiatedByName, color),
+        overrideName = private.getLocalisation("PullTimerBy") .. " " .. WrapTextInColorCode(name, color),
         spellID = 0,
         iconFileID = 134376,
         severity = 1,
         paused = false
 
     }
-    private.Debug("Pull timer started by " .. WrapTextInColorCode(initiatedByName, color) .. ", time left: " .. tostring(timeRemaining) .. " seconds.")
+    private.Debug("Pull timer started by " .. WrapTextInColorCode(name, color) .. ", time left: " .. tostring(timeRemaining) .. " seconds.")
     private.PullTimerEventId = C_EncounterTimeline.AddScriptEvent(eventinfo)
 end
 
