@@ -8,8 +8,7 @@ local variables = {
         x = 30,
         y = -10,
     },
-    width = 100,
-    height = 100,
+    size = 100,
     margin = 10,
 }
 private.BigIcon = {}
@@ -78,8 +77,9 @@ end)
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
     local frame = CreateFrame("Frame", "AbilityTimelineBigIconFrame", UIParent)
-    frame:SetWidth(variables.width)
-    frame:SetHeight(variables.height)
+    local size = private.db and private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.size or variables.size
+    frame:SetWidth(size)
+    frame:SetHeight(size)
     frame:Show()
     private.Debug(frame, "AT_BIGICON_FRAME_BASE")
 

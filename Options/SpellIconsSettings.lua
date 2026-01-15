@@ -629,6 +629,8 @@ end
 private.closeBigIconSettings = function()
     private.Debug("Closing spell icon settings")
     private.BIG_ICON_SETTINGS_WINDOW.frame:Hide()
+    private.BIGICON_FRAME:SetWidth(private.db.profile.big_icon_settings.size)
+    private.BIGICON_FRAME:SetHeight(private.db.profile.big_icon_settings.size)
 
     if not EditModeManagerFrame:IsShown() and private.wasEditModeOpen then
         private.wasEditModeOpen = false
