@@ -7,6 +7,9 @@ local variables = {
     height = 500,
     ContentFramePadding = { x = 15, y = 15 },
 	Padding = { x = 2, y = 2 },
+    Footer = {
+        height = 30,
+    }
 }
 
 ---@param self AtSpellIconSettingsFrame
@@ -15,6 +18,7 @@ end
 
 ---@param self AtSpellIconSettingsFrame
 local function OnRelease(self)
+    self.frame.Footer.Urls:Release()
 end
 
 local function Constructor()
@@ -29,8 +33,65 @@ local function Constructor()
     frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
     frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
-
     frame:SetTitle(private.getLocalisation("SpellIconSettings"))
+    
+    frame.Footer = CreateFrame("Frame", nil, frame)
+    frame.Footer:SetHeight(30)
+    frame.Footer:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT")
+    frame.Footer:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+    frame.Footer.Background = frame.Footer:CreateTexture(nil, "BACKGROUND")
+    frame.Footer.Background:SetAllPoints(frame.Footer)
+    frame.Footer.Background:SetColorTexture(0, 0, 0, 0.5)
+    frame.Footer.AddonName = frame.Footer:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.Footer.AddonName:SetPoint("LEFT", frame.Footer, "LEFT", 10, 0)
+    frame.Footer.AddonName:SetFormattedText("Better Timeline %s", C_AddOns.GetAddOnMetadata(addonName, "Version"))
+    frame.Footer.Urls = AceGUI:Create("SimpleGroup")
+    frame.Footer:SetScript("OnHide", function(self, button) --TODO FIX THIS WORKAROUND
+        frame.Footer.Urls.frame:Hide()
+    end)
+    frame.Footer:SetScript("OnShow", function(self, button)
+        frame.Footer.Urls.frame:Show()
+    end)
+    frame.Footer.Urls:SetLayout("Flow")
+    frame.Footer.Urls:SetPoint("BOTTOMRIGHT", frame.Footer, "BOTTOMRIGHT", -10, 3)
+    frame.Footer.Urls:SetPoint("TOPRIGHT", frame.Footer, "TOPRIGHT", -10, 3) 
+    frame.Footer.Urls:SetWidth(60)
+
+    frame.Footer.PatreonLink = AceGUI:Create("Icon")
+    frame.Footer.PatreonLink:SetImageSize(16, 16)
+    frame.Footer.PatreonLink:SetWidth(30)
+    frame.Footer.PatreonLink:SetHeight(16)
+    frame.Footer.PatreonLink:SetImage("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\Brands\\Patreon_logo.tga")
+    frame.Footer.PatreonLink:SetCallback("OnClick", function()
+        if not frame.TextCopyFrame then 
+            frame.TextCopyFrame = AceGUI:Create('AtTextCopyFrame')
+        end
+        frame.TextCopyFrame.frame.CloseButton:SetScript("OnClick", function() if frame.TextCopyFrame and not frame.TextCopyFrame:IsReleasing() then frame.TextCopyFrame:Release() frame.TextCopyFrame=nil end end)
+        frame.TextCopyFrame.frame:SetPoint("TOP", UIParent, "TOP", 0, -50)
+        frame.TextCopyFrame.frame:Show()
+        frame.TextCopyFrame:SetValues('https://www.patreon.com/c/Jodsderechte')
+    end)
+    private.AddFrameTooltip(frame.Footer.PatreonLink.frame, "PatreonDescription")
+    frame.Footer.Urls:AddChild(frame.Footer.PatreonLink)
+
+    frame.Footer.DiscordLink = AceGUI:Create("Icon")
+    frame.Footer.DiscordLink:SetImageSize(21, 16)
+    frame.Footer.DiscordLink:SetWidth(30)
+    frame.Footer.DiscordLink:SetHeight(16)
+    frame.Footer.DiscordLink:SetImage("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\Brands\\Discord_logo.tga")
+    frame.Footer.DiscordLink:SetCallback("OnClick", function()
+        if not frame.TextCopyFrame then 
+            frame.TextCopyFrame = AceGUI:Create('AtTextCopyFrame')
+        end
+        frame.TextCopyFrame.frame.CloseButton:SetScript("OnClick", function() if frame.TextCopyFrame then frame.TextCopyFrame:Release() frame.TextCopyFrame=nil end end)
+        frame.TextCopyFrame.frame:SetPoint("TOP", UIParent, "TOP", 0, -50)
+        frame.TextCopyFrame.frame:Show()
+        frame.TextCopyFrame:SetValues('https://discord.com/invite/v3gYmYamGJ')
+    end)
+    
+    private.AddFrameTooltip(frame.Footer.DiscordLink.frame, "DiscordDescription")
+    frame.Footer.Urls:AddChild(frame.Footer.DiscordLink)
+
 
     frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
     frame.CloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
@@ -50,7 +111,9 @@ local function Constructor()
 	contentFrame:SetPoint(
 		"BOTTOMRIGHT",
 		frame,
-		"BOTTOM"
+		"BOTTOM",
+        0,
+        variables.Footer.height
 	)
     local rightContentFrameName = Type .. "RightContentFrame" .. count
     local rightContentFrame = CreateFrame("Frame", rightContentFrameName, frame , "BackdropTemplate")

@@ -79,6 +79,10 @@ if L then
     L["IconDispellBorderDescription"] = "Toggles the dispell type border around the spell icon."
     L["IconDispellIcon"] = "Dispell Icon"
     L["IconDispellIconDescription"] = "Toggles the dispell type icon overlay on the spell icon."
+    L['TextCopyHint'] = "Hint: Press Ctrl+C to copy the text to your clipboard."
+    L['CopyText'] = "Copy Text"
+    L['DiscordDescription'] = "Join my Discord for support and updates"
+    L['PatreonDescription'] = "Support the development on Patreon"
 
     L['TextSettings'] = "Text Settings"
     L["IconSizeDescription"] = "Sets the size of the spell icon."

@@ -47,6 +47,7 @@ Locales\zhTW.lua
 Locales\Locales.lua
 
 #templates
+Templates\AtTextCopyFrame.lua
 Templates\AtReminderCreator.lua
 Templates\AtTimelineTick.lua
 Templates\AtEditorSpellIcon.lua
