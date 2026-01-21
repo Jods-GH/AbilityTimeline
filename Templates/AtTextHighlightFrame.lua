@@ -46,6 +46,9 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.global.text_highlight_enabled then
         private.db.global.text_highlight_enabled = {}
     end
+    if private.db.global.text_highlight_enabled[layoutName] == nil then
+        private.db.global.text_highlight_enabled[layoutName] = true
+    end
     if not private.db.global.text_highlight then
         private.db.global.text_highlight = {}
     end

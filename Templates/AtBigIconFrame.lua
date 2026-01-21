@@ -48,6 +48,9 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.global.bigicon_enabled then
         private.db.global.bigicon_enabled = {}
     end
+    if private.db.global.bigicon_enabled[layoutName] == nil then
+        private.db.global.bigicon_enabled[layoutName] = true
+    end
     if not private.db.global.bigicon then
         private.db.global.bigicon = {}
     end
