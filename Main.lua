@@ -206,7 +206,7 @@ end
 function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemaining, totalTime, informChat, initiatedByName)
     local timeleft = tonumber(timeRemaining) or 35
     local color
-    local name = initiatedByName
+    local name = initiatedByName or "Unknown"
     if initiatedByName and UnitClass(initiatedByName) then
         local _, classFilename, _ = UnitClass(initiatedByName)
         local _, _, _, argbHex = GetClassColor(classFilename)
