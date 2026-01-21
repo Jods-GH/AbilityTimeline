@@ -164,10 +164,14 @@ function AbilityTimeline:READY_CHECK(event, initiator, readyCheckTimeLeft)
     else
         initiatorName = initiator
     end
+    local overrideName = private.getLocalisation("ReadyCheck")
+    if initiatorName then
+        overrideName = private.getLocalisation("ReadyCheckBy") .. " " .. WrapTextInColorCode(initiatorName, argbHex)
+    end
     local eventinfo = {
         duration = timeleft,
         maxQueueDuration = 0,
-        overrideName = private.getLocalisation("ReadyCheckBy") .. " " .. WrapTextInColorCode(initiatorName, argbHex),
+        overrideName = overrideName,
         spellID = 0,
         iconFileID = 134400,
         severity = 1,
@@ -218,10 +222,17 @@ function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemainin
     if initiatedByName and CustomNames then
         name = CustomNames.Get(initiatedByName)
     end
+
+    local overrideName = private.getLocalisation("PullTimer")
+
+    if name then
+        overrideName = private.getLocalisation("PullTimerBy") .. " " .. WrapTextInColorCode(name, color)
+    end
+
     local eventinfo = {
         duration = timeleft,
         maxQueueDuration = 0,
-        overrideName = private.getLocalisation("PullTimerBy") .. " " .. WrapTextInColorCode(name, color),
+        overrideName = overrideName,
         spellID = 0,
         iconFileID = 134376,
         severity = 1,

@@ -7,6 +7,8 @@ if L then
     L["TimelineNotEnabledMessage"] = "The timeline feature is not enabled."
     L["TimelineNotSupportedMessage"] = "The timeline feature is not supported on this version."
     L["ReadyCheckBy"] = "Ready Check by"
+    L["ReadyCheck"] = "Ready Check"
+    L["PullTimer"] = "Pull Timer"
     L["PullTimerBy"] = "Pull Timer by"
     L["RerollKey"] = "Reroll Mythic + Key"
 
