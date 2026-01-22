@@ -172,13 +172,13 @@ function AbilityTimeline:READY_CHECK(event, initiator, readyCheckTimeLeft)
     local _, classFilename, _ = UnitClass(initiator)
     local _, _, _, argbHex = GetClassColor(classFilename)
     local initiatorName
-    if CustomNames then
+    if CustomNames and not issecretvalue(initiator) then
         initiatorName = CustomNames.Get(initiator)
     else
         initiatorName = initiator
     end
     local overrideName = private.getLocalisation("ReadyCheck")
-    if initiatorName then
+    if issecretvalue(initiatorName) or initiatorName then
         overrideName = private.getLocalisation("ReadyCheckBy") .. " " .. WrapTextInColorCode(initiatorName, argbHex)
     end
     local eventinfo = {
@@ -232,7 +232,7 @@ function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemainin
         color = 'ffffffff'
     end
 
-    if initiatedByName and CustomNames then
+    if not issecretvalue(initiatedByName) and initiatedByName and CustomNames then
         name = CustomNames.Get(initiatedByName)
     end
 
