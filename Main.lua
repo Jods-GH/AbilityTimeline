@@ -43,8 +43,11 @@ function AbilityTimeline:OnInitialize()
       private.createTimelineFrame()
     end
     SetCVar("encounterTimelineEnabled", "1")
-    EncounterTimeline.View:UnregisterAllEvents()
-    EncounterTimeline.View:Hide()
+    private.Debug(EncounterTimeline, "encounterTimeline")
+
+    EncounterTimeline:UnregisterAllEvents()
+    EncounterTimeline:Hide()
+    EncounterTimeline:HookScript("OnShow", function() EncounterTimeline:Hide() end)
     -- SetCVar("encounterWarningsEnabled", "1")
 end
 
