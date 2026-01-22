@@ -23,6 +23,8 @@ function AbilityTimeline:OnInitialize()
     AbilityTimeline:RegisterEvent("CANCEL_PLAYER_COUNTDOWN")
     AbilityTimeline:RegisterEvent("CHALLENGE_MODE_COMPLETED")
     AbilityTimeline:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+    AbilityTimeline:RegisterEvent("CHALLENGE_MODE_RESET")
+    AbilityTimeline:RegisterEvent("CHALLENGE_MODE_START")
     private.db = LibStub("AceDB-3.0"):New("AbilityTimeline", private.OptionDefaults, true) -- Generates Saved Variables with default Values (if they don't already exist)
     private.Debug(private, "AT_Options")
     local OptionTable = {
@@ -141,6 +143,10 @@ function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, diff
     if private.db.profile.debugMode and encounterID == 3463 then
         encounterID = 1701
     end
+    if not C_ChatInfo.InChatMessagingLockdown() then
+        local name, groupType, isHeroic, isChallengeMode, displayHeroic, displayMythic, toggleDifficultyID, isLFR, minPlayers, maxPlayers = GetDifficultyInfo(difficultyID)
+        C_ChatInfo.SendChatMessage(private.getLocalisation("CurrentlyBusyInEncounter"):format(encounterName, name), "DND") 
+    end
 
     private.createReminders(encounterID)
 end
@@ -151,6 +157,10 @@ function AbilityTimeline:ENCOUNTER_END(event, encounterID, encounterName, diffic
     private.cancelSheduledReminders()
     if private.db.profile.disableAllOnEncounterEnd then
         C_EncounterTimeline.CancelAllScriptEvents()
+    end
+
+    if not C_ChatInfo.InChatMessagingLockdown() then
+        C_ChatInfo.SendChatMessage("", "DND") -- clear dnd message
     end
 end
 
@@ -250,6 +260,31 @@ function AbilityTimeline:CANCEL_PLAYER_COUNTDOWN()
     end
 end
 
+function AbilityTimeline:CHALLENGE_MODE_RESET(event, mapID)
+    if not C_ChatInfo.InChatMessagingLockdown() then
+        C_ChatInfo.SendChatMessage(private.getLocalisation("CurrentlyDoingMplusKeyFallback"), "DND") 
+    end
+end
+
+function AbilityTimeline:CHALLENGE_MODE_START()
+    if not C_ChatInfo.InChatMessagingLockdown() then
+        local message = private.getLocalisation("CurrentlyDoingMplusKeyFallback")
+        local activeKeystoneLevel, activeAffixIDs, wasActiveKeystoneCharged = C_ChallengeMode.GetActiveKeystoneInfo()
+        local challengeMapID = C_ChallengeMode.GetActiveChallengeMapID()
+        if challengeMapID then
+            local name, id, timeLimit, texture, backgroundTexture, mapID = C_ChallengeMode.GetMapUIInfo(challengeMapID)
+            if name and timeLimit then
+                local serverTime = C_DateAndTime.GetServerTimeLocal()
+                local finishTime = serverTime + (timeLimit or 0)
+                local calenderTime = C_DateAndTime.GetCalendarTimeFromEpoch(finishTime * 1000)
+                local timeToDisplay = calenderTime.hour .. ":" ..(calenderTime.minute)
+                message = private.getLocalisation("CurrentlyDoingMplusKey"):format(activeKeystoneLevel, name, timeToDisplay)
+            end
+        end
+        C_ChatInfo.SendChatMessage(message, "DND") 
+    end
+end
+
 function AbilityTimeline:CHALLENGE_MODE_COMPLETED()
     if private.db.profile.enableKeyRerollTimer then
         local info = C_ChallengeMode.GetChallengeCompletionInfo()
@@ -270,6 +305,7 @@ function AbilityTimeline:CHALLENGE_MODE_COMPLETED()
         private.Debug("Challenge mode completed Adding timer for key reroll: 5 minutes.")
         private.RerollKeyEventId = C_EncounterTimeline.AddScriptEvent(eventinfo)
     end
+    C_ChatInfo.SendChatMessage("", "DND") 
 end
 -- TODO cancel the event if the player actually rerolls the key before the timer ends
 function AbilityTimeline:ZONE_CHANGED_NEW_AREA()
