@@ -541,7 +541,7 @@ local createBigIconSettingsFrame = function()
             widget.startTime = GetTime()
             widget.frame.Cooldown:SetCooldown(widget.startTime, widget.duration)
         end
-        widget.HandleCooldown(widget, math.ceil((widget.startTime + widget.duration) - GetTime()))
+        widget.HandleCooldown(widget.frame, math.ceil((widget.startTime + widget.duration) - GetTime()))
     end) -- loop cooldown display
     widget.frame:Show()
     private.BIG_ICON_SETTINGS_WINDOW.frame.CloseButton:SetScript("OnClick", function() private.closeBigIconSettings() end)

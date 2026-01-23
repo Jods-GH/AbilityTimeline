@@ -7,7 +7,7 @@ local variables = {
     cooldown_scale = 2,
     icon_text_width = 95,
     icon_text_offset_x = 0,
-    icon_text_offset_y = -10,
+    icon_text_offset_y = 10,
 }
 
 ---handles the Text anchoring depending on the selected text anchor
@@ -63,12 +63,12 @@ end
 ---@param remainingTime number
 local HandleCooldown        = function(self, remainingTime)
 	local roundedTime = math.ceil(remainingTime)
-	self.frame.CooldownText:SetText(roundedTime)
+	self.CooldownText:SetText(roundedTime)
 	if private.db.profile.cooldown_settings.cooldown_highlight and private.db.profile.cooldown_settings.cooldown_highlight.enabled then
 		for _,value in pairs(private.db.profile.cooldown_settings.cooldown_highlight.highlights) do
 			local time, color = value.time, value.color
 			if (remainingTime <= time) then
-				self.frame.CooldownText:SetTextColor(color.r, color.g, color.b)
+				self.CooldownText:SetTextColor(color.r, color.g, color.b)
 				if value.useGlow then
 					private.EnableGlow(self, value.glowType, time, value.glowColor)
 				end
@@ -77,7 +77,7 @@ local HandleCooldown        = function(self, remainingTime)
 		end
 	end
 	if private.db.profile.cooldown_settings.cooldown_color then
-		self.frame.CooldownText:SetTextColor(
+		self.CooldownText:SetTextColor(
 			private.db.profile.cooldown_settings.cooldown_color.r,
 			private.db.profile.cooldown_settings.cooldown_color.g,
 			private.db.profile.cooldown_settings.cooldown_color.b
@@ -187,7 +187,7 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 				remaining = 0
 			end
 			if remaining > 0 then
-				HandleCooldown(widget, remaining)
+				HandleCooldown(self, remaining)
 			else
 				private.HIGHLIGHT_EVENTS.BigIcons[eventInfo.id] = nil
 				for i, f in ipairs(private.BIG_ICONS) do
