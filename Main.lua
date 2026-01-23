@@ -137,7 +137,7 @@ end
 function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, difficultyID, groupSize, playerDifficultyID)
     -- createTestBars(15)
     private.Debug("Encounter started: " .. tostring(encounterName) .. " ".. tostring(encounterID))
-    -- store last encounter info (use runtime dungeonEncounterID as provided by ENCOUNTER_START)
+    -- store last encounter info
     private.lastEncounterInfo = {
         encounterID = encounterID,
         encounterName = encounterName,
@@ -146,7 +146,7 @@ function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, diff
     if private.db.profile.debugMode and encounterID == 3463 then
         encounterID = 1701
     end
-    if not C_ChatInfo.InChatMessagingLockdown() then
+    if not C_ChatInfo.InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
         local name, groupType, isHeroic, isChallengeMode, displayHeroic, displayMythic, toggleDifficultyID, isLFR, minPlayers, maxPlayers = GetDifficultyInfo(difficultyID)
         C_ChatInfo.SendChatMessage(private.getLocalisation("CurrentlyBusyInEncounter"):format(encounterName, name), "DND") 
     end
@@ -162,7 +162,7 @@ function AbilityTimeline:ENCOUNTER_END(event, encounterID, encounterName, diffic
         C_EncounterTimeline.CancelAllScriptEvents()
     end
 
-    if not C_ChatInfo.InChatMessagingLockdown() then
+    if not C_ChatInfo.InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
         C_ChatInfo.SendChatMessage("", "DND") -- clear dnd message
     end
 end
@@ -264,13 +264,13 @@ function AbilityTimeline:CANCEL_PLAYER_COUNTDOWN()
 end
 
 function AbilityTimeline:CHALLENGE_MODE_RESET(event, mapID)
-    if not C_ChatInfo.InChatMessagingLockdown() then
+    if not C_ChatInfo.InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
         C_ChatInfo.SendChatMessage(private.getLocalisation("CurrentlyDoingMplusKeyFallback"), "DND") 
     end
 end
 
 function AbilityTimeline:CHALLENGE_MODE_START()
-    if not C_ChatInfo.InChatMessagingLockdown() then
+    if not C_ChatInfo.InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
         local message = private.getLocalisation("CurrentlyDoingMplusKeyFallback")
         local activeKeystoneLevel, activeAffixIDs, wasActiveKeystoneCharged = C_ChallengeMode.GetActiveKeystoneInfo()
         local challengeMapID = C_ChallengeMode.GetActiveChallengeMapID()
@@ -308,12 +308,17 @@ function AbilityTimeline:CHALLENGE_MODE_COMPLETED()
         private.Debug("Challenge mode completed Adding timer for key reroll: 5 minutes.")
         private.RerollKeyEventId = C_EncounterTimeline.AddScriptEvent(eventinfo)
     end
-    C_ChatInfo.SendChatMessage("", "DND") 
+    if private.db.profile.enableDNDMessage then
+        C_ChatInfo.SendChatMessage("", "DND") 
+    end
 end
 -- TODO cancel the event if the player actually rerolls the key before the timer ends
 function AbilityTimeline:ZONE_CHANGED_NEW_AREA()
     if private.RerollKeyEventId then
         C_EncounterTimeline.CancelScriptEvent(private.RerollKeyEventId)
         private.RerollKeyEventId = nil
+    end
+    if private.db.profile.enableDNDMessage then
+        C_ChatInfo.SendChatMessage("", "DND") 
     end
 end

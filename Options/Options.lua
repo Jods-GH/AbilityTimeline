@@ -101,6 +101,17 @@ private.options = {
         return private.db.profile.enableKeyRerollTimer                             --Sets value of toggles depending on SavedVariables
       end,
     },
+    enableDNDMessage = {
+      name = private.getLocalisation("enableDNDMessage"),
+      desc = private.getLocalisation("enableDNDMessageDescription"),
+      order = 40,
+      width = "full",
+      type = "toggle",
+      set = function(info, val) private.db.profile.enableDNDMessage = val end, --Sets value of SavedVariables depending on toggles
+      get = function(info)
+        return private.db.profile.enableDNDMessage                             --Sets value of toggles depending on SavedVariables
+      end,
+    },
     encounterOptions = {
       name = private.getLocalisation("reminderOptions"),
       desc = private.getLocalisation("reminderOptionsDescription"),

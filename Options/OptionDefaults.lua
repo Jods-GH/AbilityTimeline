@@ -14,5 +14,6 @@ private.OptionDefaults = {
 			defaultEncounterDuration = 300,
 		},
 		disableAllOnEncounterEnd = true,
+		enableDNDMessage = true,
 	}
 }
