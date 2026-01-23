@@ -70,25 +70,6 @@ private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED = function(self, eventID)
       removeFrame(eventID, 'PlayCancelAnimation')
    elseif newState == private.ENCOUNTER_STATES.Paused then
    elseif newState == private.ENCOUNTER_STATES.Active then
-      local frame = activeFrames[eventID]
-      if frame then
-         local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
-         frame.Cooldown:Resume()
-         frame:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "CENTER")
-         -- frame:SetScript("OnUpdate", function(self)
-         --    local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(eventID)
-         --    if not timeElapsed or timeElapsed < 0 then timeElapsed = eventInfo.duration end
-         --    local y = (timeElapsed / eventInfo.duration) * private.TIMELINE_FRAME:GetHeight() - frame:GetHeight() / 2
-         --    frame:SetPoint("CENTER", private.TIMELINE_FRAME, "TOP", 0, -y)
-         -- end)
-         -- if frame.SpellName then
-         --    frame.SpellName:Hide()
-         --    frame.SpellName = nil
-         -- end
-         frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-         frame.SpellName:SetPoint("RIGHT", frame, "LEFT", -10, 0)
-         frame.SpellName:SetText(eventInfo.spellName)
-      end
    end
 end
 
