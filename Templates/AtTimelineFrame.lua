@@ -15,6 +15,7 @@ local variables             = {
         y = 110,
         x = 410,
     },
+    timelineTextureColor = CreateColor(1, 1, 1, 1),
 }
 private.TIMELINE_DIRECTIONS = {
     VERTICAL = "VERTICAL",
@@ -90,6 +91,10 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
         private.db.global.timeline_frame[layoutName].timeline_texture = variables.timelineTexture
     end
 
+    if not private.db.global.timeline_frame[layoutName].timeline_texture_color then
+        private.db.global.timeline_frame[layoutName].timeline_texture_color = variables.timelineTextureColor
+    end
+
 
     if private.TIMELINE_FRAME then
         private.TIMELINE_FRAME:ClearAllPoints()
@@ -106,8 +111,7 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
         end
         SetFrameSize(private.TIMELINE_FRAME, width, height)
         private.TIMELINE_FRAME:HandleTicks()
-        private.TIMELINE_FRAME.SetBackDrop(private.TIMELINE_FRAME.frame,
-            private.db.global.timeline_frame[layoutName].timeline_texture)
+        private.TIMELINE_FRAME.SetBackDrop(private.TIMELINE_FRAME.frame)
     end
 end)
 
@@ -137,8 +141,9 @@ local function HandleSizeChanges(self)
     SetFrameSize(self, width, height)
 end
 
-local function SetBackDrop(frame, textureName)
-    local texture = SharedMedia:Fetch("background", textureName) or ""
+local function SetBackDrop(frame)
+    local texture = SharedMedia:Fetch("background", private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].timeline_texture)
+    local color = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].timeline_texture_color
     frame:SetBackdrop({
         bgFile = texture,
         tile = true,
@@ -146,6 +151,7 @@ local function SetBackDrop(frame, textureName)
         edgeSize = 32,
         insets = { left = 0, right = 0, top = 0, bottom = 0 }
     })
+    frame:SetBackdropColor(color.r, color.g, color.b, color.a)
 end
 
 
@@ -237,11 +243,27 @@ local function SetupEditModeSettings(frame)
             end,
             set = function(layoutName, value)
                 private.db.global.timeline_frame[layoutName].timeline_texture = value
-                SetBackDrop(private.TIMELINE_FRAME.frame, value)
+                SetBackDrop(private.TIMELINE_FRAME.frame)
             end,
             default = variables.timelineTexture,
             height = 300,
             values = TextureSettings,
+
+        },
+        {
+            name = private.getLocalisation("TimelineTextureColor"),
+            desc = private.getLocalisation("TimelineTextureColorDescription"),
+            kind = LibEditMode.SettingType.ColorPicker,
+            hasOpacity = true,
+            get = function(layoutName)
+                local color = private.db.global.timeline_frame[layoutName].timeline_texture_color
+                return CreateColor(color.r, color.g, color.b, color.a)
+            end,
+            set = function(layoutName, value)
+                private.db.global.timeline_frame[layoutName].timeline_texture_color = value
+                SetBackDrop(private.TIMELINE_FRAME.frame)
+            end,
+            default = variables.timelineTextureColor,
 
         },
         {
@@ -324,8 +346,7 @@ local function Constructor()
 
     frame:SetFrameStrata("BACKGROUND")
     SetupEditModeSettings(frame)
-    SetBackDrop(frame, variables.timelineTexture)
-    frame:SetBackdropColor(0, 0, 0, 1)
+    SetBackDrop(frame)
     frame.Ticks = {}
     frame:Hide()
 

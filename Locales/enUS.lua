@@ -177,6 +177,8 @@ if L then
     L['BigIconMarginDescription'] = "Sets the space between big icons."
     L['TextHighlightMargin'] = "Margin"
     L['TextHighlightMarginDescription'] = "Sets the space between text highlights."
+    L["TimelineTextureColorDescription"] = "Sets the color of the timeline background. Note: Not all textures support coloring and might only use the alpha. For Example the default Blizzard-Dialog-Background does NOT use the color."
+    L["TimelineTextureColor"] = "Timeline Texture Color"
 
     -- errors
     L["InvalidTextPosition"] = "Invalid text anchor position please alert the author."
