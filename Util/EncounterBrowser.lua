@@ -83,10 +83,18 @@ local function ensureEJButton()
         if not infoFrame.AbilityTimelineAddButton then
             local btn = CreateFrame("Button", "AbilityTimelineEJAddButton", infoFrame, "EncounterTabTemplate")
             btn:SetPoint("TOP", EncounterJournalEncounterFrameInfoModelTab, "BOTTOM", 0, 0)
+            
             btn.texture = btn:CreateTexture(nil, "ARTWORK")
-            btn.texture:SetTexture("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga")
             btn.texture:SetAllPoints()
-            btn.texture:Show()
+            
+            -- for some reason the texture sometimes randomly vanishes so we just reset it on show TODO fix properly
+            local function applyTexture()
+                btn.texture:SetTexture("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga")
+                btn.texture:Show()
+            end
+            applyTexture()
+            btn:HookScript("OnShow", applyTexture)
+            
             btn.tooltip = private.getLocalisation("EditRemindersForEncounter")
             btn:SetText(private.getLocalisation("EditRemindersForEncounter"))
             btn:SetScript("OnClick", function()
@@ -102,7 +110,7 @@ local function ensureEJButton()
                     StaticPopup_Show("ABILITYTIMELINE_CANNOT_RESOLVE")
                     return
                 end
-                -- Register encounter and open editor using explicit EJ ids (no index lookup)
+                -- Register encounter and open editor using explicit EJ ids
                 local key = entry.dungeonEncounterID or entry.journalEncounterID or entry.raw
                 key = tonumber(key) or key
                 private.RegisterEncounter(key, { name = entry.name, instanceID = entry.journalInstanceID, journalID = entry.journalEncounterID }, true)
@@ -120,6 +128,8 @@ local function ensureEJButton()
             EncounterJournalEncounterFrameInfoModelTab:HookScript("OnEnable", function(self)
                 btn:DesaturateHierarchy(0)
                 btn:Enable()
+                -- Reapply texture after desaturation
+                applyTexture()
             end)
             infoFrame.AbilityTimelineAddButton = btn
         else
