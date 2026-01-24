@@ -656,7 +656,7 @@ local function SetEncounter(self, encounterParams)
 
     local instanceName = EJ_GetInstanceInfo(self.journalInstanceID)
     local encounterName = EJ_GetEncounterInfo(self.journalEncounterID)
-    self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), instanceName or "", encounterName or ""))
+    self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), instanceName, encounterName))
     -- Clear any existing pins/rows before loading new encounter data
     clearPins(self)
     clearReminderRows(self)

@@ -121,7 +121,6 @@ private.createImportDialog = function(editorWindow, encounterID)
         local reminders, errorMsg = private.ImportUtil:ParseImportText(importData)
         
         if errorMsg then
-            assert(false, "Import failed: " .. tostring(errorMsg))
             private.Debug("Import error: " .. tostring(errorMsg))
             return
         end
