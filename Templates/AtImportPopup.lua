@@ -113,7 +113,7 @@ local function Constructor()
     
     frame.titleBar = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     frame.titleBar:SetPoint("TOP", frame, "TOP", 0, -20)
-    frame.titleBar:SetText(private.getLocalisation("ImportDialogTitle") or "Importing Reminders")
+    frame.titleBar:SetText(private.getLocalisation("ImportPopupTitle"))
     
     frame.logo = frame:CreateTexture(nil, "ARTWORK")
     frame.logo:SetSize(variables.logo.width, variables.logo.height)
