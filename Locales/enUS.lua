@@ -186,6 +186,7 @@ if L then
 
     -- importing
     L["ImportDialogTitle"] = "Import Reminders"
+    L["ImportPopupTitle"] = "Importing Reminders"
     L["ImportDialogFreeOfCharge"] = "This Addon and its features is created in my free time and I do not make money off of it. If you paid for these reminders consider supporting the addon creation instead."
     L["ImportButton"] = "Import"
     L["ImportParseError"] = "Could not parse import format. Supported formats: Encoded, Viserio, MRT notes, or JSON"
@@ -204,6 +205,7 @@ if L then
     L["ExportDialogTitle"] = "Export Reminders"
     L["ExportAsJSON"] = "Export as JSON"
     L["ExportAsMRT"] = "Export as MRT"
+    L["ReminderSendToChatButton"] = "Send to Group Chat"
     L["ExportAsEncoded"] = "Export as Encoded"
     L["ExportAsViserio"] = "Export as Viserio"
     L["ExportCopyHint"] = "Use Ctrl+C to copy the exported text to your clipboard."

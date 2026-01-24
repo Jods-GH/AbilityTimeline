@@ -1,14 +1,18 @@
 local addonName, private = ...
 local AceGUI = LibStub("AceGUI-3.0")
 
-private.createImportDialog = function(editorWindow, encounterID)
+private.createImportDialog = function(editorWindow, encounterID, initialImportText)
     local dialog = AceGUI:Create("AtImportDialog")
     dialog:SetTitle(private.getLocalisation("ImportDialogTitle"))
     dialog:SetLayout("List")
     dialog:SetAutoAdjustHeight(true)
     
+    -- Track the open dialog
+    private.IMPORT_DIALOG_WINDOW = dialog
+    
     dialog.closeButton:SetScript("OnClick", function()
         dialog:Release()
+        private.IMPORT_DIALOG_WINDOW = nil
         if private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS then
             local params = private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS
             private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS = nil
@@ -102,6 +106,17 @@ private.createImportDialog = function(editorWindow, encounterID)
         updatePreview()
         dialog:DoLayout()
     end)
+
+    filterCheckbox:SetCallback("OnValueChanged", function()
+        updatePreview()
+        dialog:DoLayout()
+    end)
+    
+    if initialImportText and initialImportText ~= "" then
+        importText:SetText(initialImportText)
+        updatePreview()
+        dialog:DoLayout()
+    end
     
     local buttonGroup = AceGUI:Create("SimpleGroup")
     buttonGroup:SetLayout("Flow")
@@ -136,6 +151,7 @@ private.createImportDialog = function(editorWindow, encounterID)
         end
         
         dialog:Release()
+        private.IMPORT_DIALOG_WINDOW = nil
         -- before importing show a progress popup
         local importPopup = AceGUI:Create("AtImportPopup")
         
@@ -171,8 +187,8 @@ private.createImportDialog = function(editorWindow, encounterID)
         
         local function onCancel()
             private.Debug("Import cancelled by user")
-            -- Reshow the import dialog (not the timings editor)
-            private.showImportDialog(encounterID, editorWindow)
+            -- Reshow the import dialog with the original import text
+            private.showImportDialog(encounterID, editorWindow, importData)
         end
         
         importPopup:StartImport(5, onComplete, onCancel)
@@ -184,6 +200,7 @@ private.createImportDialog = function(editorWindow, encounterID)
     cancelButton:SetRelativeWidth(0.5)
     cancelButton:SetCallback("OnClick", function()
         dialog:Release()
+        private.IMPORT_DIALOG_WINDOW = nil
         -- Reopen timings editor if it was closed
         if private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS then
             local params = private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS
@@ -198,9 +215,15 @@ private.createImportDialog = function(editorWindow, encounterID)
     return dialog
 end
 
-private.showImportDialog = function(encounterID, editorWindow)
+private.showImportDialog = function(encounterID, editorWindow, initialImportText)
     if not encounterID then
         private.Debug("No encounter ID provided for import")
+        return
+    end
+    
+    -- Don't open a new dialog if one is already open
+    if private.IMPORT_DIALOG_WINDOW then
+        private.Debug("Import dialog is already open, ignoring duplicate request")
         return
     end
     
@@ -214,7 +237,7 @@ private.showImportDialog = function(encounterID, editorWindow)
         private.closeTimingsEditor()
     end
     
-    private.createImportDialog(editorWindow, encounterID)
+    private.createImportDialog(editorWindow, encounterID, initialImportText)
 end
 
 private.showExportDialog = function(encounterID)
@@ -318,11 +341,12 @@ private.showExportDialog = function(encounterID)
     hintText:SetText(private.getLocalisation("ExportCopyHint"))
     hintText:SetFullWidth(true)
     dialog:AddChild(hintText)
-    
-    local closeButton = AceGUI:Create("Button")
-    closeButton:SetText(private.getLocalisation("ReminderCancelButton"))
-    closeButton:SetRelativeWidth(1)
-    closeButton:SetCallback("OnClick", function()
+
+    local sendToChatButton = AceGUI:Create("Button")
+    sendToChatButton:SetText(private.getLocalisation("ReminderSendToChatButton"))
+    sendToChatButton:SetRelativeWidth(1)
+    sendToChatButton:SetCallback("OnClick", function()
+        private.StartExportingToChat(encounterID)
         dialog:Release()
         -- Reopen timings editor if it was closed
         if private.EXPORT_DIALOG_STORED_ENCOUNTER_PARAMS then
@@ -330,5 +354,5 @@ private.showExportDialog = function(encounterID)
             private.EXPORT_DIALOG_STORED_ENCOUNTER_PARAMS = nil
         end
     end)
-    dialog:AddChild(closeButton)
+    dialog:AddChild(sendToChatButton)
 end

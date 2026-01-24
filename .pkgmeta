@@ -17,3 +17,5 @@ externals:
     Libs/LibSerialize:           https://github.com/rossnichols/LibSerialize
     Libs/LibEditMode:            https://github.com/p3lim-wow/LibEditMode
     Libs/LibCustomGlow-1.0:      https://github.com/Stanzilla/LibCustomGlow
+    Libs/AceComm-3.0:            https://repos.wowace.com/wow/ace3/trunk/AceComm-3.0
+    

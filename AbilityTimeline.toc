@@ -31,6 +31,7 @@ Util\ModernizeSettings.lua
 Util\Tooltip.lua
 Util\EncounterBrowser.lua
 Util\ImportUtil.lua
+Util\ChatTransmission.lua
 
 # Locales
 Locales\enUS.lua
