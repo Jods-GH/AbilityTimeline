@@ -14,12 +14,20 @@ local variables = {
 
 ---@param self AtTextCopyFrame
 local function OnAcquire(self)
+    self.Content.frame:Show() 
+    self.EditBox.frame:Show() 
+    self.Hint:Show()
+    self.CloseButton:Show()
 end
 
 ---@param self AtTextCopyFrame
 local function OnRelease(self)
-     self.EditBox:SetText('')
-     self.EditBox.editbox:SetScript("OnKeyUp", nil)
+    self.EditBox:SetText('')
+    self.EditBox.editbox:SetScript("OnKeyUp", nil)
+    self.Content.frame:Hide() 
+    self.EditBox.frame:Hide() 
+    self.Hint:Hide()
+    self.CloseButton:Hide()
 end
 
 local activeText = ""
@@ -95,6 +103,8 @@ local function Constructor()
         SetValues = SetValues,
         Content = frame.Content,
         EditBox = frame.EditBox,
+        Hint = frame.Hint,
+        CloseButton = frame.CloseButton,
         RegisterKeyBinds = RegisterKeyBinds,
     }
 
