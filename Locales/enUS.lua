@@ -139,6 +139,8 @@ if L then
     L['TextBackgroundOffsetXDescription'] = "Sets the X offset of the background relative to the text."
     L['TextBackgroundOffsetY'] = "Text Background Offset Y"
     L['TextBackgroundOffsetYDescription'] = "Sets the Y offset of the background relative to the text."
+    L['DispellTextColor'] = "Dispell Text Color"
+    L['DispellTextColorDescription'] = "Enables coloring the spell name text based on the dispell type."
 
 
 
