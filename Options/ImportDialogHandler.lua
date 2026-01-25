@@ -28,16 +28,19 @@ private.createImportDialog = function(editorWindow, encounterID, initialImportTe
     local filterCheckbox = AceGUI:Create("CheckBox")
     filterCheckbox:SetLabel(private.getLocalisation("ImportRelevant"))
     private.AddFrameTooltip(filterCheckbox.frame, "ImportRelevantDescription")
-    filterCheckbox:SetValue(true)
+    filterCheckbox:SetValue(private.db.profile.importRelevant)
     filterCheckbox:SetRelativeWidth(0.5)
     settingsGroup:AddChild(filterCheckbox)
     
     local mergeCheckbox = AceGUI:Create("CheckBox")
     mergeCheckbox:SetLabel(private.getLocalisation("ImportMergeMode"))
     private.AddFrameTooltip(mergeCheckbox.frame, "ImportMergeModeDescription")
-    mergeCheckbox:SetValue(true)
+    mergeCheckbox:SetValue(private.db.profile.importMergeMode)
     mergeCheckbox:SetRelativeWidth(0.5)
     settingsGroup:AddChild(mergeCheckbox)
+    mergeCheckbox:SetCallback("OnValueChanged", function(_, _, value)
+        private.db.profile.importMergeMode = value
+    end)
     
     dialog:AddChild(settingsGroup)
     
@@ -83,7 +86,7 @@ private.createImportDialog = function(editorWindow, encounterID, initialImportTe
         end
         
         local filteredReminders = reminders
-        if filterCheckbox:GetValue() then
+        if private.db.profile.importRelevant then
             filteredReminders = private.ImportUtil:FilterReminders(reminders)
         end
         
@@ -107,9 +110,10 @@ private.createImportDialog = function(editorWindow, encounterID, initialImportTe
         dialog:DoLayout()
     end)
 
-    filterCheckbox:SetCallback("OnValueChanged", function()
+    filterCheckbox:SetCallback("OnValueChanged", function(_, _, value)
         updatePreview()
         dialog:DoLayout()
+        private.db.profile.importRelevant = value
     end)
     
     if initialImportText and initialImportText ~= "" then
@@ -156,9 +160,7 @@ private.createImportDialog = function(editorWindow, encounterID, initialImportTe
         local importPopup = AceGUI:Create("AtImportPopup")
         
         local function onComplete()
-            -- Apply reminders
-            local mergeMode = mergeCheckbox:GetValue()
-            local success = private.ImportUtil:ApplyReminders(encounterID, reminders, mergeMode)
+            local success = private.ImportUtil:ApplyReminders(encounterID, reminders, private.db.profile.importMergeMode)
             
             if success then
                 private.Debug("Successfully imported " .. #reminders .. " reminders")

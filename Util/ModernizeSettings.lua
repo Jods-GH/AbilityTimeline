@@ -196,4 +196,11 @@ private.modernize = function()
         }
     end
     
+    if private.db.profile.importMergeMode == nil then
+        private.db.profile.importMergeMode = true
+    end
+
+    if private.db.profile.importRelevant == nil then
+        private.db.profile.importRelevant = true
+    end
 end
