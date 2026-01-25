@@ -1,5 +1,6 @@
 local addonName, private = ...
 local AceGUI = LibStub("AceGUI-3.0")
+local SharedMedia = LibStub("LibSharedMedia-3.0")
 local Type = "AtTextHighlight"
 local Version = 1
 local variables = {
@@ -8,8 +9,39 @@ local variables = {
 }
 
 
+local function ApplySettings(self)
+	-- Apply settings to the icon
+	if private.db.profile.highlight_text_settings and private.db.profile.highlight_text_settings.font and private.db.profile.highlight_text_settings.fontSize then
+		self.frame.SpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.highlight_text_settings.font),
+			private.db.profile.highlight_text_settings.fontSize, "OUTLINE")
+	elseif private.db.profile.highlight_text_settings and private.db.profile.highlight_text_settings.fontSize then
+		self.frame.SpellName:SetFontHeight(private.db.profile.highlight_text_settings.fontSize)
+	end
+
+	if  private.db.profile.highlight_text_settings and  private.db.profile.highlight_text_settings.defaultColor then
+		self.frame.SpellName:SetTextColor(
+			private.db.profile.highlight_text_settings.defaultColor.r,
+			private.db.profile.highlight_text_settings.defaultColor.g,
+			private.db.profile.highlight_text_settings.defaultColor.b
+		)
+	end
+
+	if private.db.profile.highlight_text_settings.useBackground then
+		local texture = SharedMedia:Fetch("background", private.db.profile.highlight_text_settings.backgroundTexture)
+		self.frame.SpellNameBackground:SetPoint("LEFT", self.frame.SpellName, "LEFT", -private.db.profile.highlight_text_settings.backgroundTextureOffset.x, 0)
+		self.frame.SpellNameBackground:SetPoint("RIGHT", self.frame.SpellName, "RIGHT", private.db.profile.highlight_text_settings.backgroundTextureOffset.x, 0)
+		self.frame.SpellNameBackground:SetPoint("TOP", self.frame.SpellName, "TOP", 0, private.db.profile.highlight_text_settings.backgroundTextureOffset.y)
+		self.frame.SpellNameBackground:SetPoint("BOTTOM", self.frame.SpellName, "BOTTOM", 0, -private.db.profile.highlight_text_settings.backgroundTextureOffset.y)
+		self.frame.SpellNameBackground:SetTexture(texture)
+		self.frame.SpellNameBackground:Show()
+	else
+		self.frame.SpellNameBackground:Hide()
+	end
+end
+
 ---@param self AtTextHighlight
 local function OnAcquire(self)
+    ApplySettings(self)
 end
 
 ---@param self AtTextHighlight
@@ -24,6 +56,7 @@ local function OnRelease(self)
     end
     private.evaluateTextPositions()
 end
+
 
 ---comment
 ---@param self any
@@ -47,26 +80,40 @@ local GetTextColor = function(self, remainingTime)
     return "ffffff"
 end
 
-local SetEventInfo = function(widget, eventInfo)
+local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
     widget.eventInfo = eventInfo
     local yOffset = (variables.text_height + private.db.global.text_highlight[private.ACTIVE_EDITMODE_LAYOUT].margin) * (#private.HIGHLIGHT_TEXTS)
     widget.yOffset = yOffset
-    widget.frame.text:SetFormattedText("%s in %i", eventInfo.spellName, eventInfo.duration)
-    widget.frame:SetScript("OnUpdate", function(self)
-        local remainingDuration = C_EncounterTimeline.GetEventTimeRemaining(widget.eventInfo.id)
-        if not remainingDuration or remainingDuration <= 0 then
-            widget:Release()
-        else
-            local textColor = GetTextColor(widget, remainingDuration)
-            local dispellTypeIcons = {}
-            local dispellTypeTexture = widget.frame:CreateTexture(nil, "OVERLAY" )
-            table.insert(dispellTypeIcons, dispellTypeTexture)
-            C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, dispellTypeIcons)
-            local atlas = dispellTypeIcons[1]:GetAtlas()
+    widget.frame.SpellName:SetFormattedText("%s in %i", eventInfo.spellName, eventInfo.duration)
+    if not disableOnUpdate then
+        widget.frame:SetScript("OnUpdate", function(self)
+            local remainingDuration = C_EncounterTimeline.GetEventTimeRemaining(widget.eventInfo.id)
+            if not remainingDuration or remainingDuration <= 0 then
+                widget:Release()
+            else
+                -- for i, value in pairs (private.dispellTypeList) do
+                --     local coloredSpellName = widget.frame.DispellTypeSpellNames[i]
+                --     C_EncounterTimeline.SetEventIconTextures(eventInfo.id, value.mask, widget.frame.dispellTypeIcons)
+                --     local alpha = widget.frame.dispellTypeIcons[1]:GetAlpha()
+                --     coloredSpellName:SetAlpha(alpha)
 
-            self.text:SetFormattedText("|A:%s:20:20|a %s in |c%s%i|r", atlas, eventInfo.spellName, textColor, math.ceil(remainingDuration))
-        end
-    end)
+                -- end
+                local textColor = GetTextColor(widget, remainingDuration)
+                C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, widget.frame.dispellTypeIcons)
+                local atlas = widget.frame.dispellTypeIcons[1]:GetAtlas()
+                --local alpha = widget.frame.dispellTypeIcons[1]:GetAlpha() TODO implement this?
+                if private.db.profile.highlight_text_settings.dispellIcons then
+                    self.SpellName:SetFormattedText("|A:%s:20:20|a %s in |c%s%i|r", atlas, eventInfo.spellName, textColor, math.ceil(remainingDuration))
+                else
+                    self.SpellName:SetFormattedText("%s in |c%s%i|r", eventInfo.spellName, textColor, math.ceil(remainingDuration))       
+                end
+                -- for i, value in pairs (private.dispellTypeList) do
+                --     local coloredSpellName = widget.frame.DispellTypeSpellNames[i]
+                --     coloredSpellName:SetFormattedText("|A:%s:20:20|a %s in |c%s%i|r", atlas, eventInfo.spellName, textColor, math.ceil(remainingDuration))
+                -- end
+            end
+        end)
+    end
     widget.frame:SetPoint("BOTTOM", private.TEXT_HIGHLIGHT_FRAME.frame, "BOTTOM", 0, yOffset)
     widget.frame:Show()
 end
@@ -76,13 +123,34 @@ local function Constructor()
     local frame = CreateFrame("Frame", "HIGHLIGHT_TEXT_"..count, private.TEXT_HIGHLIGHT_FRAME.frame) 
     local yOffset = (variables.text_height + private.db.global.text_highlight[private.ACTIVE_EDITMODE_LAYOUT].margin) * (#private.HIGHLIGHT_TEXTS)
     frame.yOffset = yOffset
-    frame.text = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-    frame.text:SetWidth(variables.text_width)
-    frame.text:SetWordWrap(false)
-    frame.text:SetPoint("CENTER", frame, "CENTER")
+    frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
+    frame.SpellName:SetWordWrap(false)
+    frame.SpellName:SetPoint("CENTER", frame, "CENTER")
+    -- frame.DispellTypeSpellNames = {}
+
+    -- for i, value in pairs (private.dispellTypeList) do
+	-- 	local coloredSpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
+    --     coloredSpellName:SetWordWrap(false)
+    --     coloredSpellName:SetPoint("CENTER", frame, "CENTER")
+    --     coloredSpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
+
+	-- 	frame.DispellTypeSpellNames[i] = coloredSpellName
+	-- end
+
+    frame.SpellNameBackground = frame:CreateTexture(nil, "BACKGROUND")
+	frame.SpellNameBackground:SetPoint("LEFT", frame.SpellName, "LEFT", -private.db.profile.highlight_text_settings.backgroundTextureOffset.x, 0)
+	frame.SpellNameBackground:SetPoint("RIGHT", frame.SpellName, "RIGHT", private.db.profile.highlight_text_settings.backgroundTextureOffset.x, 0)
+	frame.SpellNameBackground:SetPoint("TOP", frame.SpellName, "TOP", 0, private.db.profile.highlight_text_settings.backgroundTextureOffset.y)
+	frame.SpellNameBackground:SetPoint("BOTTOM", frame.SpellName, "BOTTOM", 0, -private.db.profile.highlight_text_settings.backgroundTextureOffset.y)
+	frame.SpellNameBackground:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
+	frame.SpellNameBackground:Hide()
     frame:SetWidth(variables.text_width)
     frame:SetHeight(variables.text_height)
     frame:SetPoint("BOTTOM", private.TEXT_HIGHLIGHT_FRAME.frame, "BOTTOM", 0, yOffset)
+
+    frame.dispellTypeTexture = frame:CreateTexture(nil, "OVERLAY" )
+    frame.dispellTypeIcons = {}
+    table.insert(frame.dispellTypeIcons, frame.dispellTypeTexture)
 
     ---@class AtTextHighlight : AceGUIWidget
     local widget = {
@@ -94,6 +162,8 @@ local function Constructor()
         SetEventInfo = SetEventInfo,
         eventInfo = {},
         yOffset = 0,
+        GetTextColor = GetTextColor,
+        ApplySettings = ApplySettings,
     }
 
     return AceGUI:RegisterAsWidget(widget)

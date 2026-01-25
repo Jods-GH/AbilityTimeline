@@ -145,6 +145,34 @@ private.modernize = function()
         private.db.profile.big_icon_text_settings.text_anchor = "BOTTOM"
     end
 
+     if not private.db.profile.highlight_text_settings then
+        private.db.profile.highlight_text_settings = {}
+    end
+    if not private.db.profile.highlight_text_settings.fontSize then
+        private.db.profile.highlight_text_settings.fontSize = 14
+    end
+    if not private.db.profile.highlight_text_settings.font then
+        private.db.profile.highlight_text_settings.font = "Friz Quadrata TT"
+    end
+    if private.db.profile.highlight_text_settings.useBackground == nil then
+        private.db.profile.highlight_text_settings.useBackground = false
+    end
+    if not private.db.profile.highlight_text_settings.backgroundTexture then
+        private.db.profile.highlight_text_settings.backgroundTexture = "Blizzard Dialog Background"
+    end
+
+    if not private.db.profile.highlight_text_settings.defaultColor then
+        private.db.profile.highlight_text_settings.defaultColor = { r = 1, g = 1, b = 1 }
+    end
+
+    if not private.db.profile.highlight_text_settings.backgroundTextureOffset then
+        private.db.profile.highlight_text_settings.backgroundTextureOffset = { x = 0, y = 0 }
+    end
+
+    if private.db.profile.highlight_text_settings.dispellIcons == nil then
+        private.db.profile.highlight_text_settings.dispellIcons = true
+    end
+
     if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor then
         private.db.profile.big_icon_text_settings.text_anchor =  private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
         private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor = nil

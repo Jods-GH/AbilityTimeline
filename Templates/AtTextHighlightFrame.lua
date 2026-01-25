@@ -135,6 +135,14 @@ local function Constructor()
         },
     })
 
+    local buttons = {
+        {
+            text = private.getLocalisation("OpenTextEditor"),
+            click = function() private.openHighlightTextSettings() end
+        }
+    }
+    LibEditMode:AddFrameSettingsButtons(frame, buttons) 
+
     ---@class AtTextHighlightFrame : AceGUIWidget
     local widget = {
         OnAcquire = OnAcquire,
