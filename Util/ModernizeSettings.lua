@@ -231,4 +231,17 @@ private.modernize = function()
     if private.db.profile.importRelevant == nil then
         private.db.profile.importRelevant = true
     end
+
+    -- fix cooldown highlights missing essential settings
+    for _, highlight in ipairs(private.db.profile.cooldown_settings.cooldown_highlight.highlights) do
+        if highlight.useGlow == nil then
+            highlight.useGlow = false
+        end
+        if highlight.glowType == nil then
+            highlight.glowType = private.GlowTypes.PROC
+        end
+        if highlight.glowColor == nil then
+            highlight.glowColor = {r= 0.95, g= 0.95, b= 0.32, a= 1 }
+        end
+    end
 end

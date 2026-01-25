@@ -521,7 +521,10 @@ local addCooldownColorHighlightSettings = function(cooldownColorChangeGroup, scr
     addChangeButton:SetCallback("OnClick", function()
         table.insert(private.db.profile.cooldown_settings.cooldown_highlight.highlights, {
             time = 10,
-            color = private.db.profile.cooldown_settings.cooldown_color
+            color = private.db.profile.cooldown_settings.cooldown_color,
+            useGlow = false, 
+            glowType = private.GlowTypes.PROC,
+            glowColor = { r = 1, g = 1, b = 1, a = 1 },
         })
         table.sort(private.db.profile.cooldown_settings.cooldown_highlight.highlights,
             function(a, b) return a.time < b.time end)
