@@ -4,13 +4,13 @@ local AceGUI = LibStub("AceGUI-3.0")
 private.HIGHLIGHT_TEXTS = {}
 
 local GROW_POSITION = {
-    UP = "TOP",
-    DOWN = "BOTTOM",
+   UP = "TOP",
+   DOWN = "BOTTOM",
 }
 
 local RELATIVE_GROW_POSITION = {
-    UP = "BOTTOM",
-    DOWN = "TOP",
+   UP = "BOTTOM",
+   DOWN = "TOP",
 }
 private.evaluateTextPositions = function()
    local visibleIcons = 0
@@ -32,7 +32,8 @@ private.evaluateTextPositions = function()
             anchorFrame = private.HIGHLIGHT_TEXTS[i - 1].frame
             relAnchor = GROW_POSITION[private.db.global.text_highlight[private.ACTIVE_EDITMODE_LAYOUT].grow_direction]
          else
-            relAnchor = RELATIVE_GROW_POSITION[private.db.global.text_highlight[private.ACTIVE_EDITMODE_LAYOUT].grow_direction]
+            relAnchor = RELATIVE_GROW_POSITION
+            [private.db.global.text_highlight[private.ACTIVE_EDITMODE_LAYOUT].grow_direction]
             margin = 0
          end
          if private.db.global.text_highlight[private.ACTIVE_EDITMODE_LAYOUT].grow_direction == 'UP' then

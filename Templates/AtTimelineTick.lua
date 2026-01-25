@@ -41,14 +41,14 @@ local function SetTick(self, relativeTo, tick, totalSize, threshhold, isHorizont
         self.frame.tickLine:SetPoint("TOP", self.frame, "TOP", 0, 0)
         self.frame.tickLine:SetPoint("BOTTOM", self.frame, "BOTTOM", 0, 0)
         self.frame.tickText:SetPoint("BOTTOM", self.frame.tickLine, "TOP", variables.textOffset.y, variables.textOffset
-        .x)
+            .x)
     else
         self.frame:SetPoint("LEFT", relativeTo, "BOTTOMLEFT", 0, tickPosition)
         self.frame:SetPoint("RIGHT", relativeTo, "BOTTOMRIGHT", 0, tickPosition)
         self.frame.tickLine:SetPoint("LEFT", self.frame, "LEFT", 0, 0)
         self.frame.tickLine:SetPoint("RIGHT", self.frame, "RIGHT", 0, 0)
         self.frame.tickText:SetPoint("LEFT", self.frame.tickLine, "RIGHT", variables.textOffset.x, variables.textOffset
-        .y)
+            .y)
     end
     self.frame:SetParent(relativeTo)
 end

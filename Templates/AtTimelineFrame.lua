@@ -44,7 +44,10 @@ end
 local function HandleTickVisibility(layoutName)
     for _, tick in ipairs(private.TIMELINE_FRAME.frame.Ticks) do
         if private.db.global.timeline_frame[layoutName].ticks_enabled then
-            tick:SetTick(private.TIMELINE_FRAME.frame, tick.tick, private.TIMELINE_FRAME:GetMoveSize() ,private.AT_THRESHHOLD_TIME, private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL)
+            tick:SetTick(private.TIMELINE_FRAME.frame, tick.tick, private.TIMELINE_FRAME:GetMoveSize(),
+                private.AT_THRESHHOLD_TIME,
+                private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction ==
+                private.TIMELINE_DIRECTIONS.HORIZONTAL)
             tick.frame:Show()
         else
             tick.frame:Hide()
@@ -124,7 +127,9 @@ local function HandleTicks(self)
     for i, tick in ipairs(private.TIMELINE_TICKS) do
         local widget = AceGUI:Create("AtTimelineTicks")
         self.frame.Ticks[i] = widget
-        widget:SetTick(self.frame, tick, self:GetMoveSize() ,private.AT_THRESHHOLD_TIME, private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL)
+        widget:SetTick(self.frame, tick, self:GetMoveSize(), private.AT_THRESHHOLD_TIME,
+            private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction ==
+            private.TIMELINE_DIRECTIONS.HORIZONTAL)
         widget.frame:Show()
     end
 end
@@ -142,7 +147,8 @@ local function HandleSizeChanges(self)
 end
 
 local function SetBackDrop(frame)
-    local texture = SharedMedia:Fetch("background", private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].timeline_texture)
+    local texture = SharedMedia:Fetch("background",
+        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].timeline_texture)
     local color = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].timeline_texture_color
     frame:SetBackdrop({
         bgFile = texture,
@@ -163,7 +169,8 @@ local function GetMoveSize(self)
 end
 
 local function SetupEditModeSettings(frame)
-    LibEditMode:AddFrame(frame, onPositionChanged, variables.position, "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline")
+    LibEditMode:AddFrame(frame, onPositionChanged, variables.position,
+        "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline")
 
 
     local TextureSettings = {
@@ -223,7 +230,7 @@ local function SetupEditModeSettings(frame)
             values = {
                 {
                     text = private.getLocalisation("TravelDirectionVertical"),
-                    value = private.TIMELINE_DIRECTIONS.VERTICAL, 
+                    value = private.TIMELINE_DIRECTIONS.VERTICAL,
                     isRadio = true,
                 },
                 {
@@ -334,7 +341,7 @@ local function SetupEditModeSettings(frame)
             click = function() private.openSpellIconSettings() end
         }
     }
-    LibEditMode:AddFrameSettingsButtons(frame, buttons) 
+    LibEditMode:AddFrameSettingsButtons(frame, buttons)
 end
 
 

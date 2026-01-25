@@ -1,5 +1,5 @@
-local addonName, private = ...
-local AceGUI = LibStub("AceGUI-3.0")
+local addonName, private               = ...
+local AceGUI                           = LibStub("AceGUI-3.0")
 
 local activeFrames                     = {}
 private.ENCOUNTER_TIMELINE_EVENT_ADDED = function(self, eventInfo, initialState)
@@ -9,13 +9,13 @@ private.ENCOUNTER_TIMELINE_EVENT_ADDED = function(self, eventInfo, initialState)
    private.createTimelineIcon(eventInfo)
 end
 
-private.TIMELINE_TICKS                         = { 5 }
-private.AT_THRESHHOLD                          = 0.8
-private.AT_THRESHHOLD_TIME                     = 10
+private.TIMELINE_TICKS                 = { 5 }
+private.AT_THRESHHOLD                  = 0.8
+private.AT_THRESHHOLD_TIME             = 10
 
-BIGICON_THRESHHOLD_TIME    = 5
+BIGICON_THRESHHOLD_TIME                = 5
 
-private.createTimelineIcon = function(eventInfo)
+private.createTimelineIcon             = function(eventInfo)
    local frame = AceGUI:Create("AtAbilitySpellIcon")
    frame:SetEventInfo(eventInfo)
    activeFrames[eventInfo.id] = frame
@@ -46,7 +46,7 @@ private.createTimelineIcon = function(eventInfo)
    -- frame.border:SetVertexColor(DebuffTypeColor[eventInfo.dispelType])
 end
 
-private.ENCOUNTER_STATES           = {
+private.ENCOUNTER_STATES               = {
    Active = 0,
    Paused = 1,
    Finished = 2,

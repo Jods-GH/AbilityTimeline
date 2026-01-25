@@ -409,7 +409,8 @@ local createCooldownSubSettings
 ---@param scrollContainer AceGUIWidget scroll container to do layout on after changes
 ---@param cooldownColorChanges table table of cooldown color changes expected to include time and color = {r,g,b}
 local handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, widget, cooldownColorChanges,
-                                                  disableGlowSettings, disableFontSettings) end                                                             -- this weird syntax is needed to allow recursion
+                                                  disableGlowSettings, disableFontSettings)
+end                                                                                             -- this weird syntax is needed to allow recursion
 handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, widget, cooldownColorChanges,
                                             disableGlowSettings, disableFontSettings)
     parentGroup:ReleaseChildren()

@@ -31,7 +31,7 @@ setmetatable(private.TEXT_RELATIVE_POSITIONS, {
 ---handles the Text anchoring depending on the selected text anchor
 ---@param self Frame
 ---@param isStopped boolean
-local handleAnchors   = function(self, isStopped)
+local handleAnchors      = function(self, isStopped)
 	self.SpellName:ClearAllPoints()
 	local relPos, anchorPos, xOffset, yOffset
 	if isStopped then
@@ -261,7 +261,7 @@ local HandleCooldown        = function(self, remainingTime)
 	end
 	self.Cooldown:SetText(roundedTime)
 	if private.db.profile.cooldown_settings.cooldown_highlight and private.db.profile.cooldown_settings.cooldown_highlight.enabled then
-		for _,value in pairs(private.db.profile.cooldown_settings.cooldown_highlight.highlights) do
+		for _, value in pairs(private.db.profile.cooldown_settings.cooldown_highlight.highlights) do
 			local time, color = value.time, value.color
 			if (remainingTime <= time) then
 				self.Cooldown:SetTextColor(color.r, color.g, color.b)
@@ -304,13 +304,14 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, self.frame.DispellTypeIcons)
 		end
 		if private.db.profile.icon_settings.dispellBorders then
-			for i, dispellValue in ipairs(private.dispellTypeList) do	
+			for i, dispellValue in ipairs(private.dispellTypeList) do
 				for _, edgeTexture in ipairs(self.frame.DispellTypeBorderEdges[i]) do
 					local textureArray = {}
 					table.insert(textureArray, edgeTexture)
 					C_EncounterTimeline.SetEventIconTextures(eventInfo.id, dispellValue.mask, textureArray)
 					edgeTexture:SetTexture(nil)
-					edgeTexture:SetColorTexture(dispellValue.color.r, dispellValue.color.g, dispellValue.color.b, dispellValue.color.a)
+					edgeTexture:SetColorTexture(dispellValue.color.r, dispellValue.color.g, dispellValue.color.b,
+						dispellValue.color.a)
 				end
 			end
 		end
@@ -365,8 +366,9 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 		end)
 	else
 		self.frame.DispellTypeIcons[1]:SetAtlas('icons_16x16_magic')
-		for _, edgeTexture in pairs (self.frame.DispellTypeBorderEdges[3]) do
-			edgeTexture:SetColorTexture(private.dispellTypeList[3].color.r, private.dispellTypeList[3].color.g, private.dispellTypeList[3].color.b, private.dispellTypeList[3].color.a)
+		for _, edgeTexture in pairs(self.frame.DispellTypeBorderEdges[3]) do
+			edgeTexture:SetColorTexture(private.dispellTypeList[3].color.r, private.dispellTypeList[3].color.g,
+				private.dispellTypeList[3].color.b, private.dispellTypeList[3].color.a)
 		end
 		self.frame.DangerIcon[1]:SetAtlas('icons_16x16_deadly')
 	end
@@ -397,7 +399,7 @@ local function ApplySettings(self)
 		self.frame.Cooldown:SetFontHeight(private.db.profile.cooldown_settings.fontSize)
 	end
 
-	if  private.db.profile.text_settings and  private.db.profile.text_settings.defaultColor then
+	if private.db.profile.text_settings and private.db.profile.text_settings.defaultColor then
 		self.frame.SpellName:SetTextColor(
 			private.db.profile.text_settings.defaultColor.r,
 			private.db.profile.text_settings.defaultColor.g,
@@ -405,12 +407,12 @@ local function ApplySettings(self)
 		)
 	end
 
-	if not self.frame.SpellIcon.zoomApplied or self.frame.SpellIcon.zoomApplied ~= (1-private.db.profile.icon_settings.zoom) then
+	if not self.frame.SpellIcon.zoomApplied or self.frame.SpellIcon.zoomApplied ~= (1 - private.db.profile.icon_settings.zoom) then
 		if self.frame.SpellIcon.zoomApplied then
 			private.ResetZoom(self.frame.SpellIcon)
 		end
-		private.SetZoom(self.frame.SpellIcon, 1-private.db.profile.icon_settings.zoom)
-		self.frame.SpellIcon.zoomApplied = 1-private.db.profile.icon_settings.zoom
+		private.SetZoom(self.frame.SpellIcon, 1 - private.db.profile.icon_settings.zoom)
+		self.frame.SpellIcon.zoomApplied = 1 - private.db.profile.icon_settings.zoom
 	end
 
 	for i, edges in ipairs(self.frame.DispellTypeBorderEdges) do
@@ -422,26 +424,30 @@ local function ApplySettings(self)
 			end
 		end
 	end
-	for i,texture in ipairs(self.frame.DispellTypeIcons) do
+	for i, texture in ipairs(self.frame.DispellTypeIcons) do
 		if private.db.profile.icon_settings.dispellIcons then
 			texture:Show()
 		else
-			texture:Hide()	
+			texture:Hide()
 		end
 	end
-	for i,texture in ipairs(self.frame.DangerIcon) do
+	for i, texture in ipairs(self.frame.DangerIcon) do
 		if private.db.profile.icon_settings.dangerIcon then
 			texture:Show()
 		else
-			texture:Hide()	
+			texture:Hide()
 		end
 	end
 	if private.db.profile.text_settings.useBackground then
 		local texture = SharedMedia:Fetch("background", private.db.profile.text_settings.backgroundTexture)
-		self.frame.SpellNameBackground:SetPoint("LEFT", self.frame.SpellName, "LEFT", -private.db.profile.text_settings.backgroundTextureOffset.x, 0)
-		self.frame.SpellNameBackground:SetPoint("RIGHT", self.frame.SpellName, "RIGHT", private.db.profile.text_settings.backgroundTextureOffset.x, 0)
-		self.frame.SpellNameBackground:SetPoint("TOP", self.frame.SpellName, "TOP", 0, private.db.profile.text_settings.backgroundTextureOffset.y)
-		self.frame.SpellNameBackground:SetPoint("BOTTOM", self.frame.SpellName, "BOTTOM", 0, -private.db.profile.text_settings.backgroundTextureOffset.y)
+		self.frame.SpellNameBackground:SetPoint("LEFT", self.frame.SpellName, "LEFT",
+			-private.db.profile.text_settings.backgroundTextureOffset.x, 0)
+		self.frame.SpellNameBackground:SetPoint("RIGHT", self.frame.SpellName, "RIGHT",
+			private.db.profile.text_settings.backgroundTextureOffset.x, 0)
+		self.frame.SpellNameBackground:SetPoint("TOP", self.frame.SpellName, "TOP", 0,
+			private.db.profile.text_settings.backgroundTextureOffset.y)
+		self.frame.SpellNameBackground:SetPoint("BOTTOM", self.frame.SpellName, "BOTTOM", 0,
+			-private.db.profile.text_settings.backgroundTextureOffset.y)
 		self.frame.SpellNameBackground:SetTexture(texture)
 		self.frame.SpellNameBackground:Show()
 	else
@@ -500,73 +506,77 @@ local function Constructor()
 	frame.SpellName:Show()
 	-- spell name background
 	frame.SpellNameBackground = frame:CreateTexture(nil, "BACKGROUND")
-	frame.SpellNameBackground:SetPoint("LEFT", frame.SpellName, "LEFT", -private.db.profile.text_settings.backgroundTextureOffset.x, 0)
-	frame.SpellNameBackground:SetPoint("RIGHT", frame.SpellName, "RIGHT", private.db.profile.text_settings.backgroundTextureOffset.x, 0)
-	frame.SpellNameBackground:SetPoint("TOP", frame.SpellName, "TOP", 0, private.db.profile.text_settings.backgroundTextureOffset.y)
-	frame.SpellNameBackground:SetPoint("BOTTOM", frame.SpellName, "BOTTOM", 0, -private.db.profile.text_settings.backgroundTextureOffset.y)
+	frame.SpellNameBackground:SetPoint("LEFT", frame.SpellName, "LEFT",
+		-private.db.profile.text_settings.backgroundTextureOffset.x, 0)
+	frame.SpellNameBackground:SetPoint("RIGHT", frame.SpellName, "RIGHT",
+		private.db.profile.text_settings.backgroundTextureOffset.x, 0)
+	frame.SpellNameBackground:SetPoint("TOP", frame.SpellName, "TOP", 0,
+		private.db.profile.text_settings.backgroundTextureOffset.y)
+	frame.SpellNameBackground:SetPoint("BOTTOM", frame.SpellName, "BOTTOM", 0,
+		-private.db.profile.text_settings.backgroundTextureOffset.y)
 	frame.SpellNameBackground:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
 	frame.SpellNameBackground:Hide()
 	-- cooldown
 	frame.Cooldown = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
 	frame.Cooldown:SetPoint("CENTER", frame, "CENTER")
 
-	frame.RoleIcons = {} 
+	frame.RoleIcons = {}
 
 	for i = 1, 4 do
-		local texture = frame:CreateTexture(nil, "OVERLAY" )
-		texture:SetPoint("LEFT", frame, "RIGHT", 18 * (i -1), 0)
+		local texture = frame:CreateTexture(nil, "OVERLAY")
+		texture:SetPoint("LEFT", frame, "RIGHT", 18 * (i - 1), 0)
 		texture:SetSize(16, 16)
 		texture:Show()
-		table.insert( frame.RoleIcons, texture)
+		table.insert(frame.RoleIcons, texture)
 	end
 
 	frame.DangerIcon = {}
 
-	local dangerTexture = frame:CreateTexture(nil, "OVERLAY" )
+	local dangerTexture = frame:CreateTexture(nil, "OVERLAY")
 	dangerTexture:SetSize(16, 16)
 	dangerTexture:SetPoint("CENTER", frame, "TOPLEFT", 0, 0)
 	dangerTexture:Show()
-	table.insert( frame.DangerIcon, dangerTexture)
+	table.insert(frame.DangerIcon, dangerTexture)
 
 	frame.DispellTypeIcons = {}
 
-	local dispellTypeTexture = frame:CreateTexture(nil, "OVERLAY" )
+	local dispellTypeTexture = frame:CreateTexture(nil, "OVERLAY")
 	dispellTypeTexture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -3, 3)
 	dispellTypeTexture:SetSize(16, 16)
 	dispellTypeTexture:Show()
-	table.insert( frame.DispellTypeIcons, dispellTypeTexture)
+	table.insert(frame.DispellTypeIcons, dispellTypeTexture)
 
 	frame.DispellTypeBorderEdges = {}
-	
-	for i, value in pairs (private.dispellTypeList) do
+
+	for i, value in pairs(private.dispellTypeList) do
 		local topTexture = frame:CreateTexture(nil, "ARTWORK")
 		topTexture:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
 		topTexture:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
 		topTexture:SetHeight(3)
 		topTexture:Show()
-		
+
 		-- Bottom edge
 		local bottomTexture = frame:CreateTexture(nil, "ARTWORK")
 		bottomTexture:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
 		bottomTexture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
 		bottomTexture:SetHeight(3)
 		bottomTexture:Show()
-		
+
 		-- Left edge
 		local leftTexture = frame:CreateTexture(nil, "ARTWORK")
 		leftTexture:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
 		leftTexture:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
 		leftTexture:SetWidth(3)
 		leftTexture:Show()
-		
+
 		-- Right edge
 		local rightTexture = frame:CreateTexture(nil, "ARTWORK")
 		rightTexture:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
 		rightTexture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
 		rightTexture:SetWidth(3)
 		rightTexture:Show()
-		
-		frame.DispellTypeBorderEdges[i] = {topTexture, bottomTexture, leftTexture, rightTexture}
+
+		frame.DispellTypeBorderEdges[i] = { topTexture, bottomTexture, leftTexture, rightTexture }
 	end
 
 	handleAnchors(frame, false)

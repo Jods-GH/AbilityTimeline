@@ -19,9 +19,10 @@ local VOICES = {
 }
 for _, voice in ipairs(VOICES) do
     for _, line in ipairs(VOICE_LINES) do
-        SharedMedia:Register("sound", voice .. "_" .. line, [[Interface\AddOns\AbilityTimeline\Media\Sounds\]] .. voice .. [[\]] .. line .. [[.ogg]])
+        SharedMedia:Register("sound", voice .. "_" .. line,
+            [[Interface\AddOns\AbilityTimeline\Media\Sounds\]] .. voice .. [[\]] .. line .. [[.ogg]])
     end
-end 
+end
 
 local active_voices = {}
 

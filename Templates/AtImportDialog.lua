@@ -60,7 +60,7 @@ local function Constructor()
     frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
     frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
 
-    
+
     frame.titleBar = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     frame.titleBar:SetPoint("TOPLEFT", frame, "TOPLEFT", variables.titleBar.padding.x, variables.titleBar.padding.y)
     frame.titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", variables.titleBar.padding.x, variables.titleBar.padding.y)
@@ -89,7 +89,7 @@ local function Constructor()
         frame,
         "TOPLEFT",
         variables.contentFrame.padding.x,
-        - (variables.contentFrame.padding.y * 2 + frame.titleBar:GetHeight() + frame.subtitleBar:GetHeight())
+        -(variables.contentFrame.padding.y * 2 + frame.titleBar:GetHeight() + frame.subtitleBar:GetHeight())
     )
     contentFrame:SetPoint(
         "BOTTOMRIGHT",

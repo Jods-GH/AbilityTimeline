@@ -6,7 +6,7 @@ local variables = {
     width = 800,
     height = 500,
     ContentFramePadding = { x = 15, y = 15 },
-	Padding = { x = 2, y = 2 },
+    Padding = { x = 2, y = 2 },
     Footer = {
         height = 30,
     }
@@ -34,7 +34,7 @@ local function Constructor()
     frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
     frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
     frame:SetTitle(private.getLocalisation("SpellIconSettings"))
-    
+
     frame.Footer = CreateFrame("Frame", nil, frame)
     frame.Footer:SetHeight(30)
     frame.Footer:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT")
@@ -54,7 +54,7 @@ local function Constructor()
     end)
     frame.Footer.Urls:SetLayout("Flow")
     frame.Footer.Urls:SetPoint("BOTTOMRIGHT", frame.Footer, "BOTTOMRIGHT", -10, 3)
-    frame.Footer.Urls:SetPoint("TOPRIGHT", frame.Footer, "TOPRIGHT", -10, 3) 
+    frame.Footer.Urls:SetPoint("TOPRIGHT", frame.Footer, "TOPRIGHT", -10, 3)
     frame.Footer.Urls:SetWidth(60)
 
     frame.Footer.PatreonLink = AceGUI:Create("Icon")
@@ -63,10 +63,14 @@ local function Constructor()
     frame.Footer.PatreonLink:SetHeight(16)
     frame.Footer.PatreonLink:SetImage("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\Brands\\Patreon_logo.tga")
     frame.Footer.PatreonLink:SetCallback("OnClick", function()
-        if not private.TextCopyFrame then 
+        if not private.TextCopyFrame then
             private.TextCopyFrame = AceGUI:Create('AtTextCopyFrame')
         end
-        private.TextCopyFrame.frame.CloseButton:SetScript("OnClick", function() if private.TextCopyFrame and not private.TextCopyFrame:IsReleasing() then private.TextCopyFrame:Release() private.TextCopyFrame=nil end end)
+        private.TextCopyFrame.frame.CloseButton:SetScript("OnClick",
+            function() if private.TextCopyFrame and not private.TextCopyFrame:IsReleasing() then
+                    private.TextCopyFrame:Release()
+                    private.TextCopyFrame = nil
+                end end)
         private.TextCopyFrame.frame:SetPoint("TOP", UIParent, "TOP", 0, -50)
         private.TextCopyFrame.frame:Show()
         private.TextCopyFrame:SetValues('https://www.patreon.com/c/Jodsderechte')
@@ -80,15 +84,19 @@ local function Constructor()
     frame.Footer.DiscordLink:SetHeight(16)
     frame.Footer.DiscordLink:SetImage("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\Brands\\Discord_logo.tga")
     frame.Footer.DiscordLink:SetCallback("OnClick", function()
-        if not private.TextCopyFrame then 
+        if not private.TextCopyFrame then
             private.TextCopyFrame = AceGUI:Create('AtTextCopyFrame')
         end
-        private.TextCopyFrame.frame.CloseButton:SetScript("OnClick", function() if private.TextCopyFrame then private.TextCopyFrame:Release() private.TextCopyFrame=nil end end)
+        private.TextCopyFrame.frame.CloseButton:SetScript("OnClick",
+            function() if private.TextCopyFrame then
+                    private.TextCopyFrame:Release()
+                    private.TextCopyFrame = nil
+                end end)
         private.TextCopyFrame.frame:SetPoint("TOP", UIParent, "TOP", 0, -50)
         private.TextCopyFrame.frame:Show()
         private.TextCopyFrame:SetValues('https://discord.com/invite/v3gYmYamGJ')
     end)
-    
+
     private.AddFrameTooltip(frame.Footer.DiscordLink.frame, "DiscordDescription")
     frame.Footer.Urls:AddChild(frame.Footer.DiscordLink)
 
@@ -99,24 +107,24 @@ local function Constructor()
     frame:Show()
 
     local contentFrameName = Type .. "ContentFrame" .. count
-	local contentFrame = CreateFrame("Frame", contentFrameName, frame)
+    local contentFrame = CreateFrame("Frame", contentFrameName, frame)
     contentFrame:ClearAllPoints()
-	contentFrame:SetPoint(
-		"TOPLEFT",
-		frame,
-		"TOPLEFT",
-		variables.Padding.x + variables.ContentFramePadding.x,
-		-variables.ContentFramePadding.y - frame.TitleContainer:GetHeight()
-	)
-	contentFrame:SetPoint(
-		"BOTTOMRIGHT",
-		frame,
-		"BOTTOM",
+    contentFrame:SetPoint(
+        "TOPLEFT",
+        frame,
+        "TOPLEFT",
+        variables.Padding.x + variables.ContentFramePadding.x,
+        -variables.ContentFramePadding.y - frame.TitleContainer:GetHeight()
+    )
+    contentFrame:SetPoint(
+        "BOTTOMRIGHT",
+        frame,
+        "BOTTOM",
         0,
         variables.Footer.height
-	)
+    )
     local rightContentFrameName = Type .. "RightContentFrame" .. count
-    local rightContentFrame = CreateFrame("Frame", rightContentFrameName, frame , "BackdropTemplate")
+    local rightContentFrame = CreateFrame("Frame", rightContentFrameName, frame, "BackdropTemplate")
     rightContentFrame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
         tile = true,
@@ -125,18 +133,18 @@ local function Constructor()
         insets = { left = 32, right = 32, top = 48, bottom = 32 }
     })
     rightContentFrame:ClearAllPoints()
-	rightContentFrame:SetPoint(
-		"TOPLEFT",
-		frame,
-		"TOP",
-		variables.Padding.x,
-		-variables.ContentFramePadding.y - frame.TitleContainer:GetHeight()
-	)
-	rightContentFrame:SetPoint(
-		"BOTTOMRIGHT",
-		frame,
-		"BOTTOMRIGHT"
-	)
+    rightContentFrame:SetPoint(
+        "TOPLEFT",
+        frame,
+        "TOP",
+        variables.Padding.x,
+        -variables.ContentFramePadding.y - frame.TitleContainer:GetHeight()
+    )
+    rightContentFrame:SetPoint(
+        "BOTTOMRIGHT",
+        frame,
+        "BOTTOMRIGHT"
+    )
 
     local IconPreviewTitle = rightContentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     IconPreviewTitle:SetFontHeight(32)

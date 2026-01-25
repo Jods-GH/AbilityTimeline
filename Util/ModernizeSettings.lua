@@ -32,16 +32,17 @@ private.modernize = function()
     end
     if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].height then
         private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travelSize = private.db.global.timeline_frame
-        [private.ACTIVE_EDITMODE_LAYOUT].height
+            [private.ACTIVE_EDITMODE_LAYOUT].height
         private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].height = nil
     end
     if not private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].otherSize then
         private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].otherSize = private.db.global.timeline_frame
-        [private.ACTIVE_EDITMODE_LAYOUT].width
+            [private.ACTIVE_EDITMODE_LAYOUT].width
     end
 
     if not private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction then
-        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction = private.TIMELINE_DIRECTIONS.VERTICAL
+        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction = private.TIMELINE_DIRECTIONS
+        .VERTICAL
     end
 
     if not private.db.profile.icon_settings then
@@ -145,7 +146,7 @@ private.modernize = function()
         private.db.profile.big_icon_text_settings.text_anchor = "BOTTOM"
     end
 
-     if not private.db.profile.highlight_text_settings then
+    if not private.db.profile.highlight_text_settings then
         private.db.profile.highlight_text_settings = {}
     end
     if not private.db.profile.highlight_text_settings.fontSize then
@@ -174,7 +175,8 @@ private.modernize = function()
     end
 
     if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor then
-        private.db.profile.big_icon_text_settings.text_anchor =  private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor
+        private.db.profile.big_icon_text_settings.text_anchor = private.db.global.timeline_frame
+        [private.ACTIVE_EDITMODE_LAYOUT].text_anchor
         private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor = nil
     end
 
@@ -212,18 +214,18 @@ private.modernize = function()
                 color = { r = 1, g = 0, b = 0 },
                 useGlow = false,
                 glowType = private.GlowTypes.PROC,
-                glowColor = {r= 0.95, g= 0.95, b= 0.32, a= 1 },
+                glowColor = { r = 0.95, g = 0.95, b = 0.32, a = 1 },
             },
             {
                 time = 5,
                 color = { r = 1, g = 1, b = 0 },
                 useGlow = false,
                 glowType = private.GlowTypes.PROC,
-                glowColor = {r= 0.95, g= 0.95, b= 0.32, a= 1 },
+                glowColor = { r = 0.95, g = 0.95, b = 0.32, a = 1 },
             },
         }
     end
-    
+
     if private.db.profile.importMergeMode == nil then
         private.db.profile.importMergeMode = true
     end
@@ -241,7 +243,7 @@ private.modernize = function()
             highlight.glowType = private.GlowTypes.PROC
         end
         if highlight.glowColor == nil then
-            highlight.glowColor = {r= 0.95, g= 0.95, b= 0.32, a= 1 }
+            highlight.glowColor = { r = 0.95, g = 0.95, b = 0.32, a = 1 }
         end
     end
 end

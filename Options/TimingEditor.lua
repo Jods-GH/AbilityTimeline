@@ -10,7 +10,8 @@ local updateTimelineEditorFrame = function(encounterParams)
 end
 
 private.openTimingsEditor = function(encounterParams)
-    private.Debug("Opening timing editor (table) for encounter: " .. tostring(encounterParams.dungeonEncounterID or encounterParams.journalEncounterID or "nil"))
+    private.Debug("Opening timing editor (table) for encounter: " ..
+    tostring(encounterParams.dungeonEncounterID or encounterParams.journalEncounterID or "nil"))
     local frame = updateTimelineEditorFrame(encounterParams)
     frame.frame:Show()
 end
@@ -20,7 +21,11 @@ private.closeTimingsEditor = function()
     -- Close the timing editor
     private.Debug("Closing timing editor in function")
     local frame = private.TIMINGS_EDITOR_WINDOW
-    if not frame then private.Debug('frame notfound') private.Debug(private.TIMINGS_EDITOR_WINDOW, "AT_TIMINGS_EDITOR_WINDOW") return end
+    if not frame then
+        private.Debug('frame notfound')
+        private.Debug(private.TIMINGS_EDITOR_WINDOW, "AT_TIMINGS_EDITOR_WINDOW")
+        return
+    end
     frame:Release()
     private.TIMINGS_EDITOR_WINDOW = nil
 end

@@ -8,12 +8,12 @@ end)
 
 
 LibEditMode:RegisterCallback('rename', function(oldLayoutName, newLayoutName)
-	-- this will be called every time an Edit Mode layout is renamed
-	if private.db.global.timeline_frame and private.db.global.timeline_frame[oldLayoutName] then
-		local layout = CopyTable(private.db.global.timeline_frame[oldLayoutName])
+    -- this will be called every time an Edit Mode layout is renamed
+    if private.db.global.timeline_frame and private.db.global.timeline_frame[oldLayoutName] then
+        local layout = CopyTable(private.db.global.timeline_frame[oldLayoutName])
         private.db.global.timeline_frame[newLayoutName] = layout
         private.db.global.timeline_frame[oldLayoutName] = nil
-	end
+    end
 
     if private.db.global.text_highlight_frame and private.db.global.text_highlight_frame[oldLayoutName] then
         local layout = CopyTable(private.db.global.text_highlight_frame[oldLayoutName])
@@ -29,9 +29,9 @@ LibEditMode:RegisterCallback('rename', function(oldLayoutName, newLayoutName)
 end)
 
 LibEditMode:RegisterCallback('create', function(layoutName, layoutIndex, sourceLayoutName)
-	if not  private.db.global.timeline_frame then
-		private.db.global.timeline_frame = {}
-	end
+    if not private.db.global.timeline_frame then
+        private.db.global.timeline_frame = {}
+    end
 
     if not private.db.global.text_highlight_frame then
         private.db.global.text_highlight_frame = {}
@@ -40,7 +40,7 @@ LibEditMode:RegisterCallback('create', function(layoutName, layoutIndex, sourceL
         private.db.global.bigicon_frame = {}
     end
 
-    if sourceLayoutName then 
+    if sourceLayoutName then
         if private.db.global.timeline_frame[sourceLayoutName] then
             local layout = CopyTable(private.db.global.timeline_frame[sourceLayoutName])
             private.db.global.timeline_frame[layoutName] = layout
@@ -59,7 +59,6 @@ LibEditMode:RegisterCallback('create', function(layoutName, layoutIndex, sourceL
 end)
 
 LibEditMode:RegisterCallback('delete', function(layoutName)
-
     if private.db.global.timeline_frame and private.db.global.timeline_frame[layoutName] then
         private.db.global.timeline_frame[layoutName] = nil
     end

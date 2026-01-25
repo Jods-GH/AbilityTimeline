@@ -48,7 +48,7 @@ local function ApplySettings(self)
             coloredSpellName:Show()
         end
     else
-         for i, _ in pairs(self.frame.DispellTypeSpellNames) do
+        for i, _ in pairs(self.frame.DispellTypeSpellNames) do
             self.frame.DispellTypeSpellNames[i]:Hide()
         end
     end
@@ -112,9 +112,9 @@ local HandleTexts = function(widget, eventInfo, remainingDuration)
     local atlas = widget.frame.dispellTypeIcons[1]:GetAtlas()
     local alpha = widget.frame.dispellTypeIcons[1]:GetAlpha()
     local formatedText = string.format("%s in |c%s%i|r", eventInfo.spellName, textColor,
-            math.ceil(remainingDuration))
+        math.ceil(remainingDuration))
     if private.db.profile.highlight_text_settings.dispellIcons then
-         formatedText = string.format("|A:%s:20:20|a %s in |c%s%i|r", atlas, eventInfo.spellName, textColor,
+        formatedText = string.format("|A:%s:20:20|a %s in |c%s%i|r", atlas, eventInfo.spellName, textColor,
             math.ceil(remainingDuration))
     end
     widget.frame.SpellName:SetText(formatedText)

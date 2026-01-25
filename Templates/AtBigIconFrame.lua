@@ -67,11 +67,11 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.global.bigicon then
         private.db.global.bigicon = {}
     end
-    
+
     if not private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT] then
         private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT] = {}
     end
-    
+
     if not private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin then
         private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin = variables.margin
     end
@@ -80,13 +80,15 @@ end)
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
     local frame = CreateFrame("Frame", "AbilityTimelineBigIconFrame", UIParent)
-    local size = private.db and private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.size or variables.size
+    local size = private.db and private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.size or
+    variables.size
     frame:SetWidth(size)
     frame:SetHeight(size)
     frame:Show()
     private.Debug(frame, "AT_BIGICON_FRAME_BASE")
 
-    LibEditMode:AddFrame(frame, onPositionChanged, private.BigIcon.defaultPosition, "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline Big Icon")
+    LibEditMode:AddFrame(frame, onPositionChanged, private.BigIcon.defaultPosition,
+        "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline Big Icon")
     LibEditMode:AddFrameSettings(frame, {
         {
             name = private.getLocalisation("EnableBigIcon"),
@@ -161,7 +163,7 @@ local function Constructor()
             click = function() private.openBigIconSettings() end
         }
     }
-    LibEditMode:AddFrameSettingsButtons(frame, buttons) 
+    LibEditMode:AddFrameSettingsButtons(frame, buttons)
 
     ---@class AtBigIconFrame : AceGUIWidget
     local widget = {

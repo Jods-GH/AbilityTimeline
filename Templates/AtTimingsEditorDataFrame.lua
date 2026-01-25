@@ -579,9 +579,9 @@ local function OpenReminderDialog(self, reminderIndex)
             return
         end
         local startTimeAfter = tonumber(startTimerAfterBox:GetText())
-        local spellId = tonumber(spellIdBox:GetText())
-        local spellInfo  = spellId and C_Spell.GetSpellInfo(spellId) or nil
-        local reminder = {
+        local spellId        = tonumber(spellIdBox:GetText())
+        local spellInfo      = spellId and C_Spell.GetSpellInfo(spellId) or nil
+        local reminder       = {
             name = nameBox:GetText() ~= "" and nameBox:GetText() or nil,
             spellId = spellId,
             spellName = spellInfo and spellInfo.name or nil,
@@ -646,17 +646,18 @@ local function loadReminders(self, encounterID)
 end
 
 local function SetEncounter(self, encounterParams)
-
     assert(type(encounterParams) == "table", "SetEncounter requires a table parameter")
-    assert(encounterParams.journalEncounterID and encounterParams.journalInstanceID or encounterParams.dungeonEncounterID,
+    assert(
+        encounterParams.journalEncounterID and encounterParams.journalInstanceID or encounterParams.dungeonEncounterID,
         "SetEncounter requires journalEncounterID, journalInstanceID, and dungeonEncounterID")
-    self.journalEncounterID = encounterParams.journalEncounterID 
-    self.journalInstanceID = encounterParams.journalInstanceID 
-    self.encounterID =encounterParams.dungeonEncounterID
+    self.journalEncounterID = encounterParams.journalEncounterID
+    self.journalInstanceID = encounterParams.journalInstanceID
+    self.encounterID = encounterParams.dungeonEncounterID
 
     local instanceName = EJ_GetInstanceInfo(self.journalInstanceID)
     local encounterName = EJ_GetEncounterInfo(self.journalEncounterID)
-    self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), instanceName, encounterName))
+    self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), instanceName,
+        encounterName))
     -- Clear any existing pins/rows before loading new encounter data
     clearPins(self)
     clearReminderRows(self)
@@ -722,7 +723,7 @@ local function Constructor()
     importButton:SetRelativeWidth(1)
     importButton:SetHeight(20)
     controlsContainer:AddChild(importButton)
-    
+
     local exportButton = AceGUI:Create("Button")
     exportButton:SetText(private.getLocalisation("ReminderExportButton"))
     exportButton:SetRelativeWidth(1)

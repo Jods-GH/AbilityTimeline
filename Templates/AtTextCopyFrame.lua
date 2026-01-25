@@ -14,8 +14,8 @@ local variables = {
 
 ---@param self AtTextCopyFrame
 local function OnAcquire(self)
-    self.Content.frame:Show() 
-    self.EditBox.frame:Show() 
+    self.Content.frame:Show()
+    self.EditBox.frame:Show()
     self.Hint:Show()
     self.CloseButton:Show()
 end
@@ -24,8 +24,8 @@ end
 local function OnRelease(self)
     self.EditBox:SetText('')
     self.EditBox.editbox:SetScript("OnKeyUp", nil)
-    self.Content.frame:Hide() 
-    self.EditBox.frame:Hide() 
+    self.Content.frame:Hide()
+    self.EditBox.frame:Hide()
     self.Hint:Hide()
     self.CloseButton:Hide()
 end
@@ -33,15 +33,15 @@ end
 local activeText = ""
 local function RegisterKeyBinds(widget)
     widget.EditBox.editbox:SetScript("OnKeyUp", function(self, key)
-       if IsControlKeyDown() then
-        -- handle copy or cut
-        if key == "C" or key == "X" then
-            if widget and widget.frame then
-                widget.frame.CloseButton:Click()
-                widget.EditBox.editbox:SetScript("OnKeyUp", nil)
-            end       
+        if IsControlKeyDown() then
+            -- handle copy or cut
+            if key == "C" or key == "X" then
+                if widget and widget.frame then
+                    widget.frame.CloseButton:Click()
+                    widget.EditBox.editbox:SetScript("OnKeyUp", nil)
+                end
+            end
         end
-      end
     end)
     widget.EditBox.editbox:SetScript("OnTextChanged", function(self)
         self:SetText(activeText)
@@ -77,7 +77,8 @@ local function Constructor()
     frame.Content = AceGUI:Create("SimpleGroup")
     frame.Content:SetParent(frame)
     frame.Content:SetPoint("TOPLEFT", frame, "TOPLEFT", variables.editBoxOffset.x, -variables.editBoxOffset.y - 30)
-    frame.Content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -variables.editBoxOffset.x, variables.editBoxOffset.y + 30)
+    frame.Content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -variables.editBoxOffset.x,
+    variables.editBoxOffset.y + 30)
     frame.Content:SetLayout("Fill")
     frame.EditBox = AceGUI:Create("EditBox")
     frame.EditBox:SetLabel('')

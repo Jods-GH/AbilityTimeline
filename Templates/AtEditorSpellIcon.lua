@@ -26,28 +26,28 @@ end
 
 ---@param self AtEditorSpellIcon
 local function OnRelease(self)
-    
+
 end
 
 
 local SetAbility = function(self, icon, text)
-    self.frame.SpellIcon:SetImage(icon)
-    self.frame.SpellName:SetText(text)
+	self.frame.SpellIcon:SetImage(icon)
+	self.frame.SpellName:SetText(text)
 	self.frame.SpellIcon.frame:Show()
-    self.frame.SpellName.frame:Show()
+	self.frame.SpellName.frame:Show()
 end
 
 local function Constructor()
 	local count = AceGUI:GetNextWidgetNum(Type)
-    local frame = CreateFrame("Frame", Type .. count, UIParent, "BackdropTemplate")
-    frame:SetSize(variables.IconSize.width, variables.IconSize.height)
-	
-    frame.SpellIcon = AceGUI:Create("Icon")
+	local frame = CreateFrame("Frame", Type .. count, UIParent, "BackdropTemplate")
+	frame:SetSize(variables.IconSize.width, variables.IconSize.height)
+
+	frame.SpellIcon = AceGUI:Create("Icon")
 	frame.SpellIcon:SetImageSize(variables.IconSize.width, variables.IconSize.height)
-    frame.SpellIcon:SetPoint("LEFT", frame, "LEFT")
+	frame.SpellIcon:SetPoint("LEFT", frame, "LEFT")
 	frame.SpellName = AceGUI:Create("Label")
 	frame.SpellName:SetPoint("LEFT", frame.SpellIcon.frame, "RIGHT")
-    frame.SpellName:SetPoint("RIGHT", frame, "RIGHT")
+	frame.SpellName:SetPoint("RIGHT", frame, "RIGHT")
 
 
 	---@class AtEditorSpellIcon : AceGUIWidget
@@ -56,8 +56,8 @@ local function Constructor()
 		OnRelease = OnRelease,
 		type = Type,
 		count = count,
-        frame = frame,
-        SetAbility = SetAbility,
+		frame = frame,
+		SetAbility = SetAbility,
 	}
 
 	return AceGUI:RegisterAsWidget(widget)

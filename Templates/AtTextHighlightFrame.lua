@@ -63,8 +63,6 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
         private.TEXT_HIGHLIGHT_FRAME:SetPoint(private.db.global.text_highlight_frame[layoutName].point,
             private.db.global.text_highlight_frame[layoutName].x, private.db.global.text_highlight_frame[layoutName].y)
     end
-
-
 end)
 
 local function Constructor()
@@ -75,8 +73,9 @@ local function Constructor()
     frame:SetHeight(variables.height)
     frame:Show()
 
-    LibEditMode:AddFrame(frame, onPositionChanged, private.TextHighlight.defaultPosition, "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline Text Highlight")
-    
+    LibEditMode:AddFrame(frame, onPositionChanged, private.TextHighlight.defaultPosition,
+        "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline Text Highlight")
+
     LibEditMode:AddFrameSettings(frame, {
         {
             name = private.getLocalisation("EnableTextHighlight"),
@@ -141,7 +140,7 @@ local function Constructor()
             click = function() private.openHighlightTextSettings() end
         }
     }
-    LibEditMode:AddFrameSettingsButtons(frame, buttons) 
+    LibEditMode:AddFrameSettingsButtons(frame, buttons)
 
     ---@class AtTextHighlightFrame : AceGUIWidget
     local widget = {

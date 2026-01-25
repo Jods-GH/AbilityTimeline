@@ -10,7 +10,7 @@ private.Debug = function(debugValue, tableName)
                 DevTool:AddData(debugValue, tableName or "DebugTable")
                 return
             else
-            print("AbilityTimeline DEBUG (" .. tableName .. "):")
+                print("AbilityTimeline DEBUG (" .. tableName .. "):")
                 for k, v in pairs(debugValue) do
                     print("  " .. tostring(k) .. " = " .. tostring(v))
                 end

@@ -46,7 +46,7 @@ private.createReminders = function(encounterID)
     end
 end
 
-private.cancelSheduledReminders= function()
+private.cancelSheduledReminders = function()
     for _, timerObject in ipairs(private.sheduledReminders) do
         if timerObject and timerObject.Cancel then
             timerObject:Cancel()

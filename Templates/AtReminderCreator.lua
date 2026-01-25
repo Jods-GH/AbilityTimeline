@@ -62,7 +62,7 @@ local function Constructor()
     titleBar:SetText(private.getLocalisation("ReminderAddTitle"))
     titleBar:SetHeight(variables.titleBar.height)
 
-    local function SetTitle (self, title)
+    local function SetTitle(self, title)
         titleBar:SetText(title)
     end
 
