@@ -68,7 +68,7 @@ local createGeneralSettings = function(widget, parentWindow, iconSettings, maxIc
         widget:ApplySettings()
     end)
     scroll:AddChild(dangerIconSetting)
-    
+
 
     return scrollContainer
 end
@@ -93,15 +93,19 @@ local createHighlightTextGeneralSettings = function(widget, parentWindow, Settin
     end)
     scroll:AddChild(dispellIconSetting)
 
-    -- local dispellTextColorSetting = AceGUI:Create("CheckBox")
-    -- dispellTextColorSetting:SetLabel(private.getLocalisation("DispellTextColor"))
-    -- private.AddFrameTooltip(dispellTextColorSetting.frame, "DispellTextColorDescription")
-    -- dispellTextColorSetting:SetValue(Settings.dispellTextColor)
-    -- dispellTextColorSetting:SetCallback("OnValueChanged", function(_, _, value)
-    --     Settings.dispellTextColor = value
-    --     widget:ApplySettings()
-    -- end)
-    -- scroll:AddChild(dispellTextColorSetting)
+    local dispellTextColorSetting = AceGUI:Create("CheckBox")
+    dispellTextColorSetting:SetLabel(private.getLocalisation("DispellTextColor"))
+    private.AddFrameTooltip(dispellTextColorSetting.frame, "DispellTextColorDescription")
+    dispellTextColorSetting:SetValue(Settings.dispellTextColor)
+    dispellTextColorSetting:SetCallback("OnValueChanged", function(_, _, value)
+        Settings.dispellTextColor = value
+        if value then
+            widget.frame.SpellName:SetTextColor(0, 0.5019607843137255, 1)
+        else
+            widget.frame.SpellName:SetTextColor(1, 1, 1)
+        end
+    end)
+    scroll:AddChild(dispellTextColorSetting)
 
     -- local dangerIconSetting = AceGUI:Create("CheckBox")
     -- dangerIconSetting:SetLabel(private.getLocalisation("IconDangerIcon"))
@@ -148,7 +152,7 @@ local createTextSettings = function(widget, parentWindow, iconSettings, textSett
         elseif activeAnchor == "BOTTOM" then
             textSettings.text_anchor = "LEFT"
         end
-    elseif isVerticalEnabled then 
+    elseif isVerticalEnabled then
         if activeAnchor == "RIGHT" then
             textSettings.text_anchor = "TOP"
         elseif activeAnchor == "LEFT" then
@@ -397,7 +401,6 @@ local createHighlightTextTextSettings = function(widget, parentWindow, textSetti
     scroll:AddChild(textBackgroundTextureOffsetX)
 
     return scrollContainer
-
 end
 
 local createCooldownSubSettings
@@ -405,12 +408,14 @@ local createCooldownSubSettings
 ---@param parentGroup AceGUIWidget
 ---@param scrollContainer AceGUIWidget scroll container to do layout on after changes
 ---@param cooldownColorChanges table table of cooldown color changes expected to include time and color = {r,g,b}
-local handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, widget, cooldownColorChanges, disableGlowSettings, disableFontSettings) end -- this weird syntax is needed to allow recursion
-handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, widget, cooldownColorChanges, disableGlowSettings, disableFontSettings)
+local handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, widget, cooldownColorChanges,
+                                                  disableGlowSettings, disableFontSettings) end                                                             -- this weird syntax is needed to allow recursion
+handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, widget, cooldownColorChanges,
+                                            disableGlowSettings, disableFontSettings)
     parentGroup:ReleaseChildren()
     for i, value in pairs(cooldownColorChanges) do
         local time, color, useGlow, glowType, glowColor = value.time, value.color, value.useGlow, value.glowType,
-        value.glowColor
+            value.glowColor
         local group = AceGUI:Create("InlineGroup")
         group:SetLayout("Flow")
         group:SetFullWidth(true)
@@ -498,7 +503,8 @@ handleCooldownColorChangeOptions = function(parentGroup, scrollContainer, widget
     scrollContainer:DoLayout()
 end
 
-local addCooldownColorHighlightSettings = function(cooldownColorChangeGroup, scroll, widget, disableGlowSettings, disableFontSettings)
+local addCooldownColorHighlightSettings = function(cooldownColorChangeGroup, scroll, widget, disableGlowSettings,
+                                                   disableFontSettings)
     local cooldownColorChangeLabel = AceGUI:Create("Label")
     cooldownColorChangeLabel:SetText(private.getLocalisation("CooldownColorChanges"))
     cooldownColorChangeLabel:SetRelativeWidth(0.5)
@@ -522,7 +528,7 @@ local addCooldownColorHighlightSettings = function(cooldownColorChangeGroup, scr
         table.insert(private.db.profile.cooldown_settings.cooldown_highlight.highlights, {
             time = 10,
             color = private.db.profile.cooldown_settings.cooldown_color,
-            useGlow = false, 
+            useGlow = false,
             glowType = private.GlowTypes.PROC,
             glowColor = { r = 1, g = 1, b = 1, a = 1 },
         })
@@ -534,7 +540,7 @@ local addCooldownColorHighlightSettings = function(cooldownColorChangeGroup, scr
     cooldownColorChangeGroup:AddChild(cooldownColorChangeCreator)
 end
 
-createCooldownSubSettings = function(scroll, widget , disableGlowSettings, disableFontSettings)
+createCooldownSubSettings = function(scroll, widget, disableGlowSettings, disableFontSettings)
     scroll:ReleaseChildren()
     if not disableFontSettings then
         print("adding font settings")
@@ -665,11 +671,13 @@ local createSpellIconSettingsFrame = function()
         private.Debug("Selected tab: " .. value)
         tabGroup:ReleaseChildren()
         if value == "TextSettings" then
-            tabGroup:AddChild(createTextSettings(widget, private.SPELL_ICON_SETTINGS_WINDOW, private.db.profile.icon_settings, private.db.profile.text_settings, false))
+            tabGroup:AddChild(createTextSettings(widget, private.SPELL_ICON_SETTINGS_WINDOW,
+                private.db.profile.icon_settings, private.db.profile.text_settings, false))
         elseif value == "CooldownSettings" then
             tabGroup:AddChild(createCooldownSettings(widget, private.SPELL_ICON_SETTINGS_WINDOW))
         else
-            tabGroup:AddChild(createGeneralSettings(widget, private.SPELL_ICON_SETTINGS_WINDOW, private.db.profile.icon_settings, 100))
+            tabGroup:AddChild(createGeneralSettings(widget, private.SPELL_ICON_SETTINGS_WINDOW,
+                private.db.profile.icon_settings, 100))
         end
     end)
     tabGroup:SetFullWidth(true)
@@ -760,12 +768,14 @@ local createBigIconSettingsFrame = function()
         tabGroup:ReleaseChildren()
         if value == "TextSettings" then
             local isVerticalEnabled = (private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].grow_direction == "RIGHT") or
-            (private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].grow_direction == "LEFT")
-            tabGroup:AddChild(createTextSettings(widget, private.BIG_ICON_SETTINGS_WINDOW, private.db.profile.big_icon_settings, private.db.profile.big_icon_text_settings, isVerticalEnabled))
+                (private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].grow_direction == "LEFT")
+            tabGroup:AddChild(createTextSettings(widget, private.BIG_ICON_SETTINGS_WINDOW,
+                private.db.profile.big_icon_settings, private.db.profile.big_icon_text_settings, isVerticalEnabled))
         elseif value == "CooldownSettings" then
             tabGroup:AddChild(createCooldownSettings(widget, private.BIG_ICON_SETTINGS_WINDOW))
         else
-            tabGroup:AddChild(createGeneralSettings(widget, private.BIG_ICON_SETTINGS_WINDOW, private.db.profile.big_icon_settings, 150))
+            tabGroup:AddChild(createGeneralSettings(widget, private.BIG_ICON_SETTINGS_WINDOW,
+                private.db.profile.big_icon_settings, 150))
         end
     end)
     tabGroup:SetFullWidth(true)
@@ -819,20 +829,28 @@ local createHighlightTextSettingsFrame = function()
     widget:SetEventInfo(eventInfo, true)
     widget.startTime = GetTime()
     widget.duration = 5
+    if private.db.profile.highlight_text_settings.dispellTextColor then
+        widget.frame.SpellName:SetTextColor(0, 0.5019607843137255, 1)
+    else
+        widget.frame.SpellName:SetTextColor(1, 1, 1)
+    end
     widget.frame:SetScript("OnUpdate", function(self)
-            if widget.startTime + widget.duration < GetTime() then
-                widget.startTime = GetTime()
-            end
-            local remainingDuration = (widget.startTime + widget.duration) - GetTime()
-            local textColor = widget:GetTextColor(remainingDuration)
-            if private.db.profile.highlight_text_settings.dispellIcons then
-                self.SpellName:SetFormattedText("|A:%s:20:20|a %s in |c%s%i|r", 'icons_16x16_magic', eventInfo.spellName, textColor, math.ceil(remainingDuration))
-            else
-                self.SpellName:SetFormattedText("%s in |c%s%i|r", eventInfo.spellName, textColor, math.ceil(remainingDuration))       
-            end
-        end)
+        if widget.startTime + widget.duration < GetTime() then
+            widget.startTime = GetTime()
+        end
+        local remainingDuration = (widget.startTime + widget.duration) - GetTime()
+        local textColor = widget:GetTextColor(remainingDuration)
+        if private.db.profile.highlight_text_settings.dispellIcons then
+            self.SpellName:SetFormattedText("|A:%s:20:20|a %s in |c%s%i|r", 'icons_16x16_magic', eventInfo.spellName,
+                textColor, math.ceil(remainingDuration))
+        else
+            self.SpellName:SetFormattedText("%s in |c%s%i|r", eventInfo.spellName, textColor,
+                math.ceil(remainingDuration))
+        end
+    end)
     widget.frame:Show()
-    private.HIGHLIGHT_TEXT_SETTINGS_WINDOW.frame.CloseButton:SetScript("OnClick", function() private.closeHighlightTextSettings() end)
+    private.HIGHLIGHT_TEXT_SETTINGS_WINDOW.frame.CloseButton:SetScript("OnClick",
+        function() private.closeHighlightTextSettings() end)
     widget:ClearAllPoints()
     widget.frame:SetFrameStrata("DIALOG")
     widget.frame:SetPoint("CENTER", private.HIGHLIGHT_TEXT_SETTINGS_WINDOW.rightContent, "CENTER", 0, 0)
@@ -858,11 +876,13 @@ local createHighlightTextSettingsFrame = function()
         private.Debug("Selected tab: " .. value)
         tabGroup:ReleaseChildren()
         if value == "TextSettings" then
-            tabGroup:AddChild(createHighlightTextTextSettings(widget, private.HIGHLIGHT_TEXT_SETTINGS_WINDOW, private.db.profile.highlight_text_settings))
+            tabGroup:AddChild(createHighlightTextTextSettings(widget, private.HIGHLIGHT_TEXT_SETTINGS_WINDOW,
+                private.db.profile.highlight_text_settings))
         elseif value == "CooldownSettings" then
             tabGroup:AddChild(createCooldownSettings(widget, private.HIGHLIGHT_TEXT_SETTINGS_WINDOW, true, true))
         else
-            tabGroup:AddChild(createHighlightTextGeneralSettings(widget, private.HIGHLIGHT_TEXT_SETTINGS_WINDOW, private.db.profile.highlight_text_settings))
+            tabGroup:AddChild(createHighlightTextGeneralSettings(widget, private.HIGHLIGHT_TEXT_SETTINGS_WINDOW,
+                private.db.profile.highlight_text_settings))
         end
     end)
     tabGroup:SetFullWidth(true)
