@@ -223,13 +223,6 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 		if private.db.profile.big_icon_settings.dangerIcon then
 			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 1, widget.frame.DangerIcon)
 		end
-	else
-		widget.frame.DispellTypeIcons[1]:SetAtlas('icons_16x16_magic')
-		for _, edgeTexture in pairs(widget.frame.DispellTypeBorderEdges[3]) do
-			edgeTexture:SetColorTexture(private.dispellTypeList[3].color.r, private.dispellTypeList[3].color.g,
-				private.dispellTypeList[3].color.b, private.dispellTypeList[3].color.a)
-		end
-		widget.frame.DangerIcon[1]:SetAtlas('icons_16x16_deadly')
 	end
 
 	local xOffset = (private.db.profile.big_icon_settings.size + private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin) *

@@ -647,6 +647,14 @@ local createSpellIconSettingsFrame = function()
         end
         widget.HandleCooldown(widget.frame, math.ceil((widget.startTime + widget.duration) - GetTime()))
     end) -- loop cooldown display
+
+    widget.frame.DispellTypeIcons[1]:SetAtlas('icons_16x16_magic')
+    for _, edgeTexture in pairs(widget.frame.DispellTypeBorderEdges[3]) do
+        edgeTexture:SetColorTexture(private.dispellTypeList[3].color.r, private.dispellTypeList[3].color.g,
+            private.dispellTypeList[3].color.b, private.dispellTypeList[3].color.a)
+    end
+    widget.frame.DangerIcon[1]:SetAtlas('icons_16x16_deadly')
+
     widget.frame:Show()
     widget.frame:SetFrameStrata("DIALOG")
     widget.frame:SetPoint("CENTER", private.SPELL_ICON_SETTINGS_WINDOW.rightContent, "CENTER", 0, 0)
@@ -741,6 +749,12 @@ local createBigIconSettingsFrame = function()
         end
         widget.HandleCooldown(widget.frame, math.ceil((widget.startTime + widget.duration) - GetTime()))
     end) -- loop cooldown display
+    widget.frame.DispellTypeIcons[1]:SetAtlas('icons_16x16_magic')
+    for _, edgeTexture in pairs(widget.frame.DispellTypeBorderEdges[3]) do
+        edgeTexture:SetColorTexture(private.dispellTypeList[3].color.r, private.dispellTypeList[3].color.g,
+            private.dispellTypeList[3].color.b, private.dispellTypeList[3].color.a)
+    end
+    widget.frame.DangerIcon[1]:SetAtlas('icons_16x16_deadly')
     widget.frame:Show()
     private.BIG_ICON_SETTINGS_WINDOW.frame.CloseButton:SetScript("OnClick", function() private.closeBigIconSettings() end)
     widget:ClearAllPoints()

@@ -364,13 +364,6 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 				private.TRIGGER_HIGHLIGHT(self.eventInfo)
 			end
 		end)
-	else
-		self.frame.DispellTypeIcons[1]:SetAtlas('icons_16x16_magic')
-		for _, edgeTexture in pairs(self.frame.DispellTypeBorderEdges[3]) do
-			edgeTexture:SetColorTexture(private.dispellTypeList[3].color.r, private.dispellTypeList[3].color.g,
-				private.dispellTypeList[3].color.b, private.dispellTypeList[3].color.a)
-		end
-		self.frame.DangerIcon[1]:SetAtlas('icons_16x16_deadly')
 	end
 	self.frame:Show()
 end
