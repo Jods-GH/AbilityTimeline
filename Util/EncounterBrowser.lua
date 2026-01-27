@@ -92,7 +92,28 @@ local function ensureEJButton()
             local function applyTexture()
                 btn.texture:SetTexture("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga")
                 btn.texture:Show()
+
+                -- match skinning of EJ tabs if relevant for things like elvui
+                if EncounterJournalEncounterFrameInfoModelTab.backdrop then
+                    btn:CreateBackdrop('Transparent')
+                    btn.backdrop:SetInside(nil, 2, 2)
+                    btn:SetNormalTexture(EncounterJournalEncounterFrameInfoModelTab:GetNormalTexture())
+                    btn:SetPushedTexture(EncounterJournalEncounterFrameInfoModelTab:GetPushedTexture())
+                    btn:SetDisabledTexture(EncounterJournalEncounterFrameInfoModelTab:GetDisabledTexture())
+                    local highlight = EncounterJournalEncounterFrameInfoModelTab:GetHighlightTexture()
+                    if highlight then
+                        local texture = highlight:GetTexture()
+                        local blendMode = highlight:GetBlendMode()
+                        if texture then
+                            btn:SetHighlightTexture(texture, blendMode)
+                            btn:GetHighlightTexture():SetColorTexture(highlight:GetColorTexture())
+                            btn:GetHighlightTexture():SetInside(btn.backdrop:GetInside())
+                        end
+                    end
+                end
+
             end
+            
             applyTexture()
             btn:HookScript("OnShow", applyTexture)
 

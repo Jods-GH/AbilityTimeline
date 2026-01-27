@@ -92,7 +92,7 @@ local function Constructor()
     frame.Footer.Urls:SetLayout("Flow")
     frame.Footer.Urls:SetPoint("BOTTOMRIGHT", frame.Footer, "BOTTOMRIGHT", -10, 3)
     frame.Footer.Urls:SetPoint("TOPRIGHT", frame.Footer, "TOPRIGHT", -10, 3)
-    frame.Footer.Urls:SetWidth(60)
+    frame.Footer.Urls:SetWidth(70)
 
     frame.Footer.PatreonLink = AceGUI:Create("Icon")
     frame.Footer.PatreonLink:SetImageSize(16, 16)
