@@ -46,6 +46,12 @@ local function ApplySettings(self)
         for i, _ in pairs(private.dispellTypeList) do
             local coloredSpellName = self.frame.DispellTypeSpellNames[i]
             coloredSpellName:Show()
+             if private.db.profile.highlight_text_settings and private.db.profile.highlight_text_settings.font and private.db.profile.highlight_text_settings.fontSize then
+               coloredSpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.highlight_text_settings.font),
+                    private.db.profile.highlight_text_settings.fontSize, "OUTLINE")
+            elseif private.db.profile.highlight_text_settings and private.db.profile.highlight_text_settings.fontSize then
+                coloredSpellName:SetFontHeight(private.db.profile.highlight_text_settings.fontSize)
+            end
         end
     else
         for i, _ in pairs(self.frame.DispellTypeSpellNames) do
