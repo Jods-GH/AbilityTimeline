@@ -97,14 +97,32 @@ local function ensureEJButton()
                 if EncounterJournalEncounterFrameInfoModelTab.backdrop then
                     btn:CreateBackdrop('Transparent')
                     btn.backdrop:SetInside(nil, 2, 2)
-                    btn:SetNormalTexture(EncounterJournalEncounterFrameInfoModelTab:GetNormalTexture())
-                    btn:SetPushedTexture(EncounterJournalEncounterFrameInfoModelTab:GetPushedTexture())
-                    btn:SetDisabledTexture(EncounterJournalEncounterFrameInfoModelTab:GetDisabledTexture())
+                    local normalTexture = EncounterJournalEncounterFrameInfoModelTab:GetNormalTexture()
+                    if normalTexture then
+                        local texture = normalTexture:GetTexture()
+                         if texture then
+                            btn:SetNormalTexture(texture)
+                         end
+                    end
+                    local pushedTexture = EncounterJournalEncounterFrameInfoModelTab:GetPushedTexture()
+                    if pushedTexture then
+                        local texture = pushedTexture:GetTexture()
+                         if texture then
+                            btn:SetPushedTexture(texture)
+                         end
+                    end
+                    local disabledTexture = EncounterJournalEncounterFrameInfoModelTab:GetDisabledTexture()
+                    if disabledTexture then
+                        local texture = disabledTexture:GetTexture()
+                         if texture then
+                            btn:SetDisabledTexture(texture)
+                         end
+                    end
                     local highlight = EncounterJournalEncounterFrameInfoModelTab:GetHighlightTexture()
                     if highlight then
                         local texture = highlight:GetTexture()
                         local blendMode = highlight:GetBlendMode()
-                        if texture then
+                        if texture and blendMode then
                             btn:SetHighlightTexture(texture, blendMode)
                             btn:GetHighlightTexture():SetColorTexture(highlight:GetColorTexture())
                             btn:GetHighlightTexture():SetInside(btn.backdrop:GetInside())
