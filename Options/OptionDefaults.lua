@@ -15,5 +15,6 @@ private.OptionDefaults = {
 		},
 		disableAllOnEncounterEnd = true,
 		enableDNDMessage = true,
+		disableLoginMessage = false,
 	}
 }

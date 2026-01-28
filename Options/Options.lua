@@ -72,6 +72,17 @@ private.options = {
             .debugMode --Sets value of toggles depending on SavedVariables
       end,
     },
+    disableLoginMessage = {
+      name = private.getLocalisation("disableLoginMessage"),
+      desc = private.getLocalisation("disableLoginMessageDescription"),
+      order = 31,
+      width = "full",
+      type = "toggle",
+      set = function(info, val) private.db.profile.disableLoginMessage = val end, --Sets value of SavedVariables depending on toggles
+      get = function(info)
+        return private.db.profile.disableLoginMessage --Sets value of toggles depending on SavedVariables
+      end,
+    },
     disableAllOnEncounterEnd = {
       name = private.getLocalisation("disableAllOnEncounterEnd"),
       desc = private.getLocalisation("disableAllOnEncounterEndDescription"),

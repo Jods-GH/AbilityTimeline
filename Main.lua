@@ -10,7 +10,6 @@ function AbilityTimeline:OnInitialize()
     local buildVersion, buildNumber, buildDate, interfaceVersion, localizedVersion, buildInfo = GetBuildInfo()  -- Mainline
     assert(interfaceVersion >= 120000, private.getLocalisation("WrongWoWVersionMessage"))
     -- Called when the addon is loaded
-    AbilityTimeline:Print(private.getLocalisation("AccessOptionsMessage"))
     AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_ADDED")
     AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_REMOVED")
     AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED")
@@ -34,6 +33,9 @@ function AbilityTimeline:OnInitialize()
             rest = private.options
         }
     }
+    if not private.db.profile.disableLoginMessage then
+        AbilityTimeline:Print(private.getLocalisation("AccessOptionsMessage"))
+    end
     AceConfig:RegisterOptionsTable(appName, OptionTable) --
     AceConfigDialog:AddToBlizOptions(appName, appName)
     self:RegisterChatCommand("at", "SlashCommand")

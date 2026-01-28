@@ -41,6 +41,8 @@ if L then
     L["IconDangerIcon"] = "Enable Danger Icon"
     L["enableDNDMessageDescription"] = "Enables setting a 'Do Not Disturb' message when entering an encounter or Mythic+ dungeon."
     L["enableDNDMessage"] = "Enable 'Do Not Disturb' Message"
+    L["disableLoginMessage"] = "Disable Login Message"
+    L["disableLoginMessageDescription"] = "Disables the login message that shows how to open the Options."
 
     -- reminders
     L["ReminderEditTitle"] = "Edit Reminder"
