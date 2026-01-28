@@ -225,7 +225,7 @@ function AbilityTimeline:PullCommand(msg)
 end
 
 function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemaining, totalTime, informChat, initiatedByName)
-    local timeleft = tonumber(timeRemaining) or 35
+    local timeleft = tonumber(timeRemaining)
     local color
     local name = initiatedByName
     if initiatedByName and UnitClass(initiatedByName) then
@@ -244,6 +244,11 @@ function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemainin
 
     if name then
         overrideName = private.getLocalisation("PullTimerBy") .. " " .. WrapTextInColorCode(name, color)
+    end
+
+    if private.PullTimerEventId and C_EncounterTimeline.GetEventState(private.PullTimerEventId) and C_EncounterTimeline.GetEventState(private.PullTimerEventId) ==Enum.EncounterTimelineEventState.Active then
+        C_EncounterTimeline.CancelScriptEvent(private.PullTimerEventId)
+        private.PullTimerEventId = nil
     end
 
     local eventinfo = {
