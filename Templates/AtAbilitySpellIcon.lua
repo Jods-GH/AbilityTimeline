@@ -149,7 +149,9 @@ end
 local fixStateForBlocked = function(eventID, duration, timeElapsed, timeRemaining)
 	local state = C_EncounterTimeline.GetEventState(eventID)
 	local isBlocked = C_EncounterTimeline.IsEventBlocked(eventID)
-	if state == private.ENCOUNTER_STATES.Active and isBlocked then
+	if C_CVar.GetCVar("encounterTimelineHideQueuedCountdowns") == "1" then
+		return state
+	elseif state == private.ENCOUNTER_STATES.Active and isBlocked then
 		return private.ENCOUNTER_STATES.Blocked
 	elseif timeRemaining == 0 or timeElapsed >= duration then
 		return private.ENCOUNTER_STATES.Blocked
@@ -325,6 +327,10 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 			local isStopped = isStoppedForPosition(state)
 			if not timeElapsed or timeElapsed < 0 then timeElapsed = self.eventInfo.duration end
 			if not timeRemaining or timeRemaining < 0 then timeRemaining = 0 end
+			if state == private.ENCOUNTER_STATES.Active and timeRemaining == 0 then
+				private.removeAtIconFrame(self.eventInfo.id, 'PlayFinishAnimation')
+				return	
+			end
 			self.isStopped = isStopped
 			if state ~= self.state then
 				self.state = state

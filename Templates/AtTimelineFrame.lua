@@ -307,6 +307,18 @@ local function SetupEditModeSettings(frame)
             maxValue = 1000,
             valueStep = 1,
         },
+        {
+            name = COMBAT_WARNINGS_HIDE_QUEUED_COUNTDOWNS_LABEL,
+            desc = COMBAT_WARNINGS_HIDE_QUEUED_COUNTDOWNS_TOOLTIP,
+            kind = LibEditMode.SettingType.Checkbox,
+            default = false,
+            get = function(layoutName)
+                return C_CVar.GetCVar("encounterTimelineHideQueuedCountdowns") == "1" and true or false
+            end,
+            set = function(layoutName, value)
+                C_CVar.SetCVar("encounterTimelineHideQueuedCountdowns", value and "1" or "0")
+            end,
+        },
         -- {
         --     name = 'Style',
         --     kind = LibEditMode.SettingType.Dropdown,

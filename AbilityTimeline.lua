@@ -54,20 +54,21 @@ private.ENCOUNTER_STATES               = {
    Blocked = 4,
 }
 
-local function removeFrame(eventID, animation)
+private.removeAtIconFrame = function(eventID, animation)
    local frame = activeFrames[eventID]
    if frame then
       frame.frame:Hide()
       frame:Release()
+      activeFrames[eventID] = nil
    end
 end
 
 private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED = function(self, eventID)
    local newState = C_EncounterTimeline.GetEventState(eventID)
    if newState == private.ENCOUNTER_STATES.Finished then
-      removeFrame(eventID, 'PlayFinishAnimation')
+      private.removeAtIconFrame(eventID, 'PlayFinishAnimation')
    elseif newState == private.ENCOUNTER_STATES.Canceled then
-      removeFrame(eventID, 'PlayCancelAnimation')
+      private.removeAtIconFrame(eventID, 'PlayCancelAnimation')
    elseif newState == private.ENCOUNTER_STATES.Paused then
    elseif newState == private.ENCOUNTER_STATES.Active then
    end
