@@ -8,7 +8,6 @@ local variables = {
 		width = 44,
 		height = 44,
 	},
-	IconMargin = 5,
 	IconZoom = 0.7,
 	TextOffset = {
 		x = 10,
@@ -110,9 +109,9 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 	local isMoving = false
 	if isStopped then
 		if private.db.profile.text_settings.text_anchor == 'RIGHT' then
-			timelineOtherPosition = 0 - iconSize - variables.IconMargin
+			timelineOtherPosition = 0 - iconSize - private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 		else
-			timelineOtherPosition = iconSize + variables.IconMargin
+			timelineOtherPosition = iconSize + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 		end
 	end
 	if not (remainingDuration < private.AT_THRESHHOLD_TIME) then
@@ -181,10 +180,10 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 	local sourceRemainingTimeInThreshold = sourceRemainingTime < private.AT_THRESHHOLD_TIME
 	local sourceState = fixStateForBlocked(sourceEventID, sourceEventInfo.duration, sourceTimeElapsed,
 		sourceRemainingTime)
-	local sourceUpperXBound = rawSourcePosX + (iconSize / 2) + variables.IconMargin
-	local sourceLowerXBound = rawSourcePosX - (iconSize / 2) - variables.IconMargin
-	local sourceUpperYBound = rawSourcePosY + (iconSize / 2) + variables.IconMargin
-	local sourceLowerYBound = rawSourcePosY - (iconSize / 2) - variables.IconMargin
+	local sourceUpperXBound = rawSourcePosX + (iconSize / 2) + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+	local sourceLowerXBound = rawSourcePosX - (iconSize / 2) - private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+	local sourceUpperYBound = rawSourcePosY + (iconSize / 2) + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+	local sourceLowerYBound = rawSourcePosY - (iconSize / 2) - private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 	for _, eventID in pairs(eventList) do
 		if eventID ~= sourceEventID then
 			local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(eventID)
@@ -195,10 +194,10 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 				totalEvents = totalEvents + 1
 				local x, y = getRawIconPosition(iconSize, timelineHeight, remainingTime,
 					isStoppedForPosition(state))
-				local upperXBound = x + iconSize / 2 + variables.IconMargin
-				local lowerXBound = x - iconSize / 2 - variables.IconMargin
-				local upperYBound = y + iconSize / 2 + variables.IconMargin
-				local lowerYBound = y - iconSize / 2 - variables.IconMargin
+				local upperXBound = x + iconSize / 2 + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+				local lowerXBound = x - iconSize / 2 - private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+				local upperYBound = y + iconSize / 2 + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+				local lowerYBound = y - iconSize / 2 - private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 				if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.VERTICAL then
 					if upperYBound >= sourceLowerYBound and upperYBound <= sourceUpperYBound or
 						lowerYBound >= sourceLowerYBound and lowerYBound <= sourceUpperYBound then
@@ -221,8 +220,8 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 			end
 		end
 	end
-	return shorterXConflictingEvents * (iconSize + variables.IconMargin),
-		shorterYConflictingEvents * (iconSize + variables.IconMargin)
+	return shorterXConflictingEvents * (iconSize + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin),
+		shorterYConflictingEvents * (iconSize + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin)
 end
 
 ---comment

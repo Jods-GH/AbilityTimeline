@@ -16,6 +16,7 @@ local variables             = {
         x = 410,
     },
     timelineTextureColor = CreateColor(1, 1, 1, 1),
+    IconMargin = 5,
 }
 private.TIMELINE_DIRECTIONS = {
     VERTICAL = "VERTICAL",
@@ -96,6 +97,10 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
 
     if not private.db.global.timeline_frame[layoutName].timeline_texture_color then
         private.db.global.timeline_frame[layoutName].timeline_texture_color = variables.timelineTextureColor
+    end
+
+    if not private.db.global.timeline_frame[layoutName].iconMargin then
+        private.db.global.timeline_frame[layoutName].iconMargin = variables.IconMargin
     end
 
 
@@ -350,6 +355,24 @@ local function SetupEditModeSettings(frame)
             end,
             minValue = 1,
             maxValue = 1000,
+            valueStep = 1,
+            hidden = function()
+                return not areVisualSettingsExpanded
+            end,
+        },
+        {
+            name = private.getLocalisation("IconMargin"),
+            desc = private.getLocalisation("IconMarginDescription"),
+            kind = LibEditMode.SettingType.Slider,
+            default = variables.iconMargin,
+            get = function(layoutName)
+                return private.db.global.timeline_frame[layoutName].iconMargin
+            end,
+            set = function(layoutName, value)
+                private.db.global.timeline_frame[layoutName].iconMargin = value
+            end,
+            minValue = 0,
+            maxValue = 50,
             valueStep = 1,
             hidden = function()
                 return not areVisualSettingsExpanded
