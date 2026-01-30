@@ -184,19 +184,21 @@ local function SetupEditModeSettings(frame)
             isRadio = false,
         })
     end
-
+    local areTravelSettingsExpanded = false
+    local areVisualSettingsExpanded = false
     LibEditMode:AddFrameSettings(frame, {
         {
-            name = private.getLocalisation("EnableTicks"),
-            desc = private.getLocalisation("EnableTicksDescription"),
-            kind = LibEditMode.SettingType.Checkbox,
-            default = true,
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].ticks_enabled
+            name = private.getLocalisation("ExpandTravelSettings"),
+            expandedLabel = private.getLocalisation("CollapseTravelSettings"),
+            collapsedLabel = private.getLocalisation("ExpandTravelSettings"),
+            desc = private.getLocalisation("TravelSettingsDescription"),
+            kind = LibEditMode.SettingType.Expander,
+            default = areTravelSettingsExpanded,
+            get = function()
+                return areTravelSettingsExpanded
             end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].ticks_enabled = value
-                HandleTickVisibility(layoutName)
+            set = function(_, value)
+                areTravelSettingsExpanded = value
             end,
         },
         {
@@ -210,6 +212,9 @@ local function SetupEditModeSettings(frame)
             set = function(layoutName, value)
                 private.db.global.timeline_frame[layoutName].inverse_travel_direction = value
                 HandleTickVisibility(layoutName)
+            end,
+            hidden = function()
+                return not areTravelSettingsExpanded
             end,
         },
         {
@@ -239,6 +244,39 @@ local function SetupEditModeSettings(frame)
                     isRadio = true,
                 },
             },
+            hidden = function()
+                return not areTravelSettingsExpanded
+            end,
+        },
+                {
+            name = private.getLocalisation("ExpandVisualSettings"),
+            expandedLabel = private.getLocalisation("CollapseVisualSettings"),
+            collapsedLabel = private.getLocalisation("ExpandVisualSettings"),
+            desc = private.getLocalisation("VisualSettingsDescription"),
+            kind = LibEditMode.SettingType.Expander,
+            default = areVisualSettingsExpanded,
+            get = function()
+                return areVisualSettingsExpanded
+            end,
+            set = function(_, value)
+                areVisualSettingsExpanded = value
+            end,
+        },
+        {
+            name = private.getLocalisation("EnableTicks"),
+            desc = private.getLocalisation("EnableTicksDescription"),
+            kind = LibEditMode.SettingType.Checkbox,
+            default = true,
+            get = function(layoutName)
+                return private.db.global.timeline_frame[layoutName].ticks_enabled
+            end,
+            set = function(layoutName, value)
+                private.db.global.timeline_frame[layoutName].ticks_enabled = value
+                HandleTickVisibility(layoutName)
+            end,
+             hidden = function()
+                return not areVisualSettingsExpanded
+            end,
         },
         {
             name = private.getLocalisation("TimelineTexture"),
@@ -255,7 +293,9 @@ local function SetupEditModeSettings(frame)
             default = variables.timelineTexture,
             height = 300,
             values = TextureSettings,
-
+            hidden = function()
+                return not areVisualSettingsExpanded
+            end,
         },
         {
             name = private.getLocalisation("TimelineTextureColor"),
@@ -271,7 +311,9 @@ local function SetupEditModeSettings(frame)
                 SetBackDrop(private.TIMELINE_FRAME.frame)
             end,
             default = variables.timelineTextureColor,
-
+            hidden = function()
+                return not areVisualSettingsExpanded
+            end,
         },
         {
             name = private.getLocalisation("TimelineOtherSize"),
@@ -289,6 +331,9 @@ local function SetupEditModeSettings(frame)
             minValue = 1,
             maxValue = 200,
             valueStep = 1,
+            hidden = function()
+                return not areVisualSettingsExpanded
+            end,
         },
         {
             name = private.getLocalisation("TimelineTravelSize"),
@@ -306,6 +351,9 @@ local function SetupEditModeSettings(frame)
             minValue = 1,
             maxValue = 1000,
             valueStep = 1,
+            hidden = function()
+                return not areVisualSettingsExpanded
+            end,
         },
         {
             name = COMBAT_WARNINGS_HIDE_QUEUED_COUNTDOWNS_LABEL,

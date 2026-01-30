@@ -43,6 +43,12 @@ if L then
     L["enableDNDMessage"] = "Enable 'Do Not Disturb' Message"
     L["disableLoginMessage"] = "Disable Login Message"
     L["disableLoginMessageDescription"] = "Disables the login message that shows how to open the Options."
+    L["VisualSettingsDescription"] = "Settings to customize the visual appearance of the timeline."
+    L["CollapseVisualSettings"] = "Collapse Visual Settings"
+    L["ExpandVisualSettings"] = "Expand Visual Settings"
+    L["TravelSettingsDescription"] = "Settings to customize the traveling of the icons on the timeline."
+    L["CollapseTravelSettings"] = "Collapse Travel Settings"
+    L["ExpandTravelSettings"] = "Expand Travel Settings"
 
     -- reminders
     L["ReminderEditTitle"] = "Edit Reminder"
