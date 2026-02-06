@@ -40,6 +40,7 @@ private.evaluateBigIconPositions = function()
             (visibleIcons)
             if frame.offset ~= yOffset or frame.growdirection ~= 'UP' then
                frame.offset = yOffset
+               frame:ClearAllPoints()
                frame:SetPoint("BOTTOM", private.BIGICON_FRAME.frame, "BOTTOM", 0, yOffset)
                frame.growdirection = 'UP'
             end
