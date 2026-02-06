@@ -32,6 +32,7 @@ Util\Tooltip.lua
 Util\EncounterBrowser.lua
 Util\ImportUtil.lua
 Util\ChatTransmission.lua
+Util\Zoom.lua
 
 # Locales
 Locales\enUS.lua
