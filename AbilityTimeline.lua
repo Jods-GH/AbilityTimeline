@@ -6,14 +6,14 @@ private.ENCOUNTER_TIMELINE_EVENT_ADDED = function(self, eventInfo, initialState)
    if not private.TIMELINE_FRAME.frame:IsVisible() then
       private.handleFrame(true)
    end
-   private.createTimelineIcon(eventInfo)
+   private.addEvent(eventInfo)
 end
 
 private.TIMELINE_TICKS                 = { 5 }
 private.AT_THRESHHOLD                  = 0.8
 private.AT_THRESHHOLD_TIME             = 10
 
-BIGICON_THRESHHOLD_TIME                = 5
+private.BIGICON_THRESHHOLD_TIME                = 5
 
 private.createTimelineIcon             = function(eventInfo)
    local frame = AceGUI:Create("AtAbilitySpellIcon")
@@ -21,29 +21,18 @@ private.createTimelineIcon             = function(eventInfo)
    activeFrames[eventInfo.id] = frame
    frame.frame:Show()
 
-   --frame:PlayCancelAnimation()
-   --frame:PlayIntroAnimation()
-   --frame.TrailAnimation:Play()
-   --frame:PlayHighlightAnimation()
-
-
-   -- On cooldown done we want to show a fadeout and then remove the icon from the pool
-   -- frame.Cooldown:SetScript("OnCooldownDone", function(self)
-   --    frame.fadeOutStarted = GetTime()
-   --    local fadeoutDuration = 0.2
-   --    -- frame:SetScript("OnUpdate", function(self)
-   --    --    local alpha = 1 - (GetTime() - self.fadeOutStarted) / fadeoutDuration
-   --    --    self:SetAlpha(alpha)
-   --    --    self:SetSize(40 + 20 * (1 - alpha), 40 + 20 * (1 - alpha))
-   --    -- end)
-   --    frame:PlayFinishAnimation()
-   --    C_Timer.After(fadeoutDuration, function()
-   --       private.ICON_POOL:Release(frame)
-   --    end)
-   -- end)
-   --C_ChatInfo.SendChatMessage(eventInfo.spellName , 'VOICE_TEXT') -- for some reason this can be send here but not after the duration is finished?
    private.Debug(frame, "AT_TIMELINE_ICON")
-   -- frame.border:SetVertexColor(DebuffTypeColor[eventInfo.dispelType])
+end
+local activeEvents = {}
+private.addEvent = function(eventInfo)
+   --local durationObject = C_EncounterTimeline.GetEventTimer(eventInfo.id)
+   --activeEvents[eventInfo.id]=durationObject
+   private.createTimelineIcon(eventInfo)
+end
+
+private.removeEvent = function (eventInfo)
+   activeEvents[eventInfo.id] = nil
+   private.removeAtIconFrame(eventInfo.id)
 end
 
 private.ENCOUNTER_STATES               = {
@@ -54,7 +43,7 @@ private.ENCOUNTER_STATES               = {
    Blocked = 4,
 }
 
-private.removeAtIconFrame = function(eventID, animation)
+private.removeAtIconFrame = function(eventID)
    local frame = activeFrames[eventID]
    if frame then
       frame.frame:Hide()
@@ -66,9 +55,9 @@ end
 private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED = function(self, eventID)
    local newState = C_EncounterTimeline.GetEventState(eventID)
    if newState == private.ENCOUNTER_STATES.Finished then
-      private.removeAtIconFrame(eventID, 'PlayFinishAnimation')
+      private.removeAtIconFrame(eventID)
    elseif newState == private.ENCOUNTER_STATES.Canceled then
-      private.removeAtIconFrame(eventID, 'PlayCancelAnimation')
+      private.removeAtIconFrame(eventID)
    elseif newState == private.ENCOUNTER_STATES.Paused then
    elseif newState == private.ENCOUNTER_STATES.Active then
    end
@@ -78,52 +67,19 @@ private.HIGHLIGHT_EVENTS = {
    BigIcons = {},
    HighlightTexts = {}
 }
+local highlightsTriggered = {}
+-- private.EventTicker = C_Timer.NewTicker(0.1, function ()
+--    for eventID, durationObject in pairs(activeEvents) do
+--       local timeLeft = durationObject:GetRemainingDuration()
+--       if timeLeft <= private.BIGICON_THRESHHOLD_TIME and timeLeft > 0 and not highlightsTriggered[eventID] then
+--          private.TRIGGER_HIGHLIGHT(C_EncounterTimeline.GetEventInfo(eventID))
+--       end
+--    end
+-- end)
 
-local function zoomAroundCenter(u, c, zoom)
-   return c + (u - c) * zoom
-end
-
-local function clamp(v, lo, hi)
-   if v < lo then return lo end
-   if v > hi then return hi end
-   return v
-end
-
-private.GetZoom = function(icon, zoom)
-   -- get existing texcoords (ULx, ULy, LLx, LLy, URx, URy, LRx, LRy)
-   local ULx, ULy, LLx, LLy, URx, URy, LRx, LRy = icon:GetTexCoord()
-
-   -- build min/max and center (handles non-full textures / atlas subrects)
-   local minU = math.min(ULx, LLx, URx, LRx)
-   local maxU = math.max(ULx, LLx, URx, LRx)
-   local minV = math.min(ULy, LLy, URy, LRy)
-   local maxV = math.max(ULy, LLy, URy, LRy)
-
-   local centerU = (minU + maxU) * 0.5
-   local centerV = (minV + maxV) * 0.5
-
-   local nULx = clamp(zoomAroundCenter(ULx, centerU, zoom), 0, 1)
-   local nULy = clamp(zoomAroundCenter(ULy, centerV, zoom), 0, 1)
-   local nLLx = clamp(zoomAroundCenter(LLx, centerU, zoom), 0, 1)
-   local nLLy = clamp(zoomAroundCenter(LLy, centerV, zoom), 0, 1)
-   local nURx = clamp(zoomAroundCenter(URx, centerU, zoom), 0, 1)
-   local nURy = clamp(zoomAroundCenter(URy, centerV, zoom), 0, 1)
-   local nLRx = clamp(zoomAroundCenter(LRx, centerU, zoom), 0, 1)
-   local nLRy = clamp(zoomAroundCenter(LRy, centerV, zoom), 0, 1)
-
-   return nULx, nULy, nLLx, nLLy, nURx, nURy, nLRx, nLRy
-end
-
-private.ResetZoom = function(icon)
-   icon:SetTexCoord(0, 1, 0, 1)
-end
-
-private.SetZoom = function(icon, zoom)
-   local nULx, nULy, nLLx, nLLy, nURx, nURy, nLRx, nLRy = private.GetZoom(icon, zoom)
-   icon:SetTexCoord(nULx, nULy, nLLx, nLLy, nURx, nURy, nLRx, nLRy)
-end
 
 private.TRIGGER_HIGHLIGHT = function(eventInfo)
+   highlightsTriggered[eventInfo.id] = true
    if private.db.global.bigicon_enabled[private.ACTIVE_EDITMODE_LAYOUT] and not private.HIGHLIGHT_EVENTS.BigIcons[eventInfo.id] then
       private.createBigIcon(eventInfo)
    end

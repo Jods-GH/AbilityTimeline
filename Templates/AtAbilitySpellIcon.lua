@@ -364,7 +364,7 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 				end
 			end
 
-			local inBigIconRange = (eventInfo.duration - timeElapsed - BIGICON_THRESHHOLD_TIME)
+			local inBigIconRange = (eventInfo.duration - timeElapsed - private.BIGICON_THRESHHOLD_TIME)
 			if inBigIconRange < 0.01 and inBigIconRange > -0.01 then -- this is not gonna work if fps are to low
 				private.TRIGGER_HIGHLIGHT(self.eventInfo)
 			end
