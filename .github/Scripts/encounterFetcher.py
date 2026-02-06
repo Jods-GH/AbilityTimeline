@@ -19,7 +19,8 @@ BLIZZARD_OAUTH_URL = "https://oauth.battle.net/token"
 BLIZZARD_API_BASE = "https://us.api.blizzard.com"
 BLIZZARD_NAMESPACE = "dynamic-us"
 
-RAIDEROI_API_URL = "https://raider.io/api/v1/mythic-plus/static-data?expansion_id=11" # Midnight needs adjustment when new expac releases
+RAIDERIO_DUNGEON_API_URL = "https://raider.io/api/v1/mythic-plus/static-data?expansion_id=" # Midnight needs adjustment when new expac releases
+RAIDERIO_RAID_API_URL = "https://raider.io/api/v1/raiding/static-data?expansion_id="
 WAGO_CSV_URL = "https://wago.tools/db2/JournalEncounter/csv"
 
 DATA_DIR = os.path.join("Data")
@@ -33,6 +34,25 @@ log = logging.getLogger("generate-lua")
 # --- Helpers ---
 class BlizzardAuthError(Exception):
     pass
+
+def fetch_raidbots_metadata():
+    """Fetch metadata from raidbots to derive expansion ID from WoW build version.
+    
+    Returns (expansion_id, wow_build) tuple. Example: wow_build "11.1.7.61559" -> expansion_id 10
+    """
+    print("\nFetching raidbots metadata...")
+    url = "https://www.raidbots.com/static/data/live/metadata.json"
+    
+    metadata = fetch_json(url)
+    
+    wow_build = metadata.get("wowBuild", "")  # e.g. "11.1.7.61559"
+    if wow_build:
+        major = int(wow_build.split(".", 1)[0])  # e.g. 11
+        expansion_id = major - 1  # 11 -> expansion 10 (TWW)
+        print(f"[OK] WoW build: {wow_build} -> expansion_id: {expansion_id}")
+        return expansion_id, wow_build
+    
+    raise Exception(f"WoW build not found in raidbots metadata. {metadata}")
 
 
 def get_blizzard_token(client_id: str, client_secret: str, oauth_url: str, retries: int = 3, backoff: float = 1.0) -> str:
@@ -182,10 +202,10 @@ def main():
     if not BLIZZARD_CLIENT_ID or not BLIZZARD_CLIENT_SECRET:
         log.error("BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET must be set in environment.")
         sys.exit(2)
-
-    log.info("Fetching Raider.IO static data from %s", RAIDEROI_API_URL)
+    expansion_id, wow_build = fetch_raidbots_metadata()
+    log.info("Fetching Raider.IO static data from %s%s", RAIDERIO_DUNGEON_API_URL, expansion_id)
     try:
-        ri_data = fetch_json(RAIDEROI_API_URL)
+        ri_data = fetch_json(f"{RAIDERIO_DUNGEON_API_URL}{expansion_id}")
     except Exception as e:
         log.error("Failed to fetch Raider.IO data: %s", e)
         sys.exit(3)
