@@ -85,7 +85,7 @@ local function ensureEJButton()
             local btn = CreateFrame("Button", "AbilityTimelineEJAddButton", infoFrame, "EncounterTabTemplate")
             btn:SetPoint("TOP", EncounterJournalEncounterFrameInfoModelTab, "BOTTOM", 0, 0)
 
-            btn.texture = btn:CreateTexture(nil, "ARTWORK")
+            btn.texture = btn:CreateTexture(nil, "OVERLAY")
             btn.texture:SetAllPoints()
 
             -- for some reason the texture sometimes randomly vanishes so we just reset it on show TODO fix properly
@@ -93,41 +93,18 @@ local function ensureEJButton()
                 btn.texture:SetTexture("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga")
                 btn.texture:Show()
 
-                -- match skinning of EJ tabs if relevant for things like elvui
-                if EncounterJournalEncounterFrameInfoModelTab.backdrop then
+                -- match skinning of EJ tabs if relevant for elvui
+                if C_AddOns.IsAddOnLoaded("ElvUI") and ElvUI then
                     btn:CreateBackdrop('Transparent')
                     btn.backdrop:SetInside(nil, 2, 2)
-                    local normalTexture = EncounterJournalEncounterFrameInfoModelTab:GetNormalTexture()
-                    if normalTexture then
-                        local texture = normalTexture:GetTexture()
-                         if texture then
-                            btn:SetNormalTexture(texture)
-                         end
-                    end
-                    local pushedTexture = EncounterJournalEncounterFrameInfoModelTab:GetPushedTexture()
-                    if pushedTexture then
-                        local texture = pushedTexture:GetTexture()
-                         if texture then
-                            btn:SetPushedTexture(texture)
-                         end
-                    end
-                    local disabledTexture = EncounterJournalEncounterFrameInfoModelTab:GetDisabledTexture()
-                    if disabledTexture then
-                        local texture = disabledTexture:GetTexture()
-                         if texture then
-                            btn:SetDisabledTexture(texture)
-                         end
-                    end
-                    local highlight = EncounterJournalEncounterFrameInfoModelTab:GetHighlightTexture()
-                    if highlight then
-                        local texture = highlight:GetTexture()
-                        local blendMode = highlight:GetBlendMode()
-                        if texture and blendMode then
-                            btn:SetHighlightTexture(texture, blendMode)
-                            btn:GetHighlightTexture():SetColorTexture(highlight:GetColorTexture())
-                            btn:GetHighlightTexture():SetInside(btn.backdrop:GetInside())
-                        end
-                    end
+                    btn:SetNormalTexture(0)
+                    btn:SetPushedTexture(0)
+                    btn:SetDisabledTexture(0)
+                    local E, L, V, P, G = unpack(ElvUI)
+                    local HighlightTexture = btn:GetHighlightTexture()
+                    local r, g, b = unpack(E.media.rgbvaluecolor)
+                    HighlightTexture:SetColorTexture(r, g, b, .2)
+                    HighlightTexture:SetInside(btn.backdrop)
                 end
 
             end

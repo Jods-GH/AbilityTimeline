@@ -6,7 +6,7 @@
 ## Author: Jods
 ## X-Curse-Project-ID: 1365171
 ## X-Wago-ID: qGYMWpGg
-## OptionalDeps: Ace3, DevTool, CustomNames
+## OptionalDeps: Ace3, DevTool, CustomNames, ElvUI
 ## AddonCompartmentFunc: AbilityTimeline_AddonCompartmentFunction
 ## IconTexture: Interface\AddOns\AbilityTimeline\Media\Logo.tga
 ## Category-enUS: Dungeons & Raids
