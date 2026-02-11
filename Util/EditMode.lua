@@ -74,4 +74,7 @@ end)
 
 LibEditMode:RegisterCallback('exit', function()
     C_EncounterTimeline.CancelEditModeEvents()
+    if not C_EncounterTimeline.HasActiveEvents() then
+        private.handleFrame(false)
+    end
 end)
