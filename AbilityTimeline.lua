@@ -56,8 +56,10 @@ private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED = function(self, eventID)
    local newState = C_EncounterTimeline.GetEventState(eventID)
    if newState == private.ENCOUNTER_STATES.Finished then
       private.removeAtIconFrame(eventID)
+      private.handleFrame(false)
    elseif newState == private.ENCOUNTER_STATES.Canceled then
       private.removeAtIconFrame(eventID)
+      private.handleFrame(false)
    elseif newState == private.ENCOUNTER_STATES.Paused then
    elseif newState == private.ENCOUNTER_STATES.Active then
    end

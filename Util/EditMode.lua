@@ -71,3 +71,7 @@ LibEditMode:RegisterCallback('delete', function(layoutName)
         private.db.global.bigicon_frame[layoutName] = nil
     end
 end)
+
+LibEditMode:RegisterCallback('exit', function()
+    C_EncounterTimeline.CancelEditModeEvents()
+end)

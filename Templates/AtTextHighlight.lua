@@ -147,7 +147,8 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
         HandleTexts(widget, eventInfo, eventInfo.duration)
         widget.frame:SetScript("OnUpdate", function(self)
             local remainingDuration = C_EncounterTimeline.GetEventTimeRemaining(widget.eventInfo.id)
-            if not remainingDuration or remainingDuration <= 0 then
+            local state = C_EncounterTimeline.GetEventState(widget.eventInfo.id)
+            if not remainingDuration or remainingDuration <= 0 or state ~= private.ENCOUNTER_STATES.Active then
                 widget:Release()
             else
                 HandleTexts(widget, eventInfo, remainingDuration)
