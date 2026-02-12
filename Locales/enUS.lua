@@ -43,6 +43,8 @@ if L then
     L["enableDNDMessage"] = "Enable 'Do Not Disturb' Message"
     L["disableLoginMessage"] = "Disable Login Message"
     L["disableLoginMessageDescription"] = "Disables the login message that shows how to open the Options."
+    L["disableReadyCheckDescription"] = "Disables showing ready check in the timeline."
+    L["disableReadyCheck"] = "Disable Ready Check"
 
     -- reminders
     L["ReminderEditTitle"] = "Edit Reminder"

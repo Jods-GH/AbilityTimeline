@@ -174,6 +174,10 @@ function AbilityTimeline:ENCOUNTER_END(event, encounterID, encounterName, diffic
 end
 
 function AbilityTimeline:READY_CHECK(event, initiator, readyCheckTimeLeft)
+    if private.db.profile.disableReadyCheck then
+        private.Debug("Ready check detected but reminders on ready check are disabled, not showing reminder.")
+        return
+    end
     local timeleft = tonumber(readyCheckTimeLeft) or 35
     local _, classFilename, _ = UnitClass(initiator)
     local _, _, _, argbHex = GetClassColor(classFilename)
