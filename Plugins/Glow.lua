@@ -1,4 +1,6 @@
-local addonName, private = ...
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 local CustomGlow = LibStub("LibCustomGlow-1.0")
 
 ---@class GlowType

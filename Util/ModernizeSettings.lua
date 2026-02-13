@@ -1,4 +1,6 @@
-local addonName, private = ...
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 
 private.modernize = function()
     if not private.db.global.timeline_frame then

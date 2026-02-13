@@ -1,6 +1,8 @@
-local addonName, private = ...
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 
----comment Prints debug value to chat or adds table to Devtool (when installed) when debugmode is enabled
+---Prints debug value to chat or adds table to Devtool (when installed) when debugmode is enabled
 ---@param debugValue any --value to print to chat or add to DevTool
 ---@param tableName string? --optional name for the table when using DevTool
 private.Debug = function(debugValue, tableName)

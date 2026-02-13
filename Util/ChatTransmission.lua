@@ -1,4 +1,6 @@
-local addonName, private = ...
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 local AceCom = LibStub("AceComm-3.0")
 local CHAT_LINK_FORMAT = "|cffffff00|Hgarrmission:abilitytimeline-%s:%i|h[Ability Timeline Reminder]|h|r"
 local CHAT_LINK_MESSAGE = "BetterTimeline Reminder: %i"

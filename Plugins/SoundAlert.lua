@@ -1,4 +1,6 @@
-local appName, private = ...
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 local SharedMedia = LibStub("LibSharedMedia-3.0")
 
 local VOICE_LINES = {

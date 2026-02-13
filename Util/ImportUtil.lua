@@ -1,4 +1,6 @@
-local addonName, private = ...
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 local CustomNames = C_AddOns.IsAddOnLoaded("CustomNames") and LibStub("CustomNames")
 private.ImportUtil = private.ImportUtil or {}
 local ImportUtil = private.ImportUtil

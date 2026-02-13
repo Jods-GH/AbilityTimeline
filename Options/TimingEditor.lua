@@ -1,5 +1,6 @@
-local appName, private = ...
-
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 local AceGUI = LibStub("AceGUI-3.0")
 
 local updateTimelineEditorFrame = function(encounterParams)

@@ -1,5 +1,6 @@
-local addonName, private = ...
-
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 -- Utility: Encounter registration and Encounter Journal integration
 -- Keeps reminders keyed by numeric encounterID and allows copying defaults from Data/ when available.
 

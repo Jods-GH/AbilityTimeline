@@ -1,4 +1,6 @@
-local addonName, private = ...
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 local LibEditMode = LibStub("LibEditMode")
 
 LibEditMode:RegisterCallback('layout', function(layoutName)

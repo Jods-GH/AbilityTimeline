@@ -1,4 +1,6 @@
-local addonName, private = ...
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 
 local function zoomAroundCenter(u, c, zoom)
    return c + (u - c) * zoom

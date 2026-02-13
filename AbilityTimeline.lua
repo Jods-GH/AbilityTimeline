@@ -1,4 +1,6 @@
-local addonName, private                       = ...
+local appName, app                             = ...
+---@class AbilityTimeline
+local private                                  = app
 local AceGUI                                   = LibStub("AceGUI-3.0")
 
 local activeFrames                             = {}
@@ -82,9 +84,9 @@ private.ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED = function(self, eventID)
    end
    local trackID = C_EncounterTimeline.GetEventTrack(eventID)
    local trackType = C_EncounterTimeline.GetTrackType(trackID)
-	if trackType == Enum.EncounterTimelineTrackType.Hidden then
+   if trackType == Enum.EncounterTimelineTrackType.Hidden then
       private.Debug("Hidden track, removing icon if exists for eventID", eventID)
-		private.removeAtIconFrame(eventID)
+      private.removeAtIconFrame(eventID)
       if not C_EncounterTimeline.HasAnyEvents() then
          private.handleFrame(false)
       end
@@ -95,7 +97,7 @@ private.ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED = function(self, eventID)
       end
       private.Debug("New event tracked, adding icon for eventID", eventID)
       private.addEvent(C_EncounterTimeline.GetEventInfo(eventID))
-	end
+   end
 end
 
 private.HIGHLIGHT_EVENTS                       = {

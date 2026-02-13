@@ -1,5 +1,6 @@
-local addonName, private = ...
-
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 
 private.FrameStrata = {
     PARENT = "PARENT",

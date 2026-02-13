@@ -1,4 +1,6 @@
-local _, private       = ...
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 
 
 private.AddFrameTooltip = function(frame, localisationKey)

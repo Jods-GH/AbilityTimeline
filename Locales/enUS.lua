@@ -1,5 +1,8 @@
-local appName, private = ...
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 local AceLocale = LibStub ('AceLocale-3.0')
+
 local L = AceLocale:NewLocale(appName, "enUS", true)
 
 if L then
