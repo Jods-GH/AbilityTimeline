@@ -24,6 +24,7 @@ function AbilityTimeline:OnInitialize()
     AbilityTimeline:RegisterEvent("ZONE_CHANGED_NEW_AREA")
     AbilityTimeline:RegisterEvent("CHALLENGE_MODE_RESET")
     AbilityTimeline:RegisterEvent("CHALLENGE_MODE_START")
+    AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED")
     private.db = LibStub("AceDB-3.0"):New("AbilityTimeline", private.OptionDefaults, true) -- Generates Saved Variables with default Values (if they don't already exist)
     private.Debug(private, "AT_Options")
     local OptionTable = {
@@ -130,6 +131,10 @@ end
 
 function AbilityTimeline:ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED(event, eventID, newState)
     private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED(self, eventID, newState)
+end
+
+function AbilityTimeline:ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED(event, eventID)
+    private.ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED(self, eventID)
 end
 
 function AbilityTimeline:PLAYER_ENTERING_WORLD()

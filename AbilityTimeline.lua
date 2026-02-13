@@ -27,11 +27,18 @@ local activeEvents                             = {}
 private.addEvent                               = function(eventInfo)
    --local durationObject = C_EncounterTimeline.GetEventTimer(eventInfo.id)
    --activeEvents[eventInfo.id]=durationObject
+   if GetCVar("encounterTimelineHideLongCountdowns") and GetCVar("encounterTimelineHideLongCountdowns") ~= "0" then
+      local trackID = C_EncounterTimeline.GetEventTrack(eventInfo.id)
+      local trackType = C_EncounterTimeline.GetTrackType(trackID)
+      if trackType == Enum.EncounterTimelineTrackType.Hidden then
+         private.Debug("Hidden track, not adding icon for eventID", eventInfo.id)
+         return
+      end
+   end
    private.createTimelineIcon(eventInfo)
 end
 
 private.removeEvent                            = function(eventInfo)
-   activeEvents[eventInfo.id] = nil
    private.removeAtIconFrame(eventInfo.id)
 end
 
@@ -67,6 +74,28 @@ private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED = function(self, eventID)
    elseif newState == private.ENCOUNTER_STATES.Paused then
    elseif newState == private.ENCOUNTER_STATES.Active then
    end
+end
+
+private.ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED = function(self, eventID)
+   if not GetCVar("encounterTimelineHideLongCountdowns") or GetCVar("encounterTimelineHideLongCountdowns") == "0" then
+      return
+   end
+   local trackID = C_EncounterTimeline.GetEventTrack(eventID)
+   local trackType = C_EncounterTimeline.GetTrackType(trackID)
+	if trackType == Enum.EncounterTimelineTrackType.Hidden then
+      private.Debug("Hidden track, removing icon if exists for eventID", eventID)
+		private.removeAtIconFrame(eventID)
+      if not C_EncounterTimeline.HasAnyEvents() then
+         private.handleFrame(false)
+      end
+   elseif not activeEvents[eventID] then
+      local remainingTime = C_EncounterTimeline.GetEventTimeRemaining(eventID)
+      if remainingTime <= 1 then
+         return
+      end
+      private.Debug("New event tracked, adding icon for eventID", eventID)
+      private.addEvent(C_EncounterTimeline.GetEventInfo(eventID))
+	end
 end
 
 private.HIGHLIGHT_EVENTS                       = {
@@ -124,6 +153,11 @@ private.handleFrame = function(show)
    else
       if private.TIMELINE_FRAME.frame then
          private.TIMELINE_FRAME.frame:Hide()
+      end
+      for eventID, frame in pairs(activeFrames) do
+         frame.frame:Hide()
+         frame:Release()
+         activeFrames[eventID] = nil
       end
    end
 end
