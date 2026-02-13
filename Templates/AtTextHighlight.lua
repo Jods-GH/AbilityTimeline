@@ -26,6 +26,10 @@ local function ApplySettings(self)
         )
     end
 
+    if private.db.profile.highlight_text_settings and private.db.profile.highlight_text_settings.strata then
+		self.frame:SetFrameStrata(private.db.profile.highlight_text_settings.strata)
+	end
+
     if private.db.profile.highlight_text_settings.useBackground then
         local texture = SharedMedia:Fetch("background", private.db.profile.highlight_text_settings.backgroundTexture)
         self.frame.SpellNameBackground:SetPoint("LEFT", self.frame.SpellName, "LEFT",
@@ -168,6 +172,7 @@ local function Constructor()
     frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
     frame.SpellName:SetWordWrap(false)
     frame.SpellName:SetPoint("CENTER", frame, "CENTER")
+    frame:SetFrameStrata(private.FrameStrata.FULLSCREEN)
     frame.DispellTypeSpellNames = {}
 
     for i, value in pairs(private.dispellTypeList) do

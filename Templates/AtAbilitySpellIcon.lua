@@ -405,6 +405,10 @@ local function ApplySettings(self)
 		)
 	end
 
+	if private.db.profile.icon_settings and private.db.profile.icon_settings.strata then
+		self.frame:SetFrameStrata(private.db.profile.icon_settings.strata)
+	end
+
 	if not self.frame.SpellIcon.zoomApplied or self.frame.SpellIcon.zoomApplied ~= (1 - private.db.profile.icon_settings.zoom) then
 		if self.frame.SpellIcon.zoomApplied then
 			private.ResetZoom(self.frame.SpellIcon)
@@ -485,6 +489,7 @@ local function Constructor()
 
 	--TODO this is supposed to be showing stuff like debufftype or importance
 	frame.Border = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+	frame:SetFrameStrata(private.FrameStrata.FULLSCREEN)
 	local borderColor = { 1, 0, 0 }
 	local borderWidth = 2
 	frame.Border:SetPoint("CENTER", frame, "CENTER")

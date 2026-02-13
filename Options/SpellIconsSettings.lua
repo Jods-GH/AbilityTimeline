@@ -39,6 +39,19 @@ local createGeneralSettings = function(widget, parentWindow, iconSettings, maxIc
     end)
     scroll:AddChild(zoomSetting)
 
+    local strataSetting = AceGUI:Create("Dropdown")
+    strataSetting:SetLabel(private.getLocalisation("Strata"))
+    for key, value in ipairs(private.FrameStrataOrder) do
+        strataSetting:AddItem(value, value)
+    end
+    strataSetting:SetCallback("OnValueChanged", function(_, _, value)
+        iconSettings.strata = value
+        widget:ApplySettings()
+    end)
+    strataSetting:SetValue(iconSettings.strata)
+    strataSetting:SetRelativeWidth(0.5)
+    scroll:AddChild(strataSetting)
+
     local dispellIconSetting = AceGUI:Create("CheckBox")
     dispellIconSetting:SetLabel(private.getLocalisation("IconDispellIcon"))
     private.AddFrameTooltip(dispellIconSetting.frame, "IconDispellIconDescription")
@@ -82,6 +95,19 @@ local createHighlightTextGeneralSettings = function(widget, parentWindow, Settin
     scroll:SetLayout("Flow")
     scroll:SetFullWidth(true)
     scrollContainer:AddChild(scroll)
+
+    local strataSetting = AceGUI:Create("Dropdown")
+    strataSetting:SetLabel(private.getLocalisation("Strata"))
+    for key, value in ipairs(private.FrameStrataOrder) do
+        strataSetting:AddItem(value, value)
+    end
+    strataSetting:SetCallback("OnValueChanged", function(_, _, value)
+        Settings.strata = value
+        widget:ApplySettings()
+    end)
+    strataSetting:SetValue(Settings.strata)
+    strataSetting:SetRelativeWidth(0.5)
+    scroll:AddChild(strataSetting)
 
 
     local dispellIconSetting = AceGUI:Create("CheckBox")

@@ -25,6 +25,7 @@
 embeds.xml
 
 #util
+Util\Constants.lua
 Util\Debug.lua
 Util\EditMode.lua
 Util\ModernizeSettings.lua

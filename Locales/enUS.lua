@@ -97,6 +97,7 @@ if L then
     L['CopyText'] = "Copy Text"
     L['DiscordDescription'] = "Join my Discord for support and updates"
     L['PatreonDescription'] = "Support the development on Patreon"
+    L["Strata"] = "Frame Strata"
 
     L['TextSettings'] = "Text Settings"
     L["IconSizeDescription"] = "Sets the size of the spell icon."

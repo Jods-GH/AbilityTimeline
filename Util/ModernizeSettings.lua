@@ -67,6 +67,10 @@ private.modernize = function()
         private.db.profile.icon_settings.dangerIcon = true
     end
 
+    if private.db.profile.icon_settings.strata == nil then
+        private.db.profile.icon_settings.strata = private.FrameStrata.FULLSCREEN
+    end
+
     if not private.db.profile.big_icon_settings then
         private.db.profile.big_icon_settings = {}
     end
@@ -172,6 +176,10 @@ private.modernize = function()
 
     if private.db.profile.highlight_text_settings.dispellIcons == nil then
         private.db.profile.highlight_text_settings.dispellIcons = true
+    end
+
+    if private.db.profile.highlight_text_settings.strata == nil then
+        private.db.profile.highlight_text_settings.strata = private.FrameStrata.FULLSCREEN
     end
 
     if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].text_anchor then

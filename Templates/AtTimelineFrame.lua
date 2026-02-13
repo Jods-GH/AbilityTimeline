@@ -253,7 +253,7 @@ local function SetupEditModeSettings(frame)
                 return not areTravelSettingsExpanded
             end,
         },
-                {
+        {
             name = private.getLocalisation("ExpandVisualSettings"),
             expandedLabel = private.getLocalisation("CollapseVisualSettings"),
             collapsedLabel = private.getLocalisation("ExpandVisualSettings"),
