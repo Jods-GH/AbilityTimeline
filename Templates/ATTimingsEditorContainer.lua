@@ -83,7 +83,7 @@ local function Constructor()
     frame.Footer.Background:SetColorTexture(0, 0, 0, 0.5)
     frame.Footer.AddonName = frame.Footer:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     frame.Footer.AddonName:SetPoint("LEFT", frame.Footer, "LEFT", 10, 0)
-    frame.Footer.AddonName:SetFormattedText("Better Timeline %s", C_AddOns.GetAddOnMetadata(addonName, "Version"))
+    frame.Footer.AddonName:SetFormattedText("Better Timeline %s", C_AddOns.GetAddOnMetadata(appName, "Version"))
     frame.Footer.Urls = AceGUI:Create("SimpleGroup")
     frame.Footer:SetScript("OnHide", function(self, button) --TODO FIX THIS WORKAROUND
         frame.Footer.Urls.frame:Hide()
