@@ -95,6 +95,8 @@ if L then
     L["IconDispellIcon"] = "Dispell Icon"
     L["IconDispellIconDescription"] = "Toggles the dispell type icon overlay on the spell icon."
     L["TextDispellIcon"] = "Dispell Icon"
+    L["IconRoleIcons"] = "Role Icons"
+    L["IconRoleIconsDescription"] = "Toggles the role icons |TInterface\\EncounterJournal\\UI-EJ-Icons:::::256:64:7:25:7:25|t|TInterface\\EncounterJournal\\UI-EJ-Icons:::::256:64:71:89:7:25|t|TInterface\\EncounterJournal\\UI-EJ-Icons:::::256:64:39:57:7:25|t on the spell icon."
     L["TextDispellIconDescription"] = "Toggles the dispell type icon in the text."
     L['TextCopyHint'] = "Hint: Press Ctrl+C to copy the text to your clipboard."
     L['CopyText'] = "Copy Text"
