@@ -318,6 +318,11 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 				end
 			end
 		end
+
+		if private.db.profile.icon_settings.roleIcons then
+			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 896, self.frame.RoleIcons)
+		end
+
 		if private.db.profile.icon_settings.dangerIcon then
 			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 1, self.frame.DangerIcon)
 		end
@@ -442,6 +447,13 @@ local function ApplySettings(self)
 			texture:Hide()
 		end
 	end
+	for i, texture in ipairs(self.frame.RoleIcons) do
+		if private.db.profile.icon_settings.roleIcons then
+			texture:Show()
+		else
+			texture:Hide()
+		end
+	end
 	if private.db.profile.text_settings.useBackground then
 		local texture = SharedMedia:Fetch("background", private.db.profile.text_settings.backgroundTexture)
 		self.frame.SpellNameBackground:SetPoint("LEFT", self.frame.SpellName, "LEFT",
@@ -527,7 +539,7 @@ local function Constructor()
 
 	frame.RoleIcons = {}
 
-	for i = 1, 4 do
+	for i = 1, 3 do
 		local texture = frame:CreateTexture(nil, "OVERLAY")
 		texture:SetPoint("LEFT", frame, "RIGHT", 18 * (i - 1), 0)
 		texture:SetSize(16, 16)

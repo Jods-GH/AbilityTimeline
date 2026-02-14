@@ -69,6 +69,10 @@ private.modernize = function()
         private.db.profile.icon_settings.dangerIcon = true
     end
 
+    if private.db.profile.icon_settings.roleIcons == nil then
+        private.db.profile.icon_settings.roleIcons = true
+    end
+
     if private.db.profile.icon_settings.strata == nil then
         private.db.profile.icon_settings.strata = private.FrameStrata.FULLSCREEN
     end

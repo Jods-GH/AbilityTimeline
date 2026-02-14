@@ -84,6 +84,16 @@ local createGeneralSettings = function(widget, parentWindow, iconSettings, maxIc
     end)
     scroll:AddChild(dangerIconSetting)
 
+    local roleIconSetting = AceGUI:Create("CheckBox")
+    roleIconSetting:SetLabel(private.getLocalisation("IconRoleIcons"))
+    private.AddFrameTooltip(roleIconSetting.frame, "IconRoleIconsDescription")
+    roleIconSetting:SetValue(iconSettings.roleIcons)
+    roleIconSetting:SetCallback("OnValueChanged", function(_, _, value)
+        iconSettings.roleIcons = value
+        widget:ApplySettings()
+    end)
+    scroll:AddChild(roleIconSetting)
+
 
     return scrollContainer
 end
@@ -681,8 +691,10 @@ local createSpellIconSettingsFrame = function()
         edgeTexture:SetColorTexture(private.dispellTypeList[3].color.r, private.dispellTypeList[3].color.g,
             private.dispellTypeList[3].color.b, private.dispellTypeList[3].color.a)
     end
+    widget.frame.RoleIcons[1]:SetAtlas('icons_16x16_heal')
     widget.frame.DangerIcon[1]:SetAtlas('icons_16x16_deadly')
-
+    
+    widget:ApplySettings()
     widget.frame:Show()
     widget.frame:SetFrameStrata("DIALOG")
     widget.frame:SetPoint("CENTER", private.SPELL_ICON_SETTINGS_WINDOW.rightContent, "CENTER", 0, 0)
