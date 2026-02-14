@@ -78,7 +78,7 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].y then
         private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].y = variables.position.y
     end
-    if not private.db.global.timeline_frame[layoutName].ticks_enabled then
+    if private.db.global.timeline_frame[layoutName].ticks_enabled == nil then
         private.db.global.timeline_frame[layoutName].ticks_enabled = variables.ticks_enabled
     end
     if not private.db.global.timeline_frame[layoutName].otherSize then
