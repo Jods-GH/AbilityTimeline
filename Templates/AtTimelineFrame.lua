@@ -110,7 +110,6 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
         private.TIMELINE_FRAME:ClearAllPoints()
         private.TIMELINE_FRAME:SetPoint(private.db.global.timeline_frame[layoutName].point,
             private.db.global.timeline_frame[layoutName].x, private.db.global.timeline_frame[layoutName].y)
-        HandleTickVisibility(layoutName)
         local width, height
         if private.db.global.timeline_frame[layoutName].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
             width = private.db.global.timeline_frame[layoutName].travelSize
@@ -121,6 +120,7 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
         end
         SetFrameSize(private.TIMELINE_FRAME, width, height)
         private.TIMELINE_FRAME:HandleTicks()
+        HandleTickVisibility(layoutName)
         private.TIMELINE_FRAME.SetBackDrop(private.TIMELINE_FRAME.frame)
     end
 end)
@@ -334,6 +334,7 @@ local function SetupEditModeSettings(frame)
                 private.db.global.timeline_frame[layoutName].otherSize = value
                 HandleSizeChanges(private.TIMELINE_FRAME)
                 HandleTicks(private.TIMELINE_FRAME)
+                HandleTickVisibility(layoutName)
             end,
             minValue = 1,
             maxValue = 200,
@@ -354,6 +355,7 @@ local function SetupEditModeSettings(frame)
                 private.db.global.timeline_frame[layoutName].travelSize = value
                 HandleSizeChanges(private.TIMELINE_FRAME)
                 HandleTicks(private.TIMELINE_FRAME)
+                HandleTickVisibility(layoutName)
             end,
             minValue = 1,
             maxValue = 1000,
