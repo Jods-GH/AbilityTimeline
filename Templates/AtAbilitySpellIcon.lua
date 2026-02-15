@@ -96,6 +96,9 @@ local handleAnchors      = function(self, isStopped)
 		texture:ClearAllPoints()
 		texture:SetPoint(relPos, self, anchorPos, 0, 0)
 	end
+	for i, _ in pairs(self.DispellTypeSpellNames) do
+		self.DispellTypeSpellNames[i]:SetPoint(relPos, self, anchorPos, xOffset, yOffset)
+	end
 end
 ---returns a raw icon position without any overlap handling
 ---@param iconSize number -- the size of the icon
@@ -111,9 +114,11 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 	local isMoving = false
 	if isStopped then
 		if private.db.profile.text_settings.text_anchor == 'RIGHT' then
-			timelineOtherPosition = 0 - iconSize - private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+			timelineOtherPosition = 0 - iconSize -
+			private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 		else
-			timelineOtherPosition = iconSize + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+			timelineOtherPosition = iconSize +
+			private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 		end
 	end
 	if not (remainingDuration < private.AT_THRESHHOLD_TIME) then
@@ -182,10 +187,14 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 	local sourceRemainingTimeInThreshold = sourceRemainingTime < private.AT_THRESHHOLD_TIME
 	local sourceState = fixStateForBlocked(sourceEventID, sourceEventInfo.duration, sourceTimeElapsed,
 		sourceRemainingTime)
-	local sourceUpperXBound = rawSourcePosX + (iconSize / 2) + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
-	local sourceLowerXBound = rawSourcePosX - (iconSize / 2) - private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
-	local sourceUpperYBound = rawSourcePosY + (iconSize / 2) + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
-	local sourceLowerYBound = rawSourcePosY - (iconSize / 2) - private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+	local sourceUpperXBound = rawSourcePosX + (iconSize / 2) +
+	private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+	local sourceLowerXBound = rawSourcePosX - (iconSize / 2) -
+	private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+	local sourceUpperYBound = rawSourcePosY + (iconSize / 2) +
+	private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+	local sourceLowerYBound = rawSourcePosY - (iconSize / 2) -
+	private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 	for _, eventID in pairs(eventList) do
 		if eventID ~= sourceEventID then
 			local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(eventID)
@@ -196,10 +205,14 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 				totalEvents = totalEvents + 1
 				local x, y = getRawIconPosition(iconSize, timelineHeight, remainingTime,
 					isStoppedForPosition(state))
-				local upperXBound = x + iconSize / 2 + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
-				local lowerXBound = x - iconSize / 2 - private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
-				local upperYBound = y + iconSize / 2 + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
-				local lowerYBound = y - iconSize / 2 - private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+				local upperXBound = x + iconSize / 2 +
+				private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+				local lowerXBound = x - iconSize / 2 -
+				private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+				local upperYBound = y + iconSize / 2 +
+				private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+				local lowerYBound = y - iconSize / 2 -
+				private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 				if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.VERTICAL then
 					if upperYBound >= sourceLowerYBound and upperYBound <= sourceUpperYBound or
 						lowerYBound >= sourceLowerYBound and lowerYBound <= sourceUpperYBound then
@@ -222,8 +235,11 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 			end
 		end
 	end
-	return shorterXConflictingEvents * (iconSize + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin),
-		shorterYConflictingEvents * (iconSize + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin)
+	return
+		shorterXConflictingEvents *
+		(iconSize + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin),
+		shorterYConflictingEvents *
+		(iconSize + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin)
 end
 
 ---comment
@@ -296,15 +312,40 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
 	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
 		self.frame.SpellName:SetText("")
+		for i, _ in pairs(self.frame.DispellTypeSpellNames) do
+			self.frame.DispellTypeSpellNames[i]:SetText("")
+		end
 	else
 		self.frame.SpellName:SetText(eventInfo.spellName)
+		for i, _ in pairs(self.frame.DispellTypeSpellNames) do
+			self.frame.DispellTypeSpellNames[i]:SetText(eventInfo.spellName)
+		end
 	end
 
 	-- OnUpdate we want to update the position of the icon based on elapsed time
 	self.frame.frameIsMoving = false
 	if not disableOnUpdate then
+		if private.db.profile.icon_settings.dispellTextColor then
+			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, self.frame.dispellTypeIcons)
+			local alpha = self.frame.dispellTypeIcons[1]:GetAlpha()
+			self.frame.dispellTypeIcons[1]:SetDesaturation(alpha)
+			local isDesaturated = self.frame.dispellTypeIcons[1]:IsDesaturated()
+			self.frame.dispellTypeIcons[1]:SetDesaturated(false)
+			self.frame.SpellName:SetAlphaFromBoolean(isDesaturated, 0, 1)
+
+			for i, value in pairs(private.dispellTypeList) do
+				local coloredSpellName = self.frame.DispellTypeSpellNames[i]
+				C_EncounterTimeline.SetEventIconTextures(eventInfo.id, value.mask, self.frame.dispellTypeIcons)
+				local alpha = self.frame.dispellTypeIcons[1]:GetAlpha()
+				coloredSpellName:SetAlpha(alpha)
+				local coloredSpellName = self.frame.DispellTypeSpellNames[i]
+				coloredSpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
+			end
+		else
+			self.frame.SpellName:SetAlpha(1)
+		end
 		if private.db.profile.icon_settings.dispellIcons then
-			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, self.frame.DispellTypeIcons)
+			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, self.frame.dispellTypeIcons)
 		end
 		if private.db.profile.icon_settings.dispellBorders then
 			for i, dispellValue in ipairs(private.dispellTypeList) do
@@ -335,7 +376,7 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 			if not timeRemaining or timeRemaining < 0 then timeRemaining = 0 end
 			if state == private.ENCOUNTER_STATES.Active and timeRemaining == 0 then
 				private.removeAtIconFrame(self.eventInfo.id, 'PlayFinishAnimation')
-				return	
+				return
 			end
 			self.isStopped = isStopped
 			if state ~= self.state then
@@ -433,7 +474,7 @@ local function ApplySettings(self)
 			end
 		end
 	end
-	for i, texture in ipairs(self.frame.DispellTypeIcons) do
+	for i, texture in ipairs(self.frame.dispellTypeIcons) do
 		if private.db.profile.icon_settings.dispellIcons then
 			texture:Show()
 		else
@@ -469,6 +510,23 @@ local function ApplySettings(self)
 	else
 		self.frame.SpellNameBackground:Hide()
 	end
+
+	if private.db.profile.icon_settings.dispellTextColor then
+		for i, _ in pairs(private.dispellTypeList) do
+			local coloredSpellName = self.frame.DispellTypeSpellNames[i]
+			coloredSpellName:Show()
+			if private.db.profile.text_settings and private.db.profile.text_settings.font and private.db.profile.text_settings.fontSize then
+				coloredSpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.text_settings.font),
+					private.db.profile.text_settings.fontSize, "OUTLINE")
+			elseif private.db.profile.text_settings and private.db.profile.text_settings.fontSize then
+				coloredSpellName:SetFontHeight(private.db.profile.text_settings.fontSize)
+			end
+		end
+	else
+		for i, _ in pairs(self.frame.DispellTypeSpellNames) do
+			self.frame.DispellTypeSpellNames[i]:Hide()
+		end
+	end
 end
 
 ---@param self AtAbilitySpellIcon
@@ -476,7 +534,6 @@ local function OnAcquire(self)
 	private.Debug(self.frame, "AT_ABILITY_SPELL_ICON_FRAME_ACQUIRED")
 	ApplySettings(self)
 end
-
 
 ---@param self AtAbilitySpellIcon
 local function OnRelease(self)
@@ -486,6 +543,12 @@ local function OnRelease(self)
 	handleAnchors(self.frame, false)
 	self.frame:SetScript("OnUpdate", nil)
 	self.frame.frameIsMoving = false
+
+	for i, value in pairs(private.dispellTypeList) do
+		local coloredSpellName = self.frame.DispellTypeSpellNames[i]
+		coloredSpellName:SetAlpha(0)
+	end
+	self.frame.SpellName:SetAlpha(1)
 end
 
 local function Constructor()
@@ -521,6 +584,17 @@ local function Constructor()
 	-- spell name
 	frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
 	frame.SpellName:Show()
+
+	frame.DispellTypeSpellNames = {}
+
+	for i, value in pairs(private.dispellTypeList) do
+		local coloredSpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
+		coloredSpellName:SetWordWrap(false)
+		coloredSpellName:SetPoint("CENTER", frame, "CENTER")
+		coloredSpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
+
+		frame.DispellTypeSpellNames[i] = coloredSpellName
+	end
 	-- spell name background
 	frame.SpellNameBackground = frame:CreateTexture(nil, "BACKGROUND")
 	frame.SpellNameBackground:SetPoint("LEFT", frame.SpellName, "LEFT",
@@ -555,13 +629,13 @@ local function Constructor()
 	dangerTexture:Show()
 	table.insert(frame.DangerIcon, dangerTexture)
 
-	frame.DispellTypeIcons = {}
+	frame.dispellTypeIcons = {}
 
 	local dispellTypeTexture = frame:CreateTexture(nil, "OVERLAY")
 	dispellTypeTexture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -3, 3)
 	dispellTypeTexture:SetSize(16, 16)
 	dispellTypeTexture:Show()
-	table.insert(frame.DispellTypeIcons, dispellTypeTexture)
+	table.insert(frame.dispellTypeIcons, dispellTypeTexture)
 
 	frame.DispellTypeBorderEdges = {}
 
