@@ -308,6 +308,7 @@ end
 ---@param eventInfo EncounterTimelineEventInfo
 ---@param disableOnUpdate boolean -- if true, the OnUpdate script will not be set
 local SetEventInfo = function(self, eventInfo, disableOnUpdate)
+	self:ApplySettings()
 	self.frame.eventInfo = eventInfo
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
 	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
