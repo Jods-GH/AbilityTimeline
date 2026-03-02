@@ -6,7 +6,7 @@
 ## Author: Jods
 ## X-Curse-Project-ID: 1365171
 ## X-Wago-ID: qGYMWpGg
-## OptionalDeps: Ace3, DevTool, CustomNames, ElvUI
+## OptionalDeps: Ace3, DevTool, CustomNames, ElvUI, DBM-Core, BigWigs
 ## AddonCompartmentFunc: AbilityTimeline_AddonCompartmentFunction
 ## IconTexture: Interface\AddOns\AbilityTimeline\Media\Logo.tga
 ## Category-enUS: Dungeons & Raids
@@ -80,6 +80,7 @@ Plugins\BigIcon.lua
 Plugins\SoundAlert.lua
 Plugins\Glow.lua
 Plugins\Reminders.lua
+Plugins\BigWigs.lua
 
 # Core
 Options\Options.lua

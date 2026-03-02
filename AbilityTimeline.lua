@@ -8,7 +8,9 @@ private.ENCOUNTER_TIMELINE_EVENT_ADDED         = function(self, eventInfo, initi
    if not private.TIMELINE_FRAME.frame:IsVisible() then
       private.handleFrame(true)
    end
-   private.addEvent(eventInfo)
+   if not private.BWTimers then
+      private.addEvent(eventInfo)
+   end
 end
 
 private.TIMELINE_TICKS                         = { 5 }
