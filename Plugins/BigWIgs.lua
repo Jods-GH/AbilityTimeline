@@ -4,6 +4,7 @@ local private = app
 
 if not C_AddOns.IsAddOnLoaded("BigWigs") then return end
 
+private.DisableBlizzTimers = true
 private.BWTimers = {}
 
 local excludedTimers = {

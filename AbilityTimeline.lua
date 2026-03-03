@@ -8,7 +8,7 @@ private.ENCOUNTER_TIMELINE_EVENT_ADDED         = function(self, eventInfo, initi
    if not private.TIMELINE_FRAME.frame:IsVisible() then
       private.handleFrame(true)
    end
-   if not private.BWTimers then
+   if not private.DisableBlizzTimers or eventInfo.source == Enum.EncounterTimelineEventSource.Script then
       private.addEvent(eventInfo)
    end
 end
