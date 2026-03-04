@@ -5,7 +5,7 @@ local private = app
 if not C_AddOns.IsAddOnLoaded("DBM-Core") then return end
 
 private.DBMTimers = {}
-
+private.DisableBlizzTimersDBM = false
 local excludedTimers = {
     ["%s	Pull in"] = true,
 }
@@ -126,9 +126,18 @@ local function TimerUpdated(event, timerId, timerElapsed, timerModified)
     end
 end
 
+local function DisableBlizApi(event)
+    private.DisableBlizzTimersDBM = true
+end
+
+local function EnableBlizApi(event)
+    private.DisableBlizzTimersDBM = false
+end
+
 DBM:RegisterCallback("DBM_TimerStart", TimerStarted)
 DBM:RegisterCallback("DBM_TimerStop", TimerStopped)
 DBM:RegisterCallback("DBM_TimerUpdate", TimerUpdated)
 DBM:RegisterCallback("DBM_TimerPause", TimerUpdated)
-DBM:RegisterCallback("DBM_TimerPause", TimerUpdated)
 DBM:RegisterCallback("DBM_TimerResume", TimerUpdated)
+DBM:RegisterCallback("DBM_IgnoreBlizzAPI", DisableBlizApi)
+DBM:RegisterCallback("DBM_ResumeBlizzAPI", EnableBlizApi)
