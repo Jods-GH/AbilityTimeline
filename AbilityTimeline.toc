@@ -80,6 +80,7 @@ Plugins\BigIcon.lua
 Plugins\SoundAlert.lua
 Plugins\Glow.lua
 Plugins\Reminders.lua
+Plugins\Dbm.lua
 Plugins\BigWigs.lua
 
 # Core
