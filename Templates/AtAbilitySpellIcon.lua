@@ -420,6 +420,10 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 		end)
 	end
 	self.frame:Show()
+
+	if private.db.profile.icon_settings and private.db.profile.icon_settings.enableTooltip then
+		private.AddEventTooltip(self.frame, eventInfo)
+	end
 end
 
 local function ApplySettings(self)
@@ -550,6 +554,7 @@ local function OnRelease(self)
 		coloredSpellName:SetAlpha(0)
 	end
 	self.frame.SpellName:SetAlpha(1)
+	private.ClearEventTooltip(self.frame)
 end
 
 local function Constructor()

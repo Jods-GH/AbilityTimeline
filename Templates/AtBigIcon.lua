@@ -180,6 +180,7 @@ local function OnRelease(self)
 	self.frame.SpellName:SetText("")
 	self.frame.eventInfo = nil
 	self.frame:SetScript("OnUpdate", nil)
+	private.ClearEventTooltip(self.frame)
 end
 
 local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
@@ -234,7 +235,12 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 	widget.frame.SpellIcon:SetAllPoints(widget.frame)
 	widget.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
 	widget.frame.SpellName:SetText(eventInfo.spellName)
+	-- TODO add the same debuff type coloring as from normal spellicons
+	widget.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
 	widget.frame:Show()
+	if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.enableTooltip then
+		private.AddEventTooltip(widget.frame, eventInfo)
+	end
 end
 
 local function Constructor()
