@@ -302,7 +302,6 @@ local HandleCooldown        = function(self, remainingTime)
 	end
 end
 
-
 ---Sets the event info and all associated handling for an icon
 ---@param self AtAbilitySpellIcon
 ---@param eventInfo EncounterTimelineEventInfo
@@ -318,6 +317,7 @@ local SetEventInfo = function(self, eventInfo, disableOnUpdate)
 		end
 	else
 		self.frame.SpellName:SetText(eventInfo.spellName)
+		self.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
 		for i, _ in pairs(self.frame.DispellTypeSpellNames) do
 			self.frame.DispellTypeSpellNames[i]:SetText(eventInfo.spellName)
 		end

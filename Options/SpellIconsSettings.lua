@@ -698,7 +698,8 @@ local createSpellIconSettingsFrame = function()
         spellID = 0,
         iconFileID = 237538,
         severity = 1,
-        paused = false
+        paused = false,
+        color = { r = 1, g = 1, b = 1, a = 1 },
     }
     widget:SetEventInfo(eventInfo, true)
     widget.startTime = GetTime()
@@ -804,7 +805,8 @@ local createBigIconSettingsFrame = function()
         spellID = 0,
         iconFileID = 237538,
         severity = 1,
-        paused = false
+        paused = false,
+        color = { r = 1, g = 1, b = 1, a = 1 },
     }
     widget:SetEventInfo(eventInfo, true)
     widget.startTime = GetTime()
