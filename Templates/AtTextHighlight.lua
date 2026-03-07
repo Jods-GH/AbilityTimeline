@@ -130,6 +130,7 @@ local HandleTexts = function(widget, eventInfo, remainingDuration)
             math.ceil(remainingDuration))
     end
     widget.frame.SpellName:SetText(formatedText)
+    widget.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
     if private.db.profile.highlight_text_settings.dispellTextColor then
         -- use desaturation to convert int to boolean to invert using setalpha
         widget.frame.dispellTypeIcons[1]:SetDesaturation(alpha)
