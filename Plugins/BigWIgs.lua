@@ -14,8 +14,11 @@ local excludedTimers = {
 local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, icon, timerIsApprox, timerMaxDuration, eventID, spellIndicators)
 
     if eventID then
-        private.addEvent(C_EncounterTimeline.GetEventInfo(eventID))
-        return 
+        local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
+        if eventInfo.source ~= Enum.EncounterTimelineEventSource.Script then
+            private.addEvent(eventInfo)
+        end
+        return
     end
     if excludedTimers[timerMsg] then return end
     local eventinfo = {
