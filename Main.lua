@@ -96,6 +96,8 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
         AbilityTimeline:Print(private.getLocalisation("TimelineNotSupportedMessage"))
     elseif msg == "iconeditor" then
         private.openSpellIconSettings()
+    elseif msg == "version" then
+        AbilityTimeline:Print("Ability Timeline Version: " ..  C_AddOns.GetAddOnMetadata(appName, "Version"))
     elseif msg == "test" then
         C_EncounterTimeline.AddEditModeEvents()
     elseif string.find(string.lower(msg), "test (.-)") then
