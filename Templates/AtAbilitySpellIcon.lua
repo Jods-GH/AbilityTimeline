@@ -159,7 +159,7 @@ local fixStateForBlocked = function(eventID, duration, timeElapsed, timeRemainin
 		return state
 	elseif state == private.ENCOUNTER_STATES.Active and isBlocked then
 		return private.ENCOUNTER_STATES.Blocked
-	elseif timeRemaining == 0 or timeElapsed >= duration then
+	elseif not timeElapsed or not timeRemaining or timeRemaining == 0 or timeElapsed >= duration then
 		return private.ENCOUNTER_STATES.Blocked
 	else
 		return state
