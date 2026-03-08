@@ -9,7 +9,7 @@ private.ENCOUNTER_TIMELINE_EVENT_ADDED         = function(self, eventInfo, initi
       private.handleFrame(true)
    end
    -- According to moores law we could also do not (bwdisabled or dbmdisabled) but this is easier to read
-   if (not private.DisableBlizzTimersBW and not private.DisableBlizzTimersDBM) or eventInfo.source == Enum.EncounterTimelineEventSource.Script then
+   if (not private.DisableBlizzTimersBW and not private.DisableBlizzTimersDBM) or eventInfo.source == Enum.EncounterTimelineEventSource.Script or eventInfo.source == Enum.EncounterTimelineEventSource.EditMode then
       private.addEvent(eventInfo)
    end
 end
