@@ -129,8 +129,8 @@ function AbilityTimeline:ENCOUNTER_TIMELINE_EVENT_ADDED(event, eventInfo, initia
     private.ENCOUNTER_TIMELINE_EVENT_ADDED(self, eventInfo, initialState)
 end
 
-function AbilityTimeline:ENCOUNTER_TIMELINE_EVENT_REMOVED(event, eventInfo, initialState)
-    private.ENCOUNTER_TIMELINE_EVENT_REMOVED(self, eventInfo, initialState)
+function AbilityTimeline:ENCOUNTER_TIMELINE_EVENT_REMOVED(self, eventID)
+    private.ENCOUNTER_TIMELINE_EVENT_REMOVED(self, eventID)
 end
 
 function AbilityTimeline:ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED(event, eventID, newState)

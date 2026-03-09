@@ -3,11 +3,12 @@ local appName, app                             = ...
 local private                                  = app
 local AceGUI                                   = LibStub("AceGUI-3.0")
 
-local activeFrames                             = {}
+private.activeFrames                             = {}
 private.ENCOUNTER_TIMELINE_EVENT_ADDED         = function(self, eventInfo, initialState)
    if not private.TIMELINE_FRAME.frame:IsVisible() then
       private.handleFrame(true)
    end
+   private.Debug(eventInfo, "New event added to timeline")
    -- According to moores law we could also do not (bwdisabled or dbmdisabled) but this is easier to read
    if (not private.DisableBlizzTimersBW and not private.DisableBlizzTimersDBM) or eventInfo.source == Enum.EncounterTimelineEventSource.Script or eventInfo.source == Enum.EncounterTimelineEventSource.EditMode then
       private.addEvent(eventInfo)
@@ -23,10 +24,12 @@ private.BIGICON_THRESHHOLD_TIME                = 5
 private.createTimelineIcon                     = function(eventInfo)
    local frame = AceGUI:Create("AtAbilitySpellIcon")
    frame:SetEventInfo(eventInfo)
-   activeFrames[eventInfo.id] = frame
+   private.activeFrames[eventInfo.id] = frame
    frame.frame:Show()
 
    private.Debug(frame, "AT_TIMELINE_ICON")
+   local copyTable = CopyTable(private.activeFrames, true)
+   private.Debug(copyTable, "Active frames after adding new icon")
 end
 local activeEvents                             = {}
 private.addEvent                               = function(eventInfo)
@@ -56,11 +59,11 @@ private.ENCOUNTER_STATES                       = {
 }
 
 private.removeAtIconFrame                      = function(eventID)
-   local frame = activeFrames[eventID]
+   local frame = private.activeFrames[eventID]
    if frame then
       frame.frame:Hide()
       frame:Release()
-      activeFrames[eventID] = nil
+      private.activeFrames[eventID] = nil
    end
 end
 
@@ -130,9 +133,12 @@ private.TRIGGER_HIGHLIGHT = function(eventInfo)
       private.playAudioAlert(eventInfo)
    end
 end
-private.ENCOUNTER_TIMELINE_EVENT_REMOVED = function()
+private.ENCOUNTER_TIMELINE_EVENT_REMOVED = function(self, eventID)
    if not C_EncounterTimeline.HasAnyEvents() then
       private.handleFrame(false)
+   end
+   if private.activeFrames[eventID] then
+      private.removeEvent(eventID)
    end
 end
 
@@ -159,10 +165,12 @@ private.handleFrame = function(show)
       if private.TIMELINE_FRAME.frame then
          private.TIMELINE_FRAME.frame:Hide()
       end
-      for eventID, frame in pairs(activeFrames) do
-         frame.frame:Hide()
-         frame:Release()
-         activeFrames[eventID] = nil
-      end
+      private.removeAllFrames()
+   end
+end
+
+private.removeAllFrames = function()
+   for eventID, frame in pairs(private.activeFrames) do
+      private.removeAtIconFrame(eventID)
    end
 end
