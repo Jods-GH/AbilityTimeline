@@ -9,9 +9,10 @@ private.DisableBlizzTimersDBM = false
 local excludedTimers = {
     ["%s	Pull in"] = true,
 }
-local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID)
+local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID, timerCount, timerIsPriority, timerType2, timerHasVariance, timerVariance)
     
     -- private.Debug("Dbm timer started")
+    -- private.Debug(event)
     -- private.Debug(timerId)
     -- private.Debug(timerMsg)
     -- private.Debug(timerDuration)
@@ -83,15 +84,17 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
 
 end
 
-local function TimerBegin(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID, isEnabled)
-    if not isEnabled then return end
-    TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID)
+local function TimerBegin(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID, timerCount, timerIsPriority, timerType2, timerHasVariance, timerVariance, isEnabled)
+    if not isEnabled then 
+        private.Debug("DBM Timer Begin Ignored (Disabled): ".. timerId)
+        return end
+    TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID, timerCount, timerIsPriority, timerType2, timerHasVariance, timerVariance)
 end
 
 local function TimerStopped(event, timerId)
     private.Debug("DBM Timer Stopped: ".. timerId)
     if private.DBMTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.DBMTimers[timerId].eventID) then
-        C_EncounterTimeline.RemoveScriptEvent(private.DBMTimers[timerId].eventID)
+        C_EncounterTimeline.CancelScriptEvent(private.DBMTimers[timerId].eventID)
         private.DBMTimers[timerId] = nil
     end
 end
