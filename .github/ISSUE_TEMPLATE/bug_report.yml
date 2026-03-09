@@ -25,6 +25,15 @@ body:
       - Classic
   validations:
     required: true
+
+- type: input
+  attributes:
+    label: Version
+    description: |
+      Which version of the Addon are you using? Type /at version in chat and copy the output here. If you type "latest" your ticket will be closed automatically.
+    placeholder: "v1.0.0"
+  validations:
+    required: true
  
 - type: textarea
   attributes:
