@@ -81,10 +81,20 @@ local function TimerUpdated(event, _, _, timerId)
     end
 end
 
+local function StopAllTimers()
+    private.Debug("BigWigs Stop All Timers")
+    C_EncounterTimeline.CancelAllScriptEvents()
+    for timerId, timerData in pairs(private.BWTimers) do
+        private.BWTimers[timerId] = nil
+    end
+    private.removeAllFrames()
+end
+
 local BWCallbackObj = {}
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_StartBar", TimerStarted);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "StopSpecificBar", TimerStopped);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_PauseBar", TimerUpdated);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_ResumeBar", TimerUpdated);
- --   BigWigsLoader.RegisterMessage(PHOGUILD_WA_RAT_BWCallbackObj, "BigWigs_StopBars", TimerStopped);
- --   BigWigsLoader.RegisterMessage(PHOGUILD_WA_RAT_BWCallbackObj, "BigWigs_OnBossDisable", TimerStopped);
+BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_StopBars", StopAllTimers);
+BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_OnBossDisable", StopAllTimers);
+BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_OnPluginDisable", StopAllTimers);
