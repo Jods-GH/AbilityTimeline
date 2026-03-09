@@ -64,7 +64,7 @@ end
 local function TimerStopped(event, module, text, timerId)
     private.Debug("BigWigs Timer Stopped: ")
     if private.BWTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.BWTimers[timerId].eventID) then
-        C_EncounterTimeline.RemoveScriptEvent(private.BWTimers[timerId].eventID)
+        C_EncounterTimeline.CancelScriptEvent(private.BWTimers[timerId].eventID)
         private.BWTimers[timerId] = nil
     end
 end
