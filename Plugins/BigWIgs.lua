@@ -21,6 +21,11 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
         return
     end
     if excludedTimers[timerMsg] then return end
+    if type(icon) == "string" then
+        -- bigwigs uses filepaths for icons but the script event expects fileIDs, so we need to convert it 
+        local iconpath = string.gsub(icon, "\\", "/")
+        icon = GetFileIDFromPath(iconpath)
+    end
     local eventinfo = {
         duration = timerDuration,
         maxQueueDuration = 0,
