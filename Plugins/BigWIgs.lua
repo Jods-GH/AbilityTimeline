@@ -26,10 +26,24 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
         local iconpath = string.gsub(icon, "\\", "/")
         icon = GetFileIDFromPath(iconpath)
     end
+    -- TODO make it selectable if users want to use bartext or barcolor or none
+    local color = BigWigs:GetPlugin("Colors"):GetColorTable("barText", module, timerKey)
+    local msg = ""
+    if color then
+        local r,g,b,a = unpack(color)
+        if r ~= 1 or g ~= 1 or b ~= 1 or a ~= 1 then
+            local actualColor = CreateColor(r, g, b, a)
+            msg = string.format("|c%s%s|r", actualColor:GenerateHexColor(),
+            timerMsg)
+        end
+    else 
+        msg = timerMsg
+    end
+            
     local eventinfo = {
         duration = timerDuration,
         maxQueueDuration = 0,
-        overrideName = timerMsg,
+        overrideName = msg,
         spellID = 58984,
         iconFileID = icon,
         severity = 1,
