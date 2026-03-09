@@ -12,10 +12,10 @@ local excludedTimers = {
 }
 
 local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, icon, timerIsApprox, timerMaxDuration, eventID, spellIndicators)
-
+    
     if eventID then
         local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
-        if eventInfo.source ~= Enum.EncounterTimelineEventSource.Script then
+        if eventInfo.source ~= Enum.EncounterTimelineEventSource.Script and eventInfo.source ~= Enum.EncounterTimelineEventSource.EditMode then
             private.addEvent(eventInfo)
         end
         return
