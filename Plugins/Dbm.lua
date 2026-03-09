@@ -9,7 +9,6 @@ private.DisableBlizzTimersDBM = false
 local excludedTimers = {
     ["%s	Pull in"] = true,
 }
-
 local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID)
     
     -- private.Debug("Dbm timer started")
@@ -84,6 +83,11 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
 
 end
 
+local function TimerBegin(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID, isEnabled)
+    if not isEnabled then return end
+    TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID)
+end
+
 local function TimerStopped(event, timerId)
     private.Debug("DBM Timer Stopped: ".. timerId)
     if private.DBMTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.DBMTimers[timerId].eventID) then
@@ -136,6 +140,7 @@ end
 
 DBM:RegisterCallback("DBM_TimerStart", TimerStarted)
 DBM:RegisterCallback("DBM_TimerStop", TimerStopped)
+DBM:RegisterCallback("DBM_TimerBegin", TimerBegin)
 DBM:RegisterCallback("DBM_TimerUpdate", TimerUpdated)
 DBM:RegisterCallback("DBM_TimerPause", TimerUpdated)
 DBM:RegisterCallback("DBM_TimerResume", TimerUpdated)
