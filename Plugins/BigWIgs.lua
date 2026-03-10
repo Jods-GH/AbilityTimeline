@@ -35,6 +35,8 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
             local actualColor = CreateColor(r, g, b, a)
             msg = string.format("|c%s%s|r", actualColor:GenerateHexColor(),
             timerMsg)
+        else
+            msg = timerMsg
         end
     else 
         msg = timerMsg
