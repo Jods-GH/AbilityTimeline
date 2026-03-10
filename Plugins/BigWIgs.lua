@@ -102,8 +102,16 @@ BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_OnBossDisable", StopAllTim
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_OnPluginDisable", StopAllTimers);
 
 local function hideBWBar(_, _, bar)
-    bar:SetAlpha(0)
+    if private.db.profile.disableBossModsBars then
+        bar:SetAlpha(0)
+    end
+end
+
+local function hideBWEmphasizedBar(_, _, bar)
+    if private.db.profile.disableBossModsEmphasisedBars then
+        bar:SetAlpha(0)
+    end
 end
 
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_BarCreated", hideBWBar);
-BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_BarEmphasized", hideBWBar);
+BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_BarEmphasized", hideBWEmphasizedBar);

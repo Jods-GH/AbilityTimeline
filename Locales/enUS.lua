@@ -48,6 +48,10 @@ if L then
     L["disableLoginMessageDescription"] = "Disables the login message that shows how to open the Options."
     L["disableReadyCheckDescription"] = "Disables showing ready check in the timeline."
     L["disableReadyCheck"] = "Disable Ready Check"
+    L["disableBossModsBars"] = "Disable Boss Mods Bars"
+    L["disableBossModsBarsDescription"] = "Hides the bars of boss mods."
+    L["disableBossModsEmphasisedBars"] = "Disable Boss Mods Emphasised Bars"
+    L["disableBossModsEmphasisedBarsDescription"] = "Hides the emphasised bars of boss mods."
 
     -- reminders
     L["ReminderEditTitle"] = "Edit Reminder"

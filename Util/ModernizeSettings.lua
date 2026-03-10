@@ -260,4 +260,12 @@ private.modernize = function()
             highlight.glowColor = { r = 0.95, g = 0.95, b = 0.32, a = 1 }
         end
     end
+
+    if private.db.profile.disableBossModsBars == nil then
+        private.db.profile.disableBossModsBars = true
+    end
+
+    if private.db.profile.disableBossModsEmphasisedBars == nil then
+        private.db.profile.disableBossModsEmphasisedBars = true
+    end
 end

@@ -96,6 +96,28 @@ private.options = {
         return private.db.profile.disableReadyCheck --Sets value of toggles depending on SavedVariables
       end,
     },
+    disableBossModsBars = {
+      name = private.getLocalisation("disableBossModsBars"),
+      desc = private.getLocalisation("disableBossModsBarsDescription"),
+      order = 34,
+      width = "full",
+      type = "toggle",
+      set = function(info, val) private.db.profile.disableBossModsBars = val end, --Sets value of SavedVariables depending on toggles
+      get = function(info)
+        return private.db.profile.disableBossModsBars --Sets value of toggles depending on SavedVariables
+      end,
+    },
+    disableBossModsEmphasisedBars = {
+      name = private.getLocalisation("disableBossModsEmphasisedBars"),
+      desc = private.getLocalisation("disableBossModsEmphasisedBarsDescription"),
+      order = 35,
+      width = "full",
+      type = "toggle",
+      set = function(info, val) private.db.profile.disableBossModsEmphasisedBars = val end, --Sets value of SavedVariables depending on toggles
+      get = function(info)
+        return private.db.profile.disableBossModsEmphasisedBars --Sets value of toggles depending on SavedVariables
+      end,
+    },
     disableAllOnEncounterEnd = {
       name = private.getLocalisation("disableAllOnEncounterEnd"),
       desc = private.getLocalisation("disableAllOnEncounterEndDescription"),
