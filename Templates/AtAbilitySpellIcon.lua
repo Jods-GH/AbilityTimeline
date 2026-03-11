@@ -121,10 +121,10 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 	if isStopped then
 		if private.db.profile.text_settings.text_anchor == 'RIGHT' then
 			timelineOtherPosition = 0 - iconSize -
-			private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+				private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 		else
 			timelineOtherPosition = iconSize +
-			private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+				private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 		end
 	end
 	if not (remainingDuration < private.AT_THRESHHOLD_TIME) then
@@ -193,13 +193,13 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 	local sourceState = fixStateForBlocked(sourceEventID, sourceEventInfo.duration, sourceTimeElapsed,
 		sourceRemainingTime)
 	local sourceUpperXBound = rawSourcePosX + (iconSize / 2) +
-	private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+		private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 	local sourceLowerXBound = rawSourcePosX - (iconSize / 2) -
-	private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+		private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 	local sourceUpperYBound = rawSourcePosY + (iconSize / 2) +
-	private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+		private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 	local sourceLowerYBound = rawSourcePosY - (iconSize / 2) -
-	private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+		private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 	for _, eventID in pairs(eventList) do
 		if eventID ~= sourceEventID and private.activeFrames[eventID] then
 			local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(eventID)
@@ -211,13 +211,13 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 				local x, y = getRawIconPosition(iconSize, timelineHeight, remainingTime,
 					isStoppedForPosition(state))
 				local upperXBound = x + iconSize / 2 +
-				private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+					private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 				local lowerXBound = x - iconSize / 2 -
-				private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+					private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 				local upperYBound = y + iconSize / 2 +
-				private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+					private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 				local lowerYBound = y - iconSize / 2 -
-				private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+					private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
 				if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.VERTICAL then
 					if upperYBound >= sourceLowerYBound and upperYBound <= sourceUpperYBound or
 						lowerYBound >= sourceLowerYBound and lowerYBound <= sourceUpperYBound then
@@ -311,7 +311,7 @@ end
 ---@param self AtAbilitySpellIcon
 ---@param eventInfo EncounterTimelineEventInfo
 ---@param disableOnUpdate boolean -- if true, the OnUpdate script will not be set
-local SetEventInfo = function(self, eventInfo, disableOnUpdate)
+local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	self:ApplySettings()
 	self.frame.eventInfo = eventInfo
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
