@@ -97,6 +97,7 @@ local handleAnchors      = function(self, isStopped)
 		texture:SetPoint(relPos, self, anchorPos, 0, 0)
 	end
 	for i, _ in pairs(self.DispellTypeSpellNames) do
+		self.DispellTypeSpellNames[i]:ClearAllPoints()
 		self.DispellTypeSpellNames[i]:SetPoint(relPos, self, anchorPos, xOffset, yOffset)
 	end
 
