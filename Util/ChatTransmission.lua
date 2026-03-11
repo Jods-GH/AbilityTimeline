@@ -172,7 +172,6 @@ end)
 
 local filterfunc = function(self, event, msg, author, ...)
     if msg and string.find(msg, CHAT_LINK_MESSAGE:sub(1, 24)) then
-        print("Chat filter caught reminder link message: " .. msg .. " from " .. author)
         local encounterID = tonumber(string.match(msg, "(%d+)"))
         return false, CHAT_LINK_FORMAT:format(author, encounterID), author, ...
     end

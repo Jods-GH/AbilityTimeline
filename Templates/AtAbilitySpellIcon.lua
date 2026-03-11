@@ -322,7 +322,9 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 		end
 	else
 		self.frame.SpellName:SetText(eventInfo.spellName)
-		self.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
+		if private.db.profile.text_settings.useEventColor then
+			self.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
+		end
 		for i, _ in pairs(self.frame.DispellTypeSpellNames) do
 			self.frame.DispellTypeSpellNames[i]:SetText(eventInfo.spellName)
 		end

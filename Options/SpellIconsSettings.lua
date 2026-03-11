@@ -274,7 +274,24 @@ local createTextSettings = function(widget, parentWindow, iconSettings, textSett
     fontSetting:SetRelativeWidth(0.5)
     scroll:AddChild(fontSetting)
 
-    local textDefaultColorSetting = AceGUI:Create("ColorPicker")
+    local textUseEventColorToggle = AceGUI:Create("CheckBox")
+    textUseEventColorToggle:SetValue(textSettings.useEventColor)
+    textUseEventColorToggle:SetRelativeWidth(0.5)
+    textUseEventColorToggle:SetLabel(private.getLocalisation("SpellnameUseEventColor"))
+    private.AddFrameTooltip(textUseEventColorToggle.frame, "SpellnameUseEventColorDescription")
+    scroll:AddChild(textUseEventColorToggle)
+
+    local textDefaultColorSetting = AceGUI:Create("ColorPicker") -- forward declaration so we can use it in event callback
+    textUseEventColorToggle:SetCallback("OnValueChanged", function(_, _, value)
+        textSettings.useEventColor = value
+        widget:ApplySettings()
+        textDefaultColorSetting:SetDisabled(value)
+    end)
+    textDefaultColorSetting:SetDisabled(textSettings.useEventColor)
+
+
+
+    textDefaultColorSetting:SetRelativeWidth(0.5)
     textDefaultColorSetting:SetLabel(private.getLocalisation("SpellnameDefaultColor"))
     private.AddFrameTooltip(textDefaultColorSetting.frame, "SpellnameDefaultColorDescription")
     textDefaultColorSetting:SetColor(textSettings.defaultColor.r,

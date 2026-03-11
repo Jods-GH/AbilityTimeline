@@ -268,4 +268,8 @@ private.modernize = function()
     if private.db.profile.disableBossModsEmphasisedBars == nil then
         private.db.profile.disableBossModsEmphasisedBars = true
     end
+
+    if private.db.profile.text_settings.useEventColor == nil then
+        private.db.profile.text_settings.useEventColor = true
+    end
 end
