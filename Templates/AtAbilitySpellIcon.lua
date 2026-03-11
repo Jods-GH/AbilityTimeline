@@ -99,6 +99,11 @@ local handleAnchors      = function(self, isStopped)
 	for i, _ in pairs(self.DispellTypeSpellNames) do
 		self.DispellTypeSpellNames[i]:SetPoint(relPos, self, anchorPos, xOffset, yOffset)
 	end
+
+	for i, texture in pairs(self.RoleIcons) do
+		texture:ClearAllPoints()
+		texture:SetPoint(anchorPos, self, relPos, 18 * (i - 1), 0)
+	end
 end
 ---returns a raw icon position without any overlap handling
 ---@param iconSize number -- the size of the icon
