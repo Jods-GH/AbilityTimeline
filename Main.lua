@@ -176,13 +176,15 @@ function AbilityTimeline:ENCOUNTER_END(event, encounterID, encounterName, diffic
     if private.db.profile.disableAllOnEncounterEnd then
         C_EncounterTimeline.CancelAllScriptEvents()
     end
-
-    if not C_ChatInfo.InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
-        if private.db.global.active then
-            C_ChatInfo.SendChatMessage("", "DND") -- clear dnd message
-            private.db.global.active = false
+    C_Timer.After(1, function() -- since for some reason encounter end fires before combat lockdown is over we delay
+        if not C_ChatInfo.InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
+            if private.db.global.active then
+                C_ChatInfo.SendChatMessage("", "DND") -- clear dnd message
+                private.db.global.active = false
+            end
         end
     end
+    )
 end
 
 function AbilityTimeline:READY_CHECK(event, initiator, readyCheckTimeLeft)
@@ -342,6 +344,7 @@ function AbilityTimeline:CHALLENGE_MODE_COMPLETED()
     end
     if private.db.profile.enableDNDMessage and private.db.global.active then
         C_ChatInfo.SendChatMessage("", "DND")
+        private.db.global.active = false
     end
 end
 
@@ -353,5 +356,6 @@ function AbilityTimeline:ZONE_CHANGED_NEW_AREA()
     end
     if private.db.profile.enableDNDMessage and private.db.global.active then
         C_ChatInfo.SendChatMessage("", "DND")
+        private.db.global.active = false
     end
 end
