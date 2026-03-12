@@ -104,12 +104,16 @@ BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_OnPluginDisable", StopAllT
 local function hideBWBar(_, _, bar)
     if private.db.profile.disableBossModsBars then
         bar:SetAlpha(0)
+    else
+        bar:SetAlpha(1)
     end
 end
 
 local function hideBWEmphasizedBar(_, _, bar)
     if private.db.profile.disableBossModsEmphasisedBars then
         bar:SetAlpha(0)
+    else
+        bar:SetAlpha(1)
     end
 end
 
