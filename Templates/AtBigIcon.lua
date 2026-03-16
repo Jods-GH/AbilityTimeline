@@ -236,7 +236,7 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 	widget.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
 	widget.frame.SpellName:SetText(eventInfo.spellName)
 	-- TODO add the same debuff type coloring as from normal spellicons
-	if eventInfo.color then
+	if private.db.profile.text_settings.useEventColor and eventInfo.color then
 		widget.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
 	end
 	widget.frame:Show()

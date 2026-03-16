@@ -351,6 +351,10 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 			end
 		else
 			self.frame.SpellName:SetAlpha(1)
+			for i, value in pairs(private.dispellTypeList) do
+				local coloredSpellName = self.frame.DispellTypeSpellNames[i]
+				coloredSpellName:SetAlpha(0)
+			end
 		end
 		if private.db.profile.icon_settings.dispellIcons then
 			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, self.frame.dispellTypeIcons)
