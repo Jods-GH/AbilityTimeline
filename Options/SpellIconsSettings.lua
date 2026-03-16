@@ -108,14 +108,17 @@ local createGeneralSettings = function(widget, parentWindow, iconSettings, maxIc
     end)
     scroll:AddChild(roleIconSetting)
 
-    local enableTooltipSetting = AceGUI:Create("CheckBox")
-    enableTooltipSetting:SetLabel(private.getLocalisation("EnableTooltip"))
-    private.AddFrameTooltip(enableTooltipSetting.frame, "EnableTooltipDescription")
-    enableTooltipSetting:SetValue(iconSettings.enableTooltip)
-    enableTooltipSetting:SetCallback("OnValueChanged", function(_, _, value)
-        iconSettings.enableTooltip = value
+    local useTooltipSetting = AceGUI:Create("Dropdown")
+    useTooltipSetting:SetLabel(private.getLocalisation("UseTooltip"))
+    private.AddFrameTooltip(useTooltipSetting.frame, "UseTooltipDescription")
+    for key, value in pairs(Enum.EncounterEventsTooltipAnchor) do
+        useTooltipSetting:AddItem(value, key)
+    end
+    useTooltipSetting:SetValue(iconSettings.useTooltip)
+    useTooltipSetting:SetCallback("OnValueChanged", function(_, _, value)
+        iconSettings.useTooltip = value
     end)
-    scroll:AddChild(enableTooltipSetting)
+    scroll:AddChild(useTooltipSetting)
 
 
     return scrollContainer

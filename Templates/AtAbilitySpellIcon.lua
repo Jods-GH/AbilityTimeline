@@ -427,8 +427,8 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	end
 	self.frame:Show()
 
-	if private.db.profile.icon_settings and private.db.profile.icon_settings.enableTooltip then
-		private.AddEventTooltip(self.frame, eventInfo)
+	if private.db.profile.icon_settings and private.db.profile.icon_settings.useTooltip and private.db.profile.icon_settings.useTooltip ~= Enum.EncounterEventsTooltipAnchor.Hidden then
+		private.AddEventTooltip(self.frame, eventInfo, private.db.profile.icon_settings.useTooltip)
 	end
 end
 

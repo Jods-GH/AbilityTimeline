@@ -240,8 +240,8 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 		widget.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
 	end
 	widget.frame:Show()
-	if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.enableTooltip then
-		private.AddEventTooltip(widget.frame, eventInfo)
+	if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.useTooltip and private.db.profile.big_icon_settings.useTooltip ~= Enum.EncounterEventsTooltipAnchor.Hidden then
+		private.AddEventTooltip(widget.frame, eventInfo, private.db.profile.big_icon_settings.useTooltip)
 	end
 end
 

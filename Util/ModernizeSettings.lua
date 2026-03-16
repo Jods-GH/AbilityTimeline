@@ -272,4 +272,29 @@ private.modernize = function()
     if private.db.profile.text_settings.useEventColor == nil then
         private.db.profile.text_settings.useEventColor = true
     end
+
+    if private.db.profile.big_icon_settings.useTooltip == nil then
+        if private.db.profile.big_icon_settings.enableTooltip ~= nil then
+            if private.db.profile.big_icon_settings.enableTooltip then
+                private.db.profile.big_icon_settings.useTooltip = Enum.EncounterEventsTooltipAnchor.Default
+            else
+                private.db.profile.big_icon_settings.useTooltip = Enum.EncounterEventsTooltipAnchor.Hidden
+            end
+        else
+            private.db.profile.big_icon_settings.useTooltip = Enum.EncounterEventsTooltipAnchor.Hidden
+        end
+    end
+
+    if private.db.profile.icon_settings.useTooltip == nil then
+        if private.db.profile.icon_settings.enableTooltip ~= nil then
+            if private.db.profile.icon_settings.enableTooltip then
+                private.db.profile.icon_settings.useTooltip = Enum.EncounterEventsTooltipAnchor.Default
+            else
+                private.db.profile.icon_settings.useTooltip = Enum.EncounterEventsTooltipAnchor.Hidden
+            end
+            private.db.profile.icon_settings.enableTooltip = nil
+        else
+            private.db.profile.icon_settings.useTooltip = Enum.EncounterEventsTooltipAnchor.Hidden
+        end
+    end
 end

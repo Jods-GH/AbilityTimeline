@@ -37,9 +37,9 @@ end
 ---Adds an EncounterTimelineEventInfo tooltip to a frame
 ---@param frame frame
 ---@param eventInfo EncounterTimelineEventInfo
-private.AddEventTooltip = function(frame, eventInfo)
+---@param tooltipAnchor Enum.EncounterEventsTooltipAnchor
+private.AddEventTooltip = function(frame, eventInfo, tooltipAnchor)
     frame:SetScript("OnEnter", function(self)
-        local tooltipAnchor = Enum.EncounterEventsTooltipAnchor.Default;
         local tooltipFrame = GetTooltipFrame();
 
         if tooltipFrame == nil then
