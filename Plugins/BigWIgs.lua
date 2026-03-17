@@ -53,7 +53,7 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
     }
     
     local eventID = C_EncounterTimeline.AddScriptEvent(eventinfo)
-    private.BWTimers[eventID] = {
+    private.BWTimers[timerMsg] = {
         eventID = eventID,
         info = {
             timerMsg = timerMsg,
@@ -63,22 +63,22 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
     }
 end
 
-local function TimerStopped(event, module, text, timerId)
+local function TimerStopped(event, module, text, eventID)
     private.Debug("BigWigs Timer Stopped: ")
-    if private.BWTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.BWTimers[timerId].eventID) then
-        C_EncounterTimeline.CancelScriptEvent(private.BWTimers[timerId].eventID)
-        private.BWTimers[timerId] = nil
+    if private.BWTimers[text] and C_EncounterTimeline.GetEventInfo(private.BWTimers[text].eventID) then
+        C_EncounterTimeline.CancelScriptEvent(private.BWTimers[text].eventID)
+        private.BWTimers[text] = nil
     end
 end
 
-local function TimerUpdated(event, _, _, timerId)
+local function TimerUpdated(event, module, text, timerId)
     if event =="BigWigs_PauseBar" then
-        if private.BWTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.BWTimers[timerId].eventID) then
-            C_EncounterTimeline.PauseScriptEvent(private.BWTimers[timerId].eventID)
+        if private.BWTimers[text] and C_EncounterTimeline.GetEventInfo(private.BWTimers[text].eventID) then
+            C_EncounterTimeline.PauseScriptEvent(private.BWTimers[text].eventID)
         end
     elseif event =="BigWigs_ResumeBar" then
-        if private.BWTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.BWTimers[timerId].eventID) then
-            C_EncounterTimeline.ResumeScriptEvent(private.BWTimers[timerId].eventID)
+        if private.BWTimers[text] and C_EncounterTimeline.GetEventInfo(private.BWTimers[text].eventID) then
+            C_EncounterTimeline.ResumeScriptEvent(private.BWTimers[text].eventID)
         end
     end
 end
@@ -94,7 +94,7 @@ end
 
 local BWCallbackObj = {}
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_StartBar", TimerStarted);
-BigWigsLoader.RegisterMessage(BWCallbackObj, "StopSpecificBar", TimerStopped);
+BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_StopBar", TimerStopped);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_PauseBar", TimerUpdated);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_ResumeBar", TimerUpdated);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_StopBars", StopAllTimers);
