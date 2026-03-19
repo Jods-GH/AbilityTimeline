@@ -12,18 +12,18 @@ private.ENCOUNTER_TIMELINE_EVENT_ADDED         = function(self, eventInfo)
       private.handleFrame(true)
    end
    if C_EncounterTimeline.GetEventState(eventInfo.id) == 1 then -- Paused
-      private.Debug("Event added in paused state, ignoring for now, eventID", eventInfo.id)
+      --private.Debug("Event added in paused state, ignoring for now, eventID".. eventInfo.id)
 		return -- ignore paused bars when added, they are always canceled some time later
 	end
 
    if eventInfo.source == Enum.EncounterTimelineEventSource.Script then
-      private.Debug("Adding event to timeline from script event, eventID", eventInfo.id)
+      private.Debug("Adding event to timeline from script event, eventID".. eventInfo.id)
       private.addEvent(eventInfo)
       return
    end
 
    if eventInfo.source == Enum.EncounterTimelineEventSource.EditMode then
-      private.Debug("Adding event to timeline from edit mode, eventID", eventInfo.id)
+      private.Debug("Adding event to timeline from edit mode, eventID".. eventInfo.id)
       private.addEvent(eventInfo)
       return
    end
@@ -43,7 +43,7 @@ private.BIGICON_THRESHHOLD_TIME                = 5
 
 private.createTimelineIcon                     = function(eventInfo)
    if private.activeFrames[eventInfo.id] then
-      private.Debug("Frame already exists for eventID", eventInfo.id, "removing existing frame")
+     -- private.Debug("Frame already exists for eventID".. eventInfo.id.. "removing existing frame")
       private.removeAtIconFrame(eventInfo.id)
    end
    local frame = AceGUI:Create("AtAbilitySpellIcon")
@@ -51,10 +51,10 @@ private.createTimelineIcon                     = function(eventInfo)
    private.activeFrames[eventInfo.id] = frame
    frame.frame:Show()
 
-   private.Debug(frame, "AT_TIMELINE_ICON")
-   private.Debug(eventInfo, "Event info for new icon")
-   local copyTable = CopyTable(private.activeFrames, true)
-   private.Debug(copyTable, "Active frames after adding new icon")
+   -- private.Debug(frame, "AT_TIMELINE_ICON")
+   -- private.Debug(eventInfo, "Event info for new icon")
+   -- local copyTable = CopyTable(private.activeFrames, true)
+   -- private.Debug(copyTable, "Active frames after adding new icon")
 end
 local activeEvents                             = {}
 ---comment
@@ -66,13 +66,14 @@ private.addEvent                               = function(eventInfo)
    local trackType = C_EncounterTimeline.GetTrackType(trackID)
    if not eventInfo.id then
       private.Debug("Event info has no id, cannot check track or track type")
+      return
    end
    if trackType == Enum.EncounterTimelineTrackType.Hidden or trackID == Enum.EncounterTimelineTrack.Indeterminate then
-      private.Debug("Hidden track, not adding icon for eventID".. eventInfo.id.. " trackID: ".. trackID.. " trackType: ".. trackType)
+      --private.Debug("Hidden track, not adding icon for eventID".. eventInfo.id.. " trackID: ".. trackID.. " trackType: ".. trackType)
       return
    end
    if C_EncounterTimeline.GetEventState(eventInfo.id) == 1 then -- Paused
-      private.Debug("Event added in paused state, ignoring for now, eventID".. eventInfo.id)
+      --private.Debug("Event added in paused state, ignoring for now, eventID".. eventInfo.id)
 		return -- ignore paused bars when added, they are always canceled some time later
 	end
    private.createTimelineIcon(eventInfo)
@@ -97,7 +98,7 @@ private.removeAtIconFrame                      = function(eventID)
       frame:Release()
       private.activeFrames[eventID] = nil
    else
-      private.Debug("No frame found for eventID".. eventID)
+      -- private.Debug("No frame found for eventID".. eventID)
    end
 end
 
@@ -123,17 +124,17 @@ private.ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED = function(self, eventID)
    local trackType = C_EncounterTimeline.GetTrackType(trackID)
    local isPaused = C_EncounterTimeline.GetEventState(eventID) == private.ENCOUNTER_STATES.Paused
    if (trackType == Enum.EncounterTimelineTrackType.Hidden or trackID == Enum.EncounterTimelineTrack.Indeterminate) and not isPaused then
-      private.Debug("Hidden track, removing icon if exists for eventID", eventID)
+      -- private.Debug("Hidden track, removing icon if exists for eventID", eventID)
       private.removeAtIconFrame(eventID)
       if not C_EncounterTimeline.HasAnyEvents() then
          private.handleFrame(false)
       end
-   elseif not private.activeFrames[eventID] then
+   elseif not private.activeFrames[eventID] and ((not private.DisableBlizzTimersBW and not private.DisableBlizzTimersDBM) or private.ActiveBossModTimers[eventID]) then
       local remainingTime = C_EncounterTimeline.GetEventTimeRemaining(eventID)
       if remainingTime <= 1 then
          return
       end
-      private.Debug("New event tracked, adding icon for eventID", eventID)
+      private.Debug("New event tracked, adding icon for eventID" .. eventID)
       private.addEvent(C_EncounterTimeline.GetEventInfo(eventID))
    end
 end
@@ -180,9 +181,6 @@ private.createTimelineFrame = function()
 
 
    private.TEXT_HIGHLIGHT_FRAME = AceGUI:Create("AtTextHighlightFrame")
-
-   private.Debug(private.TEXT_HIGHLIGHT_FRAME, "AT_TEXT_HIGHLIGHT_FRAME")
-   private.Debug(private.TIMELINE_FRAME, "AT_TIMELINE_FRAME")
 end
 
 private.handleFrame = function(show)

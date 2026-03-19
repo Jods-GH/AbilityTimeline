@@ -6,6 +6,7 @@ if not C_AddOns.IsAddOnLoaded("DBM-Core") then return end
 
 private.DBMTimers = {}
 private.DisableBlizzTimersDBM = false
+private.ActiveBossModTimers = private.ActiveBossModTimers or {}
 local excludedTimers = {
     ["%s	Pull in"] = true,
 }
@@ -60,11 +61,14 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
     else
         eventinfo.iconFileID = 134400 -- 134400 is the ? icon
     end
+    private.Debug("DBM Timer Started: " .. (spellName or timerId) .. " Duration: " .. timerDuration)
     if private.DBMTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.DBMTimers[timerId].eventID) then
         C_EncounterTimeline.CancelScriptEvent(private.DBMTimers[timerId].eventID) -- Cancel the existing event to update it with new info
         private.DBMTimers[timerId] = nil
+        private.ActiveBossModTimers[private.DBMTimers[timerId].eventID] = nil
     end
     local eventID = C_EncounterTimeline.AddScriptEvent(eventinfo)
+    private.ActiveBossModTimers[eventID] = true
     private.DBMTimers[timerId] = {
         eventID = eventID,
         info = {
@@ -96,6 +100,7 @@ local function TimerStopped(event, timerId)
     if private.DBMTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.DBMTimers[timerId].eventID) then
         C_EncounterTimeline.CancelScriptEvent(private.DBMTimers[timerId].eventID)
         private.DBMTimers[timerId] = nil
+        private.ActiveBossModTimers[private.DBMTimers[timerId].eventID] = nil
     end
 end
 
@@ -112,6 +117,7 @@ local function TimerUpdated(event, timerId, timerElapsed, timerModified)
     elseif private.DBMTimers[timerId] then
         if C_EncounterTimeline.GetEventInfo(private.DBMTimers[timerId].eventID) then
             C_EncounterTimeline.CancelScriptEvent(private.DBMTimers[timerId].eventID)
+            private.ActiveBossModTimers[private.DBMTimers[timerId].eventID] = nil
         end
         local timerInfo = private.DBMTimers[timerId].info
         timerInfo.timerDuration = timerInfo.timerDuration + timerModified

@@ -6,6 +6,7 @@ if not C_AddOns.IsAddOnLoaded("BigWigs") then return end
 
 private.DisableBlizzTimersBW = true
 private.BWTimers = {}
+private.ActiveBossModTimers = private.ActiveBossModTimers or {}
 
 local excludedTimers = {
     ["Pull"] = true,
@@ -18,6 +19,7 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
         if eventInfo.source ~= Enum.EncounterTimelineEventSource.Script and eventInfo.source ~= Enum.EncounterTimelineEventSource.EditMode then
             private.Debug("Bigwigs timer started for default event, adding to timeline".. eventID)
             private.addEvent(eventInfo)
+            private.ActiveBossModTimers[eventID] = true
         end
         return
     end
@@ -42,6 +44,10 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
     else 
         msg = timerMsg
     end
+
+    if private.BWTimers[timerMsg] and C_EncounterTimeline.GetEventInfo(private.BWTimers[timerMsg].eventID) then
+        C_EncounterTimeline.CancelScriptEvent(private.BWTimers[timerMsg].eventID)
+    end
             
     local eventinfo = {
         duration = timerDuration,
@@ -52,8 +58,9 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
         severity = 1,
         paused = false,
     }
-    
+    private.Debug("BigWigs Timer Started: " .. timerMsg .. " Duration: " .. timerDuration)
     local eventID = C_EncounterTimeline.AddScriptEvent(eventinfo)
+    private.ActiveBossModTimers[eventID] = true
     private.BWTimers[timerMsg] = {
         eventID = eventID,
         info = {
@@ -65,9 +72,9 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
 end
 
 local function TimerStopped(event, module, text, eventID)
-    private.Debug("BigWigs Timer Stopped: ")
     if private.BWTimers[text] and C_EncounterTimeline.GetEventInfo(private.BWTimers[text].eventID) then
         C_EncounterTimeline.CancelScriptEvent(private.BWTimers[text].eventID)
+        private.ActiveBossModTimers[private.BWTimers[text].eventID] = nil
         private.BWTimers[text] = nil
     end
 end
@@ -89,6 +96,7 @@ local function StopAllTimers()
     C_EncounterTimeline.CancelAllScriptEvents()
     for timerId, timerData in pairs(private.BWTimers) do
         private.BWTimers[timerId] = nil
+        private.ActiveBossModTimers[timerData.eventID] = nil
     end
     private.removeAllFrames()
 end
