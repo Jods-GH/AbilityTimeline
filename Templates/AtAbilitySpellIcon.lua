@@ -278,12 +278,17 @@ end
 ---@param self frame
 ---@param remainingTime number
 local HandleCooldown        = function(self, remainingTime)
-	local roundedTime = math.ceil(remainingTime)
-	if roundedTime <= 0 then
+	local formatedTime = remainingTime
+	if formatedTime <= 0 then
 		self.Cooldown:SetText("")
 		return
 	end
-	self.Cooldown:SetText(roundedTime)
+	if remainingTime > 60 then
+		formatedTime = math.ceil(remainingTime / 60) .. "m"
+	else
+		formatedTime = math.ceil(remainingTime)
+	end
+	self.Cooldown:SetText(formatedTime)
 	if private.db.profile.cooldown_settings.cooldown_highlight and private.db.profile.cooldown_settings.cooldown_highlight.enabled then
 		for _, value in pairs(private.db.profile.cooldown_settings.cooldown_highlight.highlights) do
 			local time, color = value.time, value.color
