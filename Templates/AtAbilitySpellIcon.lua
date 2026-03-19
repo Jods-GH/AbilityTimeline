@@ -284,7 +284,12 @@ local HandleCooldown        = function(self, remainingTime)
 		return
 	end
 	if remainingTime > 60 then
-		formatedTime = math.ceil(remainingTime / 60) .. "m"
+		local seconds = remainingTime % 60
+		if seconds > 30 then
+			formatedTime = math.ceil(remainingTime / 60) .. "m"
+		else
+			formatedTime = math.floor(remainingTime / 60) .. "m"
+		end
 	else
 		formatedTime = math.ceil(remainingTime)
 	end
