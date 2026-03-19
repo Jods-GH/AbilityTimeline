@@ -68,12 +68,12 @@ private.addEvent                               = function(eventInfo)
       private.Debug("Event info has no id, cannot check track or track type")
       return
    end
-   if trackType == Enum.EncounterTimelineTrackType.Hidden or trackID == Enum.EncounterTimelineTrack.Indeterminate then
-      --private.Debug("Hidden track, not adding icon for eventID".. eventInfo.id.. " trackID: ".. trackID.. " trackType: ".. trackType)
+   if eventInfo.source ~= Enum.EncounterTimelineEventSource.Script and (trackType == Enum.EncounterTimelineTrackType.Hidden or trackID == Enum.EncounterTimelineTrack.Indeterminate) then
+      private.Debug("Hidden track, not adding icon for eventID".. eventInfo.id.. " trackID: ".. trackID.. " trackType: ".. trackType)
       return
    end
-   if C_EncounterTimeline.GetEventState(eventInfo.id) == 1 then -- Paused
-      --private.Debug("Event added in paused state, ignoring for now, eventID".. eventInfo.id)
+   if eventInfo.source ~= Enum.EncounterTimelineEventSource.Script and C_EncounterTimeline.GetEventState(eventInfo.id) == 1 then -- Paused
+      private.Debug("Event added in paused state, ignoring for now, eventID".. eventInfo.id)
 		return -- ignore paused bars when added, they are always canceled some time later
 	end
    private.createTimelineIcon(eventInfo)
