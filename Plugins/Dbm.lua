@@ -8,7 +8,7 @@ private.DBMTimers = {}
 private.DisableBlizzTimersDBM = false
 private.ActiveBossModTimers = private.ActiveBossModTimers or {}
 local excludedTimers = {
-    ["%s	Pull in"] = true,
+    ["pull"] = true,
 }
 local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID, timerCount, timerIsPriority, timerType2, timerHasVariance, timerVariance)
     
@@ -27,10 +27,10 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
     -- private.Debug(timerSpellName)
     -- private.Debug(timerMobGUID)
     -- private.Debug("==")
-    -- private.Debug(excludedTimers[timerId])
+    -- private.Debug(excludedTimers[timerType])
     -- private.Debug(excludedTimers, "excluded timers")
     -- private.Debug("---")
-    if excludedTimers[timerId] then return end
+    if excludedTimers[timerType] then return end
     
     local spellInfo = nil
     if timerSpellId and type(timerSpellId) == "number" then
@@ -99,8 +99,8 @@ local function TimerStopped(event, timerId)
     private.Debug("DBM Timer Stopped: ".. timerId)
     if private.DBMTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.DBMTimers[timerId].eventID) then
         C_EncounterTimeline.CancelScriptEvent(private.DBMTimers[timerId].eventID)
-        private.DBMTimers[timerId] = nil
         private.ActiveBossModTimers[private.DBMTimers[timerId].eventID] = nil
+        private.DBMTimers[timerId] = nil
     end
 end
 
