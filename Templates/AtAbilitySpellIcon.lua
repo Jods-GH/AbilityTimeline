@@ -343,7 +343,7 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	self.frame.frameIsMoving = false
 	if not disableOnUpdate then
 		local EventIconTextureID = eventInfo.id
-		if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators[eventInfo.id] then
+		if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators and private.BossModsSpellIndicators[eventInfo.id] then
 			private.Debug("Found spell indicator for bossmods event, using its icons for the Textures")
 			EventIconTextureID = private.BossModsSpellIndicators[eventInfo.id]	
 		elseif eventInfo.source == Enum.EncounterTimelineEventSource.Script then

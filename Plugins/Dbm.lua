@@ -30,7 +30,10 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
     -- private.Debug(excludedTimers[timerType])
     -- private.Debug(excludedTimers, "excluded timers")
     -- private.Debug("---")
-    if excludedTimers[timerType] then return end
+    if excludedTimers[timerType] then 
+        private.Debug("DBM Timer Ignored (Excluded Type): ".. timerId .. " Type: " .. timerType)
+        return 
+    end
     
     local spellInfo = nil
     if timerSpellId and type(timerSpellId) == "number" then

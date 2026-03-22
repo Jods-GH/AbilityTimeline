@@ -209,7 +209,7 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 			end
 		end)
 		local EventIconTextureID = eventInfo.id
-		if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators[eventID] then
+		if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators and private.BossModsSpellIndicators[eventID] then
 			EventIconTextureID = private.BossModsSpellIndicators[eventID]	
 		end
 		if private.db.profile.big_icon_settings.dispellIcons then

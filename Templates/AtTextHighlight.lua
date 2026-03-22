@@ -96,7 +96,7 @@ end
 local HandleTexts = function(widget, eventInfo, remainingDuration)
     local textColor = GetTextColor(widget, remainingDuration)
     local EventIconTextureID = eventInfo.id
-    if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators[eventID] then
+    if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators and private.BossModsSpellIndicators[eventID] then
         EventIconTextureID = private.BossModsSpellIndicators[eventID]	
     end
     C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 126, widget.frame.dispellTypeIcons)
