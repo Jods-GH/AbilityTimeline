@@ -7,6 +7,7 @@ if not C_AddOns.IsAddOnLoaded("BigWigs") then return end
 private.DisableBlizzTimersBW = true
 private.BWTimers = {}
 private.ActiveBossModTimers = private.ActiveBossModTimers or {}
+private.BossModsSpellIndicators = private.BossModsSpellIndicators or {}
 
 local excludedTimers = {
     ["Pull"] = true,
@@ -48,19 +49,27 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
     if private.BWTimers[timerMsg] and C_EncounterTimeline.GetEventInfo(private.BWTimers[timerMsg].eventID) then
         C_EncounterTimeline.CancelScriptEvent(private.BWTimers[timerMsg].eventID)
     end
-            
+        
     local eventinfo = {
         duration = timerDuration,
         maxQueueDuration = 0,
         overrideName = msg,
-        spellID = 58984,
+        spellID = timerKey and type(timerKey) == "number" and timerKey or 58984,
         iconFileID = icon,
         severity = 1,
         paused = false,
     }
+    if private.spellIDColors[timerKey] then
+        private.Debug("Found color for spell ID, applying to timer event")
+        eventinfo.color = private.spellIDColors[timerKey]
+    end
     private.Debug("BigWigs Timer Started: " .. timerMsg .. " Duration: " .. timerDuration)
     local eventID = C_EncounterTimeline.AddScriptEvent(eventinfo)
     private.ActiveBossModTimers[eventID] = true
+    if spellIndicators then
+        private.BossModsSpellIndicators[eventID] = spellIndicators
+        DevTools_Dump(C_EncounterTimeline.GetEventInfo(spellIndicators).icons)
+    end
     private.BWTimers[timerMsg] = {
         eventID = eventID,
         info = {

@@ -208,15 +208,19 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 				private.evaluateBigIconPositions()
 			end
 		end)
+		local EventIconTextureID = eventInfo.id
+		if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators[eventID] then
+			EventIconTextureID = private.BossModsSpellIndicators[eventID]	
+		end
 		if private.db.profile.big_icon_settings.dispellIcons then
-			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, widget.frame.DispellTypeIcons)
+			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 126, widget.frame.DispellTypeIcons)
 		end
 		if private.db.profile.big_icon_settings.dispellBorders then
 			for i, dispellValue in ipairs(private.dispellTypeList) do
 				for _, edgeTexture in ipairs(widget.frame.DispellTypeBorderEdges[i]) do
 					local textureArray = {}
 					table.insert(textureArray, edgeTexture)
-					C_EncounterTimeline.SetEventIconTextures(eventInfo.id, dispellValue.mask, textureArray)
+					C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, dispellValue.mask, textureArray)
 					edgeTexture:SetTexture(nil)
 					edgeTexture:SetColorTexture(dispellValue.color.r, dispellValue.color.g, dispellValue.color.b,
 						dispellValue.color.a)
@@ -224,7 +228,7 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 			end
 		end
 		if private.db.profile.big_icon_settings.dangerIcon then
-			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 1, widget.frame.DangerIcon)
+			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 1, widget.frame.DangerIcon)
 		end
 	end
 

@@ -342,15 +342,22 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	-- OnUpdate we want to update the position of the icon based on elapsed time
 	self.frame.frameIsMoving = false
 	if not disableOnUpdate then
+		local EventIconTextureID = eventInfo.id
+		if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators[eventInfo.id] then
+			private.Debug("Found spell indicator for bossmods event, using its icons for the Textures")
+			EventIconTextureID = private.BossModsSpellIndicators[eventInfo.id]	
+		elseif eventInfo.source == Enum.EncounterTimelineEventSource.Script then
+			private.Debug("No spell indicator for bossmods event, using event icon for the Textures")
+		end
 		if private.db.profile.icon_settings.dispellIcons then
-			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, self.frame.dispellTypeIcons)
+			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 126, self.frame.dispellTypeIcons)
 		end
 		if private.db.profile.icon_settings.dispellBorders then
 			for i, dispellValue in ipairs(private.dispellTypeList) do
 				for _, edgeTexture in ipairs(self.frame.DispellTypeBorderEdges[i]) do
 					local textureArray = {}
 					table.insert(textureArray, edgeTexture)
-					C_EncounterTimeline.SetEventIconTextures(eventInfo.id, dispellValue.mask, textureArray)
+					C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, dispellValue.mask, textureArray)
 					edgeTexture:SetTexture(nil)
 					edgeTexture:SetColorTexture(dispellValue.color.r, dispellValue.color.g, dispellValue.color.b,
 						dispellValue.color.a)
@@ -359,11 +366,11 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 		end
 
 		if private.db.profile.icon_settings.roleIcons then
-			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 896, self.frame.RoleIcons)
+			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 896, self.frame.RoleIcons)
 		end
 
 		if private.db.profile.icon_settings.dangerIcon then
-			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 1, self.frame.DangerIcon)
+			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 1, self.frame.DangerIcon)
 		end
 		self.frame:SetScript("OnUpdate", function(self)
 			local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(self.eventInfo.id)

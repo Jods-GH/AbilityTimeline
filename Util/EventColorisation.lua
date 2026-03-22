@@ -13,6 +13,8 @@ for _, dispellTypeInfo in pairs(private.dispellTypeList) do
    )
 end
 
+private.spellIDColors = {}
+
 local EventColors = {}
 local SetupEventColorisation = function()
     if EventColors and next(EventColors) then return end -- already setup
@@ -23,6 +25,7 @@ local SetupEventColorisation = function()
             for mask, color in pairs(dispellTypeColors) do
                 if bit.band(icons, mask) ~= 0 then
                     EventColors[eventID] = eventInfo.color
+                    private.spellIDColors[eventInfo.spellID] = eventInfo.color
                     C_EncounterEvents.SetEventColor(eventID, color)
                     break -- Only set the first matching color
                 end

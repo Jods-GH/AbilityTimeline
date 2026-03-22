@@ -95,9 +95,12 @@ end
 ---@param remainingDuration any
 local HandleTexts = function(widget, eventInfo, remainingDuration)
     local textColor = GetTextColor(widget, remainingDuration)
-    C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, widget.frame.dispellTypeIcons)
+    local EventIconTextureID = eventInfo.id
+    if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators[eventID] then
+        EventIconTextureID = private.BossModsSpellIndicators[eventID]	
+    end
+    C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 126, widget.frame.dispellTypeIcons)
     local atlas = widget.frame.dispellTypeIcons[1]:GetAtlas()
-    local alpha = widget.frame.dispellTypeIcons[1]:GetAlpha()
     local formatedText = string.format("%s in |c%s%i|r", eventInfo.spellName, textColor,
         math.ceil(remainingDuration))
     if private.db.profile.highlight_text_settings.dispellIcons then
