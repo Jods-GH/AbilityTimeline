@@ -47,23 +47,6 @@ local function ApplySettings(self)
     else
         self.frame.SpellNameBackground:Hide()
     end
-
-    if private.db.profile.highlight_text_settings.dispellTextColor then
-        for i, _ in pairs(private.dispellTypeList) do
-            local coloredSpellName = self.frame.DispellTypeSpellNames[i]
-            coloredSpellName:Show()
-             if private.db.profile.highlight_text_settings and private.db.profile.highlight_text_settings.font and private.db.profile.highlight_text_settings.fontSize then
-               coloredSpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.highlight_text_settings.font),
-                    private.db.profile.highlight_text_settings.fontSize, "OUTLINE")
-            elseif private.db.profile.highlight_text_settings and private.db.profile.highlight_text_settings.fontSize then
-                coloredSpellName:SetFontHeight(private.db.profile.highlight_text_settings.fontSize)
-            end
-        end
-    else
-        for i, _ in pairs(self.frame.DispellTypeSpellNames) do
-            self.frame.DispellTypeSpellNames[i]:Hide()
-        end
-    end
 end
 
 ---@param self AtTextHighlight
@@ -112,14 +95,6 @@ end
 ---@param remainingDuration any
 local HandleTexts = function(widget, eventInfo, remainingDuration)
     local textColor = GetTextColor(widget, remainingDuration)
-    if private.db.profile.highlight_text_settings.dispellTextColor then
-        for i, value in pairs(private.dispellTypeList) do
-            local coloredSpellName = widget.frame.DispellTypeSpellNames[i]
-            C_EncounterTimeline.SetEventIconTextures(eventInfo.id, value.mask, widget.frame.dispellTypeIcons)
-            local alpha = widget.frame.dispellTypeIcons[1]:GetAlpha()
-            coloredSpellName:SetAlpha(alpha)
-        end
-    end
     C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, widget.frame.dispellTypeIcons)
     local atlas = widget.frame.dispellTypeIcons[1]:GetAtlas()
     local alpha = widget.frame.dispellTypeIcons[1]:GetAlpha()
@@ -130,19 +105,16 @@ local HandleTexts = function(widget, eventInfo, remainingDuration)
             math.ceil(remainingDuration))
     end
     widget.frame.SpellName:SetText(formatedText)
-    if private.db.profile.text_settings.useEventColor and eventInfo.color then
-		widget.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
-	end
-    if private.db.profile.highlight_text_settings.dispellTextColor then
-        -- use desaturation to convert int to boolean to invert using setalpha
-        widget.frame.dispellTypeIcons[1]:SetDesaturation(alpha)
-        local isDesaturated = widget.frame.dispellTypeIcons[1]:IsDesaturated()
-        widget.frame.SpellName:SetAlphaFromBoolean(isDesaturated, 0, 1)
-        -- these hacky workarounds are gonna be the death of me
-        for i, value in pairs(private.dispellTypeList) do
-            local coloredSpellName = widget.frame.DispellTypeSpellNames[i]
-            coloredSpellName:SetText(formatedText)
-            coloredSpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
+    if private.db.profile.text_settings.useEventColor then
+        if issecretvalue(eventInfo.icons) then
+            widget.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
+        elseif private.db.profile.dispellTextColor and eventInfo.icons and eventInfo.icons ~= 0 then
+            for _, value in pairs(private.dispellTypeList) do
+                if bit.band(eventInfo.icons, value.mask) ~= 0 then
+                    widget.frame.SpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
+                    break -- Only set the first matching color
+                end
+            end
         end
     end
 end
@@ -178,16 +150,6 @@ local function Constructor()
     frame.SpellName:SetWordWrap(false)
     frame.SpellName:SetPoint("CENTER", frame, "CENTER")
     frame:SetFrameStrata(private.FrameStrata.FULLSCREEN)
-    frame.DispellTypeSpellNames = {}
-
-    for i, value in pairs(private.dispellTypeList) do
-        local coloredSpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-        coloredSpellName:SetWordWrap(false)
-        coloredSpellName:SetPoint("CENTER", frame, "CENTER")
-        coloredSpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
-
-        frame.DispellTypeSpellNames[i] = coloredSpellName
-    end
 
     frame.SpellNameBackground = frame:CreateTexture(nil, "BACKGROUND")
     frame.SpellNameBackground:SetPoint("LEFT", frame.SpellName, "LEFT",

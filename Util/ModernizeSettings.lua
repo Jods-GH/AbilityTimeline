@@ -297,4 +297,17 @@ private.modernize = function()
             private.db.profile.icon_settings.useTooltip = Enum.EncounterEventsTooltipAnchor.Hidden
         end
     end
+
+    if private.db.profile.dispellTextColor == nil then
+        if private.db.profile.icon_settings.dispellTextColor~=nil or private.db.profile.highlight_text_settings.dispellTextColor~=nil then
+            private.db.profile.dispellTextColor = private.db.profile.icon_settings.dispellTextColor or private.db.profile.highlight_text_settings.dispellTextColor
+            if private.db.profile.dispellTextColor then
+                private.db.profile.text_settings.useEventColor = true
+            end
+            private.db.profile.icon_settings.dispellTextColor = nil
+            private.db.profile.highlight_text_settings.dispellTextColor = nil
+        else
+            private.db.profile.dispellTextColor = true
+        end
+    end
 end

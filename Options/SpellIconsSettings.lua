@@ -77,14 +77,15 @@ local createGeneralSettings = function(widget, parentWindow, iconSettings, maxIc
     local dispellTextColorSetting = AceGUI:Create("CheckBox")
     dispellTextColorSetting:SetLabel(private.getLocalisation("DispellTextColor"))
     private.AddFrameTooltip(dispellTextColorSetting.frame, "DispellTextColorDescription")
-    dispellTextColorSetting:SetValue(iconSettings.dispellTextColor)
+    dispellTextColorSetting:SetValue(private.db.profile.dispellTextColor)
     dispellTextColorSetting:SetCallback("OnValueChanged", function(_, _, value)
-        iconSettings.dispellTextColor = value
+        private.db.profile.dispellTextColor = value
         if value then
             widget.frame.SpellName:SetTextColor(0, 0.5019607843137255, 1)
         else
             widget.frame.SpellName:SetTextColor(1, 1, 1)
         end
+        private.ToggleEventColorisation(value)
     end)
     scroll:AddChild(dispellTextColorSetting)
 
@@ -160,14 +161,15 @@ local createHighlightTextGeneralSettings = function(widget, parentWindow, Settin
     local dispellTextColorSetting = AceGUI:Create("CheckBox")
     dispellTextColorSetting:SetLabel(private.getLocalisation("DispellTextColor"))
     private.AddFrameTooltip(dispellTextColorSetting.frame, "DispellTextColorDescription")
-    dispellTextColorSetting:SetValue(Settings.dispellTextColor)
+    dispellTextColorSetting:SetValue(private.db.profile.dispellTextColor)
     dispellTextColorSetting:SetCallback("OnValueChanged", function(_, _, value)
-        Settings.dispellTextColor = value
+        private.db.profile.dispellTextColor = value
         if value then
             widget.frame.SpellName:SetTextColor(0, 0.5019607843137255, 1)
         else
             widget.frame.SpellName:SetTextColor(1, 1, 1)
         end
+        private.ToggleEventColorisation(value)
     end)
     scroll:AddChild(dispellTextColorSetting)
 
@@ -746,7 +748,7 @@ local createSpellIconSettingsFrame = function()
     widget.frame:SetFrameLevel(private.SPELL_ICON_SETTINGS_WINDOW.rightContent:GetFrameLevel() + 1)
     widget:SetParent(private.SPELL_ICON_SETTINGS_WINDOW)
 
-    if private.db.profile.icon_settings.dispellTextColor then
+    if private.db.profile.dispellTextColor then
         widget.frame.SpellName:SetTextColor(0, 0.5019607843137255, 1)
     end
 
@@ -934,7 +936,7 @@ local createHighlightTextSettingsFrame = function()
     widget:SetEventInfo(eventInfo, true)
     widget.startTime = GetTime()
     widget.duration = 5
-    if private.db.profile.highlight_text_settings.dispellTextColor then
+    if private.db.profile.dispellTextColor then
         widget.frame.SpellName:SetTextColor(0, 0.5019607843137255, 1)
     else
         widget.frame.SpellName:SetTextColor(1, 1, 1)

@@ -235,10 +235,19 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 	widget.frame.SpellIcon:SetAllPoints(widget.frame)
 	widget.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
 	widget.frame.SpellName:SetText(eventInfo.spellName)
-	-- TODO add the same debuff type coloring as from normal spellicons
-	if private.db.profile.text_settings.useEventColor and eventInfo.color then
-		widget.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
-	end
+
+	if private.db.profile.text_settings.useEventColor then
+			if issecretvalue(eventInfo.icons) then
+				widget.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
+			elseif private.db.profile.dispellTextColor and eventInfo.icons and eventInfo.icons ~= 0 then
+				for _, value in pairs(private.dispellTypeList) do
+					if bit.band(eventInfo.icons, value.mask) ~= 0 then
+						widget.frame.SpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
+						break -- Only set the first matching color
+					end
+				end
+			end
+		end
 	widget.frame:Show()
 	if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.useTooltip and private.db.profile.big_icon_settings.useTooltip ~= Enum.EncounterEventsTooltipAnchor.Hidden then
 		private.AddEventTooltip(widget.frame, eventInfo, private.db.profile.big_icon_settings.useTooltip)

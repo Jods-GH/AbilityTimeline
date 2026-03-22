@@ -96,10 +96,6 @@ local handleAnchors      = function(self, isStopped)
 		texture:ClearAllPoints()
 		texture:SetPoint(relPos, self, anchorPos, 0, 0)
 	end
-	for i, _ in pairs(self.DispellTypeSpellNames) do
-		self.DispellTypeSpellNames[i]:ClearAllPoints()
-		self.DispellTypeSpellNames[i]:SetPoint(relPos, self, anchorPos, xOffset, yOffset)
-	end
 
 	for i, texture in pairs(self.RoleIcons) do
 		texture:ClearAllPoints()
@@ -327,45 +323,25 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
 	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
 		self.frame.SpellName:SetText("")
-		for i, _ in pairs(self.frame.DispellTypeSpellNames) do
-			self.frame.DispellTypeSpellNames[i]:SetText("")
-		end
 	else
 		self.frame.SpellName:SetText(eventInfo.spellName)
 		if private.db.profile.text_settings.useEventColor then
-			self.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
-		end
-		for i, _ in pairs(self.frame.DispellTypeSpellNames) do
-			self.frame.DispellTypeSpellNames[i]:SetText(eventInfo.spellName)
+			if issecretvalue(eventInfo.icons) then
+				self.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
+			elseif private.db.profile.dispellTextColor and eventInfo.icons and eventInfo.icons ~= 0 then
+				for _, value in pairs(private.dispellTypeList) do
+					if bit.band(eventInfo.icons, value.mask) ~= 0 then
+						self.frame.SpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
+						break -- Only set the first matching color
+					end
+				end
+			end
 		end
 	end
 
 	-- OnUpdate we want to update the position of the icon based on elapsed time
 	self.frame.frameIsMoving = false
 	if not disableOnUpdate then
-		if private.db.profile.icon_settings.dispellTextColor then
-			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, self.frame.dispellTypeIcons)
-			local alpha = self.frame.dispellTypeIcons[1]:GetAlpha()
-			self.frame.dispellTypeIcons[1]:SetDesaturation(alpha)
-			local isDesaturated = self.frame.dispellTypeIcons[1]:IsDesaturated()
-			self.frame.dispellTypeIcons[1]:SetDesaturated(false)
-			self.frame.SpellName:SetAlphaFromBoolean(isDesaturated, 0, 1)
-
-			for i, value in pairs(private.dispellTypeList) do
-				local coloredSpellName = self.frame.DispellTypeSpellNames[i]
-				C_EncounterTimeline.SetEventIconTextures(eventInfo.id, value.mask, self.frame.dispellTypeIcons)
-				local alpha = self.frame.dispellTypeIcons[1]:GetAlpha()
-				coloredSpellName:SetAlpha(alpha)
-				local coloredSpellName = self.frame.DispellTypeSpellNames[i]
-				coloredSpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
-			end
-		else
-			self.frame.SpellName:SetAlpha(1)
-			for i, value in pairs(private.dispellTypeList) do
-				local coloredSpellName = self.frame.DispellTypeSpellNames[i]
-				coloredSpellName:SetAlpha(0)
-			end
-		end
 		if private.db.profile.icon_settings.dispellIcons then
 			C_EncounterTimeline.SetEventIconTextures(eventInfo.id, 126, self.frame.dispellTypeIcons)
 		end
@@ -535,23 +511,6 @@ local function ApplySettings(self)
 	else
 		self.frame.SpellNameBackground:Hide()
 	end
-
-	if private.db.profile.icon_settings.dispellTextColor then
-		for i, _ in pairs(private.dispellTypeList) do
-			local coloredSpellName = self.frame.DispellTypeSpellNames[i]
-			coloredSpellName:Show()
-			if private.db.profile.text_settings and private.db.profile.text_settings.font and private.db.profile.text_settings.fontSize then
-				coloredSpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.text_settings.font),
-					private.db.profile.text_settings.fontSize, "OUTLINE")
-			elseif private.db.profile.text_settings and private.db.profile.text_settings.fontSize then
-				coloredSpellName:SetFontHeight(private.db.profile.text_settings.fontSize)
-			end
-		end
-	else
-		for i, _ in pairs(self.frame.DispellTypeSpellNames) do
-			self.frame.DispellTypeSpellNames[i]:Hide()
-		end
-	end
 end
 
 ---@param self AtAbilitySpellIcon
@@ -568,12 +527,6 @@ local function OnRelease(self)
 	handleAnchors(self.frame, false)
 	self.frame:SetScript("OnUpdate", nil)
 	self.frame.frameIsMoving = false
-
-	for i, value in pairs(private.dispellTypeList) do
-		local coloredSpellName = self.frame.DispellTypeSpellNames[i]
-		coloredSpellName:SetAlpha(0)
-	end
-	self.frame.SpellName:SetAlpha(1)
 	private.ClearEventTooltip(self.frame)
 end
 
@@ -610,17 +563,6 @@ local function Constructor()
 	-- spell name
 	frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
 	frame.SpellName:Show()
-
-	frame.DispellTypeSpellNames = {}
-
-	for i, value in pairs(private.dispellTypeList) do
-		local coloredSpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-		coloredSpellName:SetWordWrap(false)
-		coloredSpellName:SetPoint("CENTER", frame, "CENTER")
-		coloredSpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
-
-		frame.DispellTypeSpellNames[i] = coloredSpellName
-	end
 	-- spell name background
 	frame.SpellNameBackground = frame:CreateTexture(nil, "BACKGROUND")
 	frame.SpellNameBackground:SetPoint("LEFT", frame.SpellName, "LEFT",

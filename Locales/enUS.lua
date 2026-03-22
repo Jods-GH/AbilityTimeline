@@ -157,7 +157,7 @@ if L then
     L['TextBackgroundOffsetY'] = "Text Background Offset Y"
     L['TextBackgroundOffsetYDescription'] = "Sets the Y offset of the background relative to the text."
     L['DispellTextColor'] = "Dispell Text Color"
-    L['DispellTextColorDescription'] = "Enables coloring the spell name text based on the dispell type."
+    L['DispellTextColorDescription'] = "Enables coloring the spell name text based on the dispell type. This Requires Use Event Color to be turned on."
     L['UseTooltip'] = "Use Tooltip"
     L['UseTooltipDescription'] = "Select the type of the tooltip when hovering over the icon."
 

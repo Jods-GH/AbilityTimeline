@@ -24,6 +24,12 @@
 #Libs
 embeds.xml
 
+#data
+Data\dungeons.xml
+Data\seasons.lua
+Data\dispellTypes.lua
+Data\specPosition.lua
+
 #util
 Util\Constants.lua
 Util\Debug.lua
@@ -34,6 +40,7 @@ Util\EncounterBrowser.lua
 Util\ImportUtil.lua
 Util\ChatTransmission.lua
 Util\Zoom.lua
+Util\EventColorisation.lua
 
 # Locales
 Locales\enUS.lua
@@ -67,12 +74,6 @@ Templates\AtTextHighlightFrame.lua
 Templates\AtBigIcon.lua
 Templates\AtTextHighlight.lua
 Templates\AtSpellIconSettingsFrame.lua
-
-#data
-Data\dungeons.xml
-Data\seasons.lua
-Data\dispellTypes.lua
-Data\specPosition.lua
 
 #plugins
 Plugins\TextHighlight.lua
