@@ -62,12 +62,16 @@ local activeEvents                             = {}
 private.addEvent                               = function(eventInfo)
    --local durationObject = C_EncounterTimeline.GetEventTimer(eventInfo.id)
    --activeEvents[eventInfo.id]=durationObject
-   local trackID = C_EncounterTimeline.GetEventTrack(eventInfo.id)
-   local trackType = C_EncounterTimeline.GetTrackType(trackID)
    if not eventInfo.id then
       private.Debug("Event info has no id, cannot check track or track type")
       return
    end
+   local trackID = C_EncounterTimeline.GetEventTrack(eventInfo.id)
+   if not trackID then
+      private.Debug("Event has no trackID, cannot check track or track type")
+      return
+   end
+   local trackType = C_EncounterTimeline.GetTrackType(trackID)
    if eventInfo.source ~= Enum.EncounterTimelineEventSource.Script and eventInfo.source ~= Enum.EncounterTimelineEventSource.EditMode and (trackType == Enum.EncounterTimelineTrackType.Hidden or trackID == Enum.EncounterTimelineTrack.Indeterminate) then
       private.Debug("Hidden track, not adding icon for eventID".. eventInfo.id.. " trackID: ".. trackID.. " trackType: ".. trackType)
       return
