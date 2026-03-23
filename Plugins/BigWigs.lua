@@ -68,7 +68,6 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
     private.ActiveBossModTimers[eventID] = true
     if spellIndicators then
         private.BossModsSpellIndicators[eventID] = spellIndicators
-        DevTools_Dump(C_EncounterTimeline.GetEventInfo(spellIndicators).icons)
     end
     private.BWTimers[timerMsg] = {
         eventID = eventID,
