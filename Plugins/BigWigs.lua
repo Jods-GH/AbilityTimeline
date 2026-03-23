@@ -11,6 +11,12 @@ private.BossModsSpellIndicators = private.BossModsSpellIndicators or {}
 
 local excludedTimers = {
     ["Pull"] = true,
+    ["Llamada de jefe"] = true, -- ES-Ex for Pull
+    ["Ingaggio"] = true, -- IT-IT for Pull
+    ["전투 예정"] = true, -- KO-KR for Pull
+    ["Атака"] = true, -- RU-RU for Pull
+    ["开怪倒数"] = true, -- CN-ZH for Pull
+    ["開怪倒數"] = true, -- CN-ZH-TW for Pull
 }
 
 local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, icon, timerIsApprox, timerMaxDuration, eventID, spellIndicators)
