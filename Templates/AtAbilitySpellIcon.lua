@@ -474,7 +474,21 @@ local function ApplySettings(self)
 	if private.db.profile.icon_settings and private.db.profile.icon_settings.TextOffset then
 		handleAnchors(self.frame, self.isStopped)
 	end
-	if private.db.profile.text_settings and private.db.profile.text_settings.font and private.db.profile.text_settings.fontSize then
+	if private.db.profile.text_settings and private.db.profile.text_settings.font and private.db.profile.text_settings.fontSize and private.db.profile.text_settings.fontFlag then
+		local fontFlags = ""
+		for flag, isEnabled in pairs(private.db.profile.text_settings.fontFlag) do
+			if isEnabled then
+				if fontFlags ~= "" then
+					fontFlags = fontFlags .. ",".. flag
+				else
+					fontFlags = flag
+				end
+			end
+		end
+		self.frame.SpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.text_settings.font),
+			private.db.profile.text_settings.fontSize, fontFlags)
+			
+	elseif private.db.profile.text_settings and private.db.profile.text_settings.font and private.db.profile.text_settings.fontSize then
 		self.frame.SpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.text_settings.font),
 			private.db.profile.text_settings.fontSize, "OUTLINE")
 	elseif private.db.profile.text_settings and private.db.profile.text_settings.fontSize then

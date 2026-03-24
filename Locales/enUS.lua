@@ -123,6 +123,8 @@ if L then
     L["SpellnameFontSizeDescription"] = "Sets the font size of the text besides the icon."
     L["SpellnameFont"] = "Font"
     L["SpellnameFontDescription"] = "Sets the font of the text besides the icon."
+    L["SpellnameFontFlag"] = "Additional Font Settings"
+    L["SpellnameFontFlagDescription"] = "Sets additional font settings of the text besides the icon."
     L["SpellnameDefaultColor"] = "Default Text Color"
     L["SpellnameDefaultColorDescription"] = "Sets the default color of the text besides the icon when not impacted by specific information like the type of debuff e.G. Poison."
     L["SpellnameUseEventColor"] = "Use Event Color"

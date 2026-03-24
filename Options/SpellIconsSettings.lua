@@ -303,6 +303,7 @@ local createTextSettings = function(widget, parentWindow, iconSettings, textSett
     scroll:AddChild(fontSizeSetting)
 
     local fontSetting = AceGUI:Create("Dropdown")
+    fontSetting:SetValue(textSettings.font)
     fontSetting:SetText(textSettings.font)
     fontSetting:SetLabel(private.getLocalisation("SpellnameFont"))
     private.AddFrameTooltip(fontSetting.frame, "SpellnameFontDescription")
@@ -315,6 +316,24 @@ local createTextSettings = function(widget, parentWindow, iconSettings, textSett
     end)
     fontSetting:SetRelativeWidth(0.5)
     scroll:AddChild(fontSetting)
+
+    local fontFlagSetting = AceGUI:Create("Dropdown")
+    fontFlagSetting:SetLabel(private.getLocalisation("SpellnameFontFlag"))
+    private.AddFrameTooltip(fontFlagSetting.frame, "SpellnameFontFlagDescription")
+    fontFlagSetting:AddItem("MONOCHROME", "MONOCHROME")
+    fontFlagSetting:AddItem("OUTLINE", "OUTLINE")
+    fontFlagSetting:AddItem("THICKOUTLINE", "THICKOUTLINE")
+    fontFlagSetting:AddItem("SLUG", "SLUG")
+    fontFlagSetting:SetMultiselect(true)
+    fontFlagSetting:SetCallback("OnValueChanged", function(_, _, key, value)
+        textSettings.fontFlag[key] = value
+        widget:ApplySettings()
+    end)
+    for key, value in pairs(textSettings.fontFlag) do
+        fontFlagSetting:SetItemValue(key, value)
+    end
+    fontFlagSetting:SetRelativeWidth(0.5)
+    scroll:AddChild(fontFlagSetting)
 
     local textUseEventColorToggle = AceGUI:Create("CheckBox")
     textUseEventColorToggle:SetValue(textSettings.useEventColor)
