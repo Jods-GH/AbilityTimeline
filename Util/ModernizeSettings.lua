@@ -59,8 +59,16 @@ private.modernize = function()
     if not private.db.profile.icon_settings.TextOffset then
         private.db.profile.icon_settings.TextOffset = { x = 16, y = 0 }
     end
-    if private.db.profile.icon_settings.dispellBorders == nil then
-        private.db.profile.icon_settings.dispellBorders = true
+    if private.db.profile.icon_settings.border == nil then
+        if private.db.profile.icon_settings.dispellBorders == true then
+            private.db.profile.icon_settings.border = private.IconBorderSettings.dispell
+            private.db.profile.icon_settings.dispellBorders = nil
+        elseif private.db.profile.icon_settings.dispellBorders == false then
+            private.db.profile.icon_settings.border = private.IconBorderSettings.none
+            private.db.profile.icon_settings.dispellBorders = nil
+        else
+            private.db.profile.icon_settings.border = private.IconBorderSettings.dispell
+        end
     end
     if private.db.profile.icon_settings.dispellIcons == nil then
         private.db.profile.icon_settings.dispellIcons = true

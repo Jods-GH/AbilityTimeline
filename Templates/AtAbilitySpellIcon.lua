@@ -321,27 +321,50 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	self:ApplySettings()
 	self.frame.eventInfo = eventInfo
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
+	private.Debug("============================")
 	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
 		self.frame.SpellName:SetText("")
+		private.Debug("Timeline is in horizontal mode, hiding text for eventID: " .. eventInfo.id)
 	else
 		self.frame.SpellName:SetText(eventInfo.spellName)
 		if private.db.profile.text_settings.useEventColor then
 			if issecretvalue(eventInfo.icons) then
 				self.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
+				local r,g,b = eventInfo.color:GetRGB()
+				private.Debug("Using event color for text for eventID: " .. eventInfo.id.. " with RGB values R: " .. r .. " G: " .. g .. " B: " .. b	)
+			elseif eventInfo.id and private.BossModsColors[eventInfo.id] and private.BossModsColors[eventInfo.id].textColor then
+				local color = private.BossModsColors[eventInfo.id].textColor
+				self.frame.SpellName:SetTextColor(color.r, color.g, color.b)
+				private.Debug("Found text color for bossmods event, applying to text for timer event")
+				private.Debug("Color values - R: " .. color.r .. " G: " .. color.g .. " B: " .. color.b)
 			elseif private.db.profile.dispellTextColor and eventInfo.icons and eventInfo.icons ~= 0 then
+				local colorHasBeenSet = false
 				for _, value in pairs(private.dispellTypeList) do
 					if bit.band(eventInfo.icons, value.mask) ~= 0 then
 						self.frame.SpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
+						colorHasBeenSet = true
+						private.Debug("Found dispell type for event, applying its color to the text for eventID: " .. eventInfo.id.. " with RGB values R: " .. value.color.r .. " G: " .. value.color.g .. " B: " .. value.color.b	)
 						break -- Only set the first matching color
 					end
 				end
+				if not colorHasBeenSet then
+					local r,g,b = eventInfo.color:GetRGB()
+					private.Debug("No dispell type found for event, using event text color for eventID: " .. eventInfo.id.. " with RGB values R: " .. r .. " G: " .. g .. " B: " .. b	)				
+					self.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
+				else
+					private.Debug("color was set")
+				end
+			elseif not disableOnUpdate then
+				private.Debug("Not using  color for text for eventID: " .. eventInfo.id)			
 			end
+		elseif not disableOnUpdate then
+			private.Debug("Event coloring disabled for text for eventID: " .. eventInfo.id)
 		end
 	end
-
 	-- OnUpdate we want to update the position of the icon based on elapsed time
 	self.frame.frameIsMoving = false
 	if not disableOnUpdate then
+		private.Debug("Setting event info for eventID: " .. eventInfo.id .. " with spell name: " .. eventInfo.spellName)
 		local EventIconTextureID = eventInfo.id
 		if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators and private.BossModsSpellIndicators[eventInfo.id] then
 			private.Debug("Found spell indicator for bossmods event, using its icons for the Textures")
@@ -352,7 +375,7 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 		if private.db.profile.icon_settings.dispellIcons then
 			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 126, self.frame.dispellTypeIcons)
 		end
-		if private.db.profile.icon_settings.dispellBorders then
+		if private.db.profile.icon_settings.border == private.IconBorderSettings.dispell then
 			for i, dispellValue in ipairs(private.dispellTypeList) do
 				for _, edgeTexture in ipairs(self.frame.DispellTypeBorderEdges[i]) do
 					local textureArray = {}
@@ -363,6 +386,18 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 						dispellValue.color.a)
 				end
 			end
+		elseif private.db.profile.icon_settings.border == private.IconBorderSettings.bossmods and private.BossModsColors[eventInfo.id] and private.BossModsColors[eventInfo.id].borderColor then
+			private.Debug("Found border color for bossmods event, applying to border for timer event")
+			local color = private.BossModsColors[eventInfo.id].borderColor
+			for _, edgeTexture in pairs(self.frame.BossModsBorderEdges) do
+                edgeTexture:SetColorTexture(color.r, color.g, color.b, color.a)
+				edgeTexture:Show()
+            end
+		else
+			private.Debug("No border color found for bossmods event, using no border for timer event".. eventInfo.id)
+			for _, edgeTexture in pairs(self.frame.BossModsBorderEdges) do
+				edgeTexture:Hide()
+            end
 		end
 
 		if private.db.profile.icon_settings.roleIcons then
@@ -475,13 +510,20 @@ local function ApplySettings(self)
 
 	for i, edges in ipairs(self.frame.DispellTypeBorderEdges) do
 		for _, edgeTexture in ipairs(edges) do
-			if private.db.profile.icon_settings.dispellBorders then
+			if private.db.profile.icon_settings.border == private.IconBorderSettings.dispell then
 				edgeTexture:Show()
 			else
 				edgeTexture:Hide()
 			end
 		end
 	end
+
+	if private.db.profile.icon_settings.border ~= private.IconBorderSettings.bossmods then
+		for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
+			edgeTexture:Hide()
+		end
+	end
+
 	for i, texture in ipairs(self.frame.dispellTypeIcons) do
 		if private.db.profile.icon_settings.dispellIcons then
 			texture:Show()
@@ -535,6 +577,9 @@ local function OnRelease(self)
 	self.frame:SetScript("OnUpdate", nil)
 	self.frame.frameIsMoving = false
 	private.ClearEventTooltip(self.frame)
+	for _, edgeTexture in pairs(self.frame.BossModsBorderEdges) do
+		edgeTexture:Hide()
+	end
 end
 
 local function Constructor()
@@ -547,26 +592,41 @@ local function Constructor()
 	frame.SpellIcon:SetAllPoints(frame)
 	frame.SpellIcon:SetPoint("CENTER", frame, "CENTER")
 
-	-- border
 	private.Debug(frame, Type .. count)
-
-	--TODO this is supposed to be showing stuff like debufftype or importance
-	frame.Border = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+	
 	frame:SetFrameStrata(private.FrameStrata.FULLSCREEN)
-	local borderColor = { 1, 0, 0 }
-	local borderWidth = 2
-	frame.Border:SetPoint("CENTER", frame, "CENTER")
-	frame.Border:SetAllPoints(frame)
-	frame.Border:SetFrameLevel(frame:GetFrameLevel() + 1)
-	frame.Border.backdrop = {
-		edgeFile = "Interface\\Buttons\\WHITE8x8",
-		tileEdge = false,
-		edgeSize = borderWidth,
-		insets = { left = borderWidth, right = borderWidth, top = borderWidth, bottom = borderWidth },
-	}
-	frame.Border:SetBackdrop(frame.Border.backdrop)
-	frame.Border:SetBackdropBorderColor(borderColor[1], borderColor[2], borderColor[3], 1)
-	frame.Border:Hide()
+	local borderWidth = 3
+	
+	frame.BossModsBorderEdges = {}
+	
+	-- Top edge
+	local topEdge = frame:CreateTexture(nil, "ARTWORK")
+	topEdge:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+	topEdge:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+	topEdge:SetHeight(borderWidth)
+	topEdge:Hide()
+	
+	-- Bottom edge
+	local bottomEdge = frame:CreateTexture(nil, "ARTWORK")
+	bottomEdge:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
+	bottomEdge:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+	bottomEdge:SetHeight(borderWidth)
+	bottomEdge:Hide()
+	
+	-- Left edge
+	local leftEdge = frame:CreateTexture(nil, "ARTWORK")
+	leftEdge:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+	leftEdge:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
+	leftEdge:SetWidth(borderWidth)
+	leftEdge:Hide()
+	
+	-- Right edge
+	local rightEdge = frame:CreateTexture(nil, "ARTWORK")
+	rightEdge:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+	rightEdge:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+	rightEdge:SetWidth(borderWidth)
+	rightEdge:Hide()
+	frame.BossModsBorderEdges = { topEdge, bottomEdge, leftEdge, rightEdge }
 	-- spell name
 	frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
 	frame.SpellName:Show()

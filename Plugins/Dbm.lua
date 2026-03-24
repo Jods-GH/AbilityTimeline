@@ -7,6 +7,7 @@ if not C_AddOns.IsAddOnLoaded("DBM-Core") then return end
 private.DBMTimers = {}
 private.DisableBlizzTimersDBM = false
 private.ActiveBossModTimers = private.ActiveBossModTimers or {}
+private.BossModsColors = private.BossModsColors or {}
 local excludedTimers = {
     ["pull"] = true,
 }

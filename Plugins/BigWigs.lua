@@ -8,6 +8,7 @@ private.DisableBlizzTimersBW = true
 private.BWTimers = {}
 private.ActiveBossModTimers = private.ActiveBossModTimers or {}
 private.BossModsSpellIndicators = private.BossModsSpellIndicators or {}
+private.BossModsColors = private.BossModsColors or {}
 
 local excludedTimers = {
     ["Pull"] = true,
@@ -20,7 +21,7 @@ local excludedTimers = {
 }
 
 local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, icon, timerIsApprox, timerMaxDuration, eventID, spellIndicators)
-    
+    private.Debug("!!!!!!!!!!!!!!!!!!!!!!!!")
     if eventID then
         local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
         if eventInfo.source ~= Enum.EncounterTimelineEventSource.Script and eventInfo.source ~= Enum.EncounterTimelineEventSource.EditMode then
@@ -36,21 +37,6 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
         local iconpath = string.gsub(icon, "\\", "/")
         icon = GetFileIDFromPath(iconpath)
     end
-    -- TODO make it selectable if users want to use bartext or barcolor or none
-    local color = BigWigs:GetPlugin("Colors"):GetColorTable("barText", module, timerKey)
-    local msg = ""
-    if color then
-        local r,g,b,a = unpack(color)
-        if r ~= 1 or g ~= 1 or b ~= 1 or a ~= 1 then
-            local actualColor = CreateColor(r, g, b, a)
-            msg = string.format("|c%s%s|r", actualColor:GenerateHexColor(),
-            timerMsg)
-        else
-            msg = timerMsg
-        end
-    else 
-        msg = timerMsg
-    end
 
     if private.BWTimers[timerMsg] and C_EncounterTimeline.GetEventInfo(private.BWTimers[timerMsg].eventID) then
         C_EncounterTimeline.CancelScriptEvent(private.BWTimers[timerMsg].eventID)
@@ -59,21 +45,48 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
     local eventinfo = {
         duration = timerDuration,
         maxQueueDuration = 0,
-        overrideName = msg,
+        overrideName = timerMsg,
         spellID = timerKey and type(timerKey) == "number" and timerKey or 58984,
         iconFileID = icon,
         severity = 1,
         paused = false,
     }
-    if private.spellIDColors[timerKey] then
-        private.Debug("Found color for spell ID, applying to timer event")
-        eventinfo.color = private.spellIDColors[timerKey]
-    end
     private.Debug("BigWigs Timer Started: " .. timerMsg .. " Duration: " .. timerDuration)
     local eventID = C_EncounterTimeline.AddScriptEvent(eventinfo)
+    local color = BigWigs:GetPlugin("Colors"):GetColorTable("barText", module, timerKey)
+    if color then
+        local r,g,b,a = unpack(color)
+        if r ~= 1 or g ~= 1 or b ~= 1 or a ~= 1 then
+            local actualColor = CreateColor(r, g, b, a)
+            local colorTable = private.BossModsColors[eventID] or {}
+            colorTable.textColor = actualColor
+            private.BossModsColors[eventID] = colorTable
+            private.Debug("Found color for bar text, saving to timer event")
+            private.Debug("Color values - R: " .. r .. " G: " .. g .. " B: " .. b .. " A: " .. a)
+        else
+            private.Debug("Color for bar text is default, not saving to timer event")
+        end
+    else
+        private.Debug("No color found for bar text or spell ID, not saving color for timer event")
+    end
     private.ActiveBossModTimers[eventID] = true
     if spellIndicators then
         private.BossModsSpellIndicators[eventID] = spellIndicators
+    end
+    local barColor = BigWigs:GetPlugin("Colors"):GetColorTable("barBackground", module, timerKey)
+    if barColor then
+        local r,g,b,a = unpack(barColor)
+        if r ~= 1 or g ~= 1 or b ~= 1 or a ~= 1 then
+            local actualColor = CreateColor(r, g, b, a)
+            local colorTable = private.BossModsColors[eventID] or {}
+            colorTable.borderColor = actualColor
+            private.BossModsColors[eventID] = colorTable
+            private.Debug("Found color for bar background, saving border color for timer event")
+        else
+            private.Debug("Color for bar background is default, not saving border color for timer event")
+        end
+    else
+        private.Debug("No color found for bar background, not adding border color for timer event")
     end
     private.BWTimers[timerMsg] = {
         eventID = eventID,

@@ -1,4 +1,6 @@
-local appName, private = ...
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
 
 private.dispellTypeList = {
 	{ -- Enrage
@@ -25,4 +27,10 @@ private.dispellTypeList = {
 		mask = 64,
 		color = { r = 0, g = 1, b = 0, a = 1 },
 	},
+}
+
+private.IconBorderSettings = {
+    dispell = "dispell",
+    bossmods = "bossmods",
+	none = "none",
 }

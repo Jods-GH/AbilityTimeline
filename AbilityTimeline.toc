@@ -27,7 +27,7 @@ embeds.xml
 #data
 Data\dungeons.xml
 Data\seasons.lua
-Data\dispellTypes.lua
+Data\constants.lua
 Data\specPosition.lua
 
 #util
