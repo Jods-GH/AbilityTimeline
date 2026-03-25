@@ -332,7 +332,7 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 				self.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
 				local r,g,b = eventInfo.color:GetRGB()
 				private.Debug("Using event color for text for eventID: " .. eventInfo.id.. " with RGB values R: " .. r .. " G: " .. g .. " B: " .. b	)
-			elseif eventInfo.id and private.BossModsColors[eventInfo.id] and private.BossModsColors[eventInfo.id].textColor then
+			elseif eventInfo.id and private.BossModsColors and private.BossModsColors[eventInfo.id] and private.BossModsColors[eventInfo.id].textColor then
 				local color = private.BossModsColors[eventInfo.id].textColor
 				self.frame.SpellName:SetTextColor(color.r, color.g, color.b)
 				private.Debug("Found text color for bossmods event, applying to text for timer event")
