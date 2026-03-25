@@ -533,7 +533,7 @@ local function ApplySettings(self)
 	end
 
 	if private.db.profile.icon_settings.border ~= private.IconBorderSettings.bossmods then
-		for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
+		for _, edgeTexture in pairs(self.frame.BossModsBorderEdges) do
 			edgeTexture:Hide()
 		end
 	end
