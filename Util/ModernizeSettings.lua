@@ -151,6 +151,11 @@ private.modernize = function()
     if not private.db.profile.big_icon_text_settings.font then
         private.db.profile.big_icon_text_settings.font = "Friz Quadrata TT"
     end
+    if not private.db.profile.big_icon_text_settings.fontFlag then
+        private.db.profile.big_icon_text_settings.fontFlag = {
+            OUTLINE = true,
+        }
+    end
     if private.db.profile.big_icon_text_settings.useBackground == nil then
         private.db.profile.big_icon_text_settings.useBackground = false
     end
