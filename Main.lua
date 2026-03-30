@@ -263,7 +263,7 @@ function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemainin
     local timeleft = tonumber(timeRemaining)
     local color
     local name = initiatedByName
-    if initiatedByName and UnitClass(initiatedByName) then
+    if not issecretvalue(initiatedByName) and initiatedByName and UnitClass(initiatedByName) then
         local _, classFilename, _ = UnitClass(initiatedByName)
         local _, _, _, argbHex = GetClassColor(classFilename)
         color = argbHex
@@ -277,7 +277,7 @@ function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemainin
 
     local overrideName = private.getLocalisation("PullTimer")
 
-    if name then
+    if not issecretvalue(name) and name then
         overrideName = private.getLocalisation("PullTimerBy") .. " " .. WrapTextInColorCode(name, color)
     end
 
