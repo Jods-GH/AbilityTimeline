@@ -96,7 +96,7 @@ private.modernize = function()
         private.db.profile.big_icon_settings.zoom = 0.3
     end
     if not private.db.profile.big_icon_settings.TextOffset then
-        private.db.profile.big_icon_settings.TextOffset = { x = 0, y = -10 }
+        private.db.profile.big_icon_settings.TextOffset = { x = 0, y = 10 }
     end
     if private.db.profile.big_icon_settings.dispellBorders == nil then
         private.db.profile.big_icon_settings.dispellBorders = true
