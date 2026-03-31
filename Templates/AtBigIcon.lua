@@ -273,8 +273,12 @@ local function Constructor()
 
 	frame:SetSize(private.db.profile.big_icon_settings.size, private.db.profile.big_icon_settings.size)
 
+	frame.TextureHolder = CreateFrame("Frame", nil, frame)
+	frame.TextureHolder:SetAllPoints(frame)
+	frame.TextureHolder:SetFrameStrata("HIGH")
+
 	frame.SpellIcon = frame:CreateTexture(nil, "BACKGROUND")
-	frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
+	frame.SpellName = frame.TextureHolder:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
 	frame.SpellName:SetWidth(variables.icon_text_width)
 	frame.SpellName:SetWordWrap(true)
 	frame.SpellName:SetPoint("TOP", frame, "BOTTOM", variables.icon_text_offset_x, variables.icon_text_offset_y)
@@ -293,13 +297,10 @@ local function Constructor()
 	frame.SpellNameBackground:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
 	frame.SpellNameBackground:Hide()
 
-	frame.TextureHolder = CreateFrame("Frame", nil, frame)
-	frame.TextureHolder:SetAllPoints(frame)
-	frame.TextureHolder:SetFrameStrata("HIGH")
 	frame.RoleIcons = {}
 
 	for i = 1, 4 do
-		local texture = frame.TextureHolder:CreateTexture(nil, "OVERLAY")
+		local texture = frame.TextureHolder:CreateTexture(nil, "ARTWORK")
 		texture:SetPoint("LEFT", frame.TextureHolder, "RIGHT", 18 * (i - 1), 0)
 		texture:SetSize(16, 16)
 		texture:Show()
@@ -308,7 +309,7 @@ local function Constructor()
 
 	frame.DangerIcon = {}
 
-	local dangerTexture = frame.TextureHolder:CreateTexture(nil, "OVERLAY")
+	local dangerTexture = frame.TextureHolder:CreateTexture(nil, "ARTWORK")
 	dangerTexture:SetSize(16, 16)
 	dangerTexture:SetPoint("CENTER", frame.TextureHolder, "TOPLEFT", 0, 0)
 	dangerTexture:Show()
@@ -316,7 +317,7 @@ local function Constructor()
 
 	frame.DispellTypeIcons = {}
 
-	local dispellTypeTexture = frame.TextureHolder:CreateTexture(nil, "OVERLAY")
+	local dispellTypeTexture = frame.TextureHolder:CreateTexture(nil, "ARTWORK")
 	dispellTypeTexture:SetPoint("BOTTOMRIGHT", frame.TextureHolder, "BOTTOMRIGHT", -3, 3)
 	dispellTypeTexture:SetSize(16, 16)
 	dispellTypeTexture:Show()
