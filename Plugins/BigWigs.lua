@@ -24,7 +24,7 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
     private.Debug("!!!!!!!!!!!!!!!!!!!!!!!!")
     if eventID then
         local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
-        if eventInfo.source ~= Enum.EncounterTimelineEventSource.Script and eventInfo.source ~= Enum.EncounterTimelineEventSource.EditMode then
+        if eventInfo and eventInfo.source ~= Enum.EncounterTimelineEventSource.Script and eventInfo.source ~= Enum.EncounterTimelineEventSource.EditMode then
             private.Debug("Bigwigs timer started for default event, adding to timeline".. eventID)
             private.addEvent(eventInfo)
             private.ActiveBossModTimers[eventID] = true
