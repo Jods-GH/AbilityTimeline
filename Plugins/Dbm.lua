@@ -109,7 +109,7 @@ local function TimerStopped(event, timerId)
 end
 
 local function TimerUpdated(event, timerId, timerElapsed, timerModified)
-    private.Debug("DBM Timer Updated: ".. event.."|"..timerId.."|"..timerElapsed.."|"..timerModified)
+    private.Debug("DBM Timer Updated: ".. event.."|"..timerId)
     if event =="DBM_TimerPause" then
         if private.DBMTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.DBMTimers[timerId].eventID) then
             C_EncounterTimeline.PauseScriptEvent(private.DBMTimers[timerId].eventID)
