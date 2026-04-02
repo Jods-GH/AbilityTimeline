@@ -72,6 +72,15 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
         private.ActiveBossModTimers[private.DBMTimers[timerId].eventID] = nil
     end
     local eventID = C_EncounterTimeline.AddScriptEvent(eventinfo)
+    if timerColorId then
+        local r,g,b = DBT:GetColorForType(timerColordId)
+        local color = CreateColor(r, g, b)
+        private.Debug("Found DBM Timer Color: " .. timerColordId .. " Color: " .. (color and ("R:"..color.r.." G:"..color.g.." B:"..color.b) or "nil"))
+        
+        local colorTable = private.BossModsColors[eventID] or {}
+        colorTable.textColor = actualColor
+        private.BossModsColors[eventID] = color
+    end
     private.ActiveBossModTimers[eventID] = true
     private.DBMTimers[timerId] = {
         eventID = eventID,
