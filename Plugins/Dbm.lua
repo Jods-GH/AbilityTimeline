@@ -153,6 +153,10 @@ local function TimerUpdated(event, timerId, timerElapsed, timerModified)
 end
 
 local function DisableBlizApi(event)
+    if DBM.Options.HideDBMBars then
+        private.Debug("DBM bars are hidden by settings, force enabling them")
+        DBM.Options.HideDBMBars = false
+    end
     private.DisableBlizzTimersDBM = true
 end
 
@@ -168,3 +172,36 @@ DBM:RegisterCallback("DBM_TimerPause", TimerUpdated)
 DBM:RegisterCallback("DBM_TimerResume", TimerUpdated)
 DBM:RegisterCallback("DBM_IgnoreBlizzAPI", DisableBlizApi)
 DBM:RegisterCallback("DBM_ResumeBlizzAPI", EnableBlizApi)
+
+private.initDbmSkin = function()
+    if DBT and (private.db.profile.disableBossModsBars or private.db.profile.disableBossModsEmphasisedBars) then
+        if not DBT:GetSkins().Better_Timeline_Skin then
+            local skin = DBT:RegisterSkin("Better_Timeline_Skin")
+            skin.Options = {
+                HugeAlpha = private.db.profile.disableBossModsEmphasisedBars and 0.0001 or 1,
+                Alpha = private.db.profile.disableBossModsBars and 0.0001 or 1,
+                IconLeft = false,
+                IconRight = false,
+                InlineIcons = false,
+                Bar7CustomInline = false,
+                ClickThrough = true,
+                DisableRightClick = true,
+            }
+        end
+        if DBT:GetSkins().Better_Timeline_Skin then
+            private.Debug("Applying Better Timeline Skin to DBM bars to settings")
+            DBT:SetSkin("Better_Timeline_Skin")
+            DBT:Rearrange()
+        end
+        if AddOnSkins and AddOnSkins[1]:CheckOption('DBM-Core') == true then
+            assert(false, "Hiding DBM bars while AddonSkins skinning is turned on doesn't work pls either disable the DBM-Core option or the addon and try again")
+        end
+            
+        
+    elseif DBT and not (private.db.profile.disableBossModsBars or private.db.profile.disableBossModsEmphasisedBars) then
+        if DBT:GetSkins().Better_Timeline_Skin then
+            private.Debug("Reverting to default DBM skin as bars are enabled in settings")
+            DBT:SetSkin("DBM")
+        end
+    end
+end

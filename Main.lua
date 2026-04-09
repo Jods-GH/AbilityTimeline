@@ -55,7 +55,11 @@ function AbilityTimeline:OnInitialize()
     EncounterTimeline:HookScript("OnShow", function() EncounterTimeline:Hide() end)
     -- SetCVar("encounterWarningsEnabled", "1")
 
+    --init
     private.ToggleEventColorisation(private.db.profile.dispellTextColor)
+    if private.initDbmSkin then
+        private.initDbmSkin()
+    end
 end
 
 function AbilityTimeline:OnEnable()
