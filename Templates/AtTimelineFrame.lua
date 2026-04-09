@@ -179,18 +179,6 @@ local function SetupEditModeSettings(frame)
     LibEditMode:AddFrame(frame, onPositionChanged, variables.position,
         "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline")
 
-
-    local TextureSettings = {
-    }
-    for _, texName in ipairs(SharedMedia:List("background")) do
-        local texPath = SharedMedia:Fetch("background", texName) or ""
-        local display = ("|T%s:16:128|t %s"):format(tostring(texPath), texName)
-        table.insert(TextureSettings, {
-            text = display,
-            value = texName,
-            isRadio = false,
-        })
-    end
     local areTravelSettingsExpanded = false
     local areVisualSettingsExpanded = false
     LibEditMode:AddFrameSettings(frame, {
@@ -299,7 +287,19 @@ local function SetupEditModeSettings(frame)
             end,
             default = variables.timelineTexture,
             height = 300,
-            values = TextureSettings,
+            values = function()
+                local Textures = {}
+                for _, texName in ipairs(SharedMedia:List("background")) do
+                    local texPath = SharedMedia:Fetch("background", texName) or ""
+                    local display = ("|T%s:16:128|t %s"):format(tostring(texPath), texName)
+                    table.insert(Textures, {
+                        text = display,
+                        value = texName,
+                        isRadio = false,
+                    })
+                end
+                return Textures
+            end,
             hidden = function()
                 return not areVisualSettingsExpanded
             end,

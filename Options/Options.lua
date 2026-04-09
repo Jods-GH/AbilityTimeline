@@ -1,7 +1,6 @@
 local appName, app = ...
 ---@class AbilityTimeline
 local private = app
-local SharedMedia = LibStub("LibSharedMedia-3.0")
 ---@type AceConfigOptionsTable
 private.options = {
   name = private.getLocalisation("addonOptions"),
