@@ -47,7 +47,7 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
         maxQueueDuration = 0,
         overrideName = timerMsg,
         spellID = timerKey and type(timerKey) == "number" and timerKey or 58984,
-        iconFileID = icon,
+        iconFileID = icon and type (icon) == "number" and icon or 134400,
         severity = 1,
         paused = false,
     }
