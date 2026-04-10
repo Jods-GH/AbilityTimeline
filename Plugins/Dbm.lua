@@ -68,8 +68,8 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
     private.Debug("DBM Timer Started: " .. (spellName or timerId) .. " Duration: " .. timerDuration)
     if private.DBMTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.DBMTimers[timerId].eventID) then
         C_EncounterTimeline.CancelScriptEvent(private.DBMTimers[timerId].eventID) -- Cancel the existing event to update it with new info
-        private.DBMTimers[timerId] = nil
         private.ActiveBossModTimers[private.DBMTimers[timerId].eventID] = nil
+        private.DBMTimers[timerId] = nil
     end
     local eventID = C_EncounterTimeline.AddScriptEvent(eventinfo)
     if timerColorId then
