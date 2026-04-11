@@ -123,6 +123,9 @@ private.modernize = function()
             OUTLINE = true,
         }
     end
+    if private.db.profile.text_settings.enableShadow == nil then
+        private.db.profile.text_settings.enableShadow = true
+    end
     if private.db.profile.text_settings.useBackground == nil then
         private.db.profile.text_settings.useBackground = false
     end
@@ -156,6 +159,9 @@ private.modernize = function()
             OUTLINE = true,
         }
     end
+    if private.db.profile.big_icon_text_settings.enableShadow == nil then
+        private.db.profile.big_icon_text_settings.enableShadow = true
+    end
     if private.db.profile.big_icon_text_settings.useBackground == nil then
         private.db.profile.big_icon_text_settings.useBackground = false
     end
@@ -183,6 +189,9 @@ private.modernize = function()
     end
     if not private.db.profile.highlight_text_settings.font then
         private.db.profile.highlight_text_settings.font = "Friz Quadrata TT"
+    end
+    if private.db.profile.highlight_text_settings.enableShadow == nil then
+        private.db.profile.highlight_text_settings.enableShadow = true
     end
     if private.db.profile.highlight_text_settings.useBackground == nil then
         private.db.profile.highlight_text_settings.useBackground = false

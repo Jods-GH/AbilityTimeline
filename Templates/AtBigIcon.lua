@@ -121,6 +121,12 @@ local function ApplySettings(self)
 		)
 	end
 
+	if private.db.profile.big_icon_text_settings and private.db.profile.big_icon_text_settings.enableShadow then
+		self.frame.SpellName:SetShadowColor(0, 0, 0, 1)
+	else
+		self.frame.SpellName:SetShadowColor(0, 0, 0, 0)
+	end
+
 	if not self.frame.SpellIcon.zoomApplied or self.frame.SpellIcon.zoomApplied ~= (1 - private.db.profile.big_icon_settings.zoom) then
 		if self.frame.SpellIcon.zoomApplied then
 			private.ResetZoom(self.frame.SpellIcon)
