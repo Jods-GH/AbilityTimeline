@@ -324,7 +324,9 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	private.Debug("============================")
 	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
 		self.frame.SpellName:SetText("")
-		private.Debug("Timeline is in horizontal mode, hiding text for eventID: " .. eventInfo.id)
+		if eventInfo and eventInfo.id then
+			private.Debug("Timeline is in horizontal mode, hiding text for eventID: " .. eventInfo.id)
+		end
 	else
 		self.frame.SpellName:SetText(eventInfo.spellName)
 		if private.db.profile.text_settings.useEventColor then
