@@ -370,6 +370,16 @@ local createTextSettings = function(widget, parentWindow, iconSettings, textSett
 
     
 
+    local textShadowToggle = AceGUI:Create("CheckBox")
+    textShadowToggle:SetValue(textSettings.enableShadow)
+    textShadowToggle:SetLabel(private.getLocalisation("SpellnameEnableShadow"))
+    private.AddFrameTooltip(textShadowToggle.frame, "SpellnameEnableShadowDescription")
+    textShadowToggle:SetCallback("OnValueChanged", function(_, _, value)
+        textSettings.enableShadow = value
+        widget:ApplySettings()
+    end)
+    scroll:AddChild(textShadowToggle)
+
     local textBackgroundToggle = AceGUI:Create("CheckBox")
     textBackgroundToggle:SetValue(textSettings.useBackground)
     textBackgroundToggle:SetLabel(private.getLocalisation("SpellnameBackground"))
@@ -482,6 +492,16 @@ local createHighlightTextTextSettings = function(widget, parentWindow, textSetti
         widget:ApplySettings()
     end)
     scroll:AddChild(textDefaultColorSetting)
+
+    local textShadowToggle = AceGUI:Create("CheckBox")
+    textShadowToggle:SetValue(textSettings.enableShadow)
+    textShadowToggle:SetLabel(private.getLocalisation("SpellnameEnableShadow"))
+    private.AddFrameTooltip(textShadowToggle.frame, "SpellnameEnableShadowDescription")
+    textShadowToggle:SetCallback("OnValueChanged", function(_, _, value)
+        textSettings.enableShadow = value
+        widget:ApplySettings()
+    end)
+    scroll:AddChild(textShadowToggle)
 
     local textBackgroundToggle = AceGUI:Create("CheckBox")
     textBackgroundToggle:SetValue(textSettings.useBackground)

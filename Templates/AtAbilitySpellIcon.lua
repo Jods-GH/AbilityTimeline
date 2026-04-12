@@ -512,6 +512,12 @@ local function ApplySettings(self)
 		)
 	end
 
+	if private.db.profile.text_settings and private.db.profile.text_settings.enableShadow then
+		self.frame.SpellName:SetShadowColor(0, 0, 0, 1)
+	else
+		self.frame.SpellName:SetShadowColor(0, 0, 0, 0)
+	end
+
 	if private.db.profile.icon_settings and private.db.profile.icon_settings.strata then
 		self.frame:SetFrameStrata(private.db.profile.icon_settings.strata)
 	end
