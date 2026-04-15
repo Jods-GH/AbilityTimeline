@@ -252,11 +252,12 @@ end
 ---@return integer y -- yPosition of an icon including potential offsets to handle overlaps
 ---@return boolean ismoving -- whether the icon is currently moving
 local calculateIconPosition = function(self, timeElapsed, moveHeight, isStopped)
-	local x, y, isMoving = getRawIconPosition(variables.IconSize.height, moveHeight,
+	local iconSize = private.db.profile.icon_settings and private.db.profile.icon_settings.size or variables.IconSize.height
+	local x, y, isMoving = getRawIconPosition(iconSize, moveHeight,
 		self.eventInfo.duration - timeElapsed, isStopped)
 	if self.eventInfo.duration - timeElapsed > private.AT_THRESHHOLD_TIME or isStopped then
 		-- only add offset for waiting icons
-		local xOffset, yOffset = calculateOffset(variables.IconSize.height, moveHeight, self.eventInfo.id, timeElapsed, x,
+		local xOffset, yOffset = calculateOffset(iconSize, moveHeight, self.eventInfo.id, timeElapsed, x,
 			y)
 		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
 			return x - xOffset, y - yOffset, isMoving
