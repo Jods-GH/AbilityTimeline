@@ -72,14 +72,17 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
         private.DBMTimers[timerId] = nil
     end
     local eventID = C_EncounterTimeline.AddScriptEvent(eventinfo)
-    if timerColorId then
-        local r,g,b = DBT:GetColorForType(timerColordId)
-        local color = CreateColor(r, g, b)
-        private.Debug("Found DBM Timer Color: " .. timerColordId .. " Color: " .. (color and ("R:"..color.r.." G:"..color.g.." B:"..color.b) or "nil"))
-        
-        local colorTable = private.BossModsColors[eventID] or {}
-        colorTable.textColor = actualColor
-        private.BossModsColors[eventID] = color
+    if timerColordId then
+        local r, g, b = DBT:GetColorForType(timerColordId)
+        if r and g and b then
+            local color = CreateColor(r, g, b)
+            local colorTable = private.BossModsColors[eventID] or {}
+            colorTable.textColor = color
+            private.BossModsColors[eventID] = colorTable
+            private.Debug("Found DBM Timer Color ID: " .. timerColordId .. " Color: " .. ("R:"..color.r.." G:"..color.g.." B:"..color.b))
+        else
+            private.Debug("No color found for DBM Timer Color ID: " .. timerColordId)
+        end
     end
     private.ActiveBossModTimers[eventID] = true
     private.DBMTimers[timerId] = {
@@ -128,9 +131,10 @@ local function TimerUpdated(event, timerId, timerElapsed, timerModified)
             C_EncounterTimeline.ResumeScriptEvent(private.DBMTimers[timerId].eventID)
         end
     elseif private.DBMTimers[timerId] then
-        if C_EncounterTimeline.GetEventInfo(private.DBMTimers[timerId].eventID) then
-            C_EncounterTimeline.CancelScriptEvent(private.DBMTimers[timerId].eventID)
-            private.ActiveBossModTimers[private.DBMTimers[timerId].eventID] = nil
+        local oldEventID = private.DBMTimers[timerId].eventID
+        if C_EncounterTimeline.GetEventInfo(oldEventID) then
+            C_EncounterTimeline.CancelScriptEvent(oldEventID)
+            private.ActiveBossModTimers[oldEventID] = nil
         end
         local timerInfo = private.DBMTimers[timerId].info
         timerInfo.timerDuration = timerInfo.timerDuration + timerModified
@@ -145,6 +149,11 @@ local function TimerUpdated(event, timerId, timerElapsed, timerModified)
             icons = {},
         }
         local eventID = C_EncounterTimeline.AddScriptEvent(eventinfo)
+        -- Preserve color from old event
+        if private.BossModsColors[oldEventID] then
+            private.BossModsColors[eventID] = private.BossModsColors[oldEventID]
+            private.BossModsColors[oldEventID] = nil
+        end
         private.DBMTimers[timerId] = {
             eventID = eventID,
             info = timerInfo
