@@ -15,8 +15,8 @@ local function parseTime(timeStr)
     -- Remove leading/trailing whitespace
     timeStr = timeStr:gsub("^%s+", ""):gsub("%s+$", "")
 
-    -- Try to match mm:ss format
-    local minutes, seconds = string.match(timeStr, "^(%d+):(%d+)$")
+    -- Try to match mm:ss or mm:ss.s (seconds may contain fraction)
+    local minutes, seconds = string.match(timeStr, "^(%d+):(%d+%.?%d*)$")
     if minutes and seconds then
         return tonumber(minutes) * 60 + tonumber(seconds)
     end
