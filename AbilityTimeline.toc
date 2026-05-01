@@ -1,4 +1,4 @@
-## Interface: 120005
+## Interface: 120005, 120007
 ## Title: AbilityTimeline
 ## Version: @project-version@
 ## Notes: Adds various improvements to blizzards encounter ability timeline.
