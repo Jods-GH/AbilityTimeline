@@ -21,6 +21,7 @@ private.modernize = function()
     if not private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT] then
         private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT] = {}
     end
+    private.ModernizeTimelineFrame(private.ACTIVE_EDITMODE_LAYOUT)
 
     if not private.db.profile.reminders then
         private.db.profile.reminders = {}

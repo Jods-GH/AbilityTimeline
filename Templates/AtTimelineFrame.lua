@@ -63,20 +63,18 @@ local function SetFrameSize(self, width, height)
     self:SetHeight(height)
 end
 
-LibEditMode:RegisterCallback('layout', function(layoutName)
-    -- this will be called every time the Edit Mode layout is changed (which also happens at login),
-    -- use it to load the saved button position from savedvariables and position it
-    if not private.db.global.timeline_frame then
+private.ModernizeTimelineFrame = function(layoutName)
+     if not private.db.global.timeline_frame then
         private.db.global.timeline_frame = {}
     end
-    if not private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].point then
-        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].point = variables.position.point
+    if not private.db.global.timeline_frame[layoutName].point then
+        private.db.global.timeline_frame[layoutName].point = variables.position.point
     end
-    if not private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].x then
-        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].x = variables.position.x
+    if not private.db.global.timeline_frame[layoutName].x then
+        private.db.global.timeline_frame[layoutName].x = variables.position.x
     end
-    if not private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].y then
-        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].y = variables.position.y
+    if not private.db.global.timeline_frame[layoutName].y then
+        private.db.global.timeline_frame[layoutName].y = variables.position.y
     end
     if private.db.global.timeline_frame[layoutName].ticks_enabled == nil then
         private.db.global.timeline_frame[layoutName].ticks_enabled = variables.ticks_enabled
@@ -104,6 +102,12 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.global.timeline_frame[layoutName].iconMargin then
         private.db.global.timeline_frame[layoutName].iconMargin = variables.IconMargin
     end
+end
+
+LibEditMode:RegisterCallback('layout', function(layoutName)
+    -- this will be called every time the Edit Mode layout is changed (which also happens at login),
+    -- use it to load the saved button position from savedvariables and position it
+   private.ModernizeTimelineFrame(layoutName)
 
 
     if private.TIMELINE_FRAME then

@@ -114,13 +114,13 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 	local timelineOtherPosition = 0
 	local timelineMainPosition = 0
 	local isMoving = false
+	local margin = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin or 5
 	if isStopped then
 		if private.db.profile.text_settings.text_anchor == 'RIGHT' then
-			timelineOtherPosition = 0 - iconSize -
-				private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+			timelineOtherPosition = 0 - iconSize - margin
 		else
 			timelineOtherPosition = iconSize +
-				private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+				margin
 		end
 	end
 	if not (remainingDuration < private.AT_THRESHHOLD_TIME) then
@@ -178,6 +178,7 @@ end
 -- Currently the offset is ignored when calculating if a conflict is happening. The official timeline also does no conflict resolving and just overlaps icons so maybe we should do the same?
 local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, sourceTimeElapsed, rawSourcePosX,
 									   rawSourcePosY)
+	local margin = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin or 5
 	local eventList = C_EncounterTimeline.GetEventList()
 	local totalEvents = 0
 	local conflictingYEvents = 0
@@ -189,13 +190,13 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 	local sourceState = fixStateForBlocked(sourceEventID, sourceEventInfo.duration, sourceTimeElapsed,
 		sourceRemainingTime)
 	local sourceUpperXBound = rawSourcePosX + (iconSize / 2) +
-		private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+		margin
 	local sourceLowerXBound = rawSourcePosX - (iconSize / 2) -
-		private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+		margin
 	local sourceUpperYBound = rawSourcePosY + (iconSize / 2) +
-		private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+		margin
 	local sourceLowerYBound = rawSourcePosY - (iconSize / 2) -
-		private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+		margin
 	for _, eventID in pairs(eventList) do
 		if eventID ~= sourceEventID and private.activeFrames[eventID] then
 			local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(eventID)
@@ -207,13 +208,13 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 				local x, y = getRawIconPosition(iconSize, timelineHeight, remainingTime,
 					isStoppedForPosition(state))
 				local upperXBound = x + iconSize / 2 +
-					private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+					margin
 				local lowerXBound = x - iconSize / 2 -
-					private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+					margin
 				local upperYBound = y + iconSize / 2 +
-					private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+					margin
 				local lowerYBound = y - iconSize / 2 -
-					private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin
+					margin
 				if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.VERTICAL then
 					if upperYBound >= sourceLowerYBound and upperYBound <= sourceUpperYBound or
 						lowerYBound >= sourceLowerYBound and lowerYBound <= sourceUpperYBound then
@@ -238,9 +239,9 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 	end
 	return
 		shorterXConflictingEvents *
-		(iconSize + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin),
+		(iconSize + margin),
 		shorterYConflictingEvents *
-		(iconSize + private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin)
+		(iconSize + margin)
 end
 
 ---comment
@@ -587,6 +588,7 @@ end
 
 ---@param self AtAbilitySpellIcon
 local function OnAcquire(self)
+	private.modernize()
 	private.Debug(self.frame, "AT_ABILITY_SPELL_ICON_FRAME_ACQUIRED")
 	ApplySettings(self)
 end
