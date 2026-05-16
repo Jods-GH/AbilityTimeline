@@ -117,6 +117,9 @@ local HandleTexts = function(widget, eventInfo, remainingDuration)
     if private.db.profile.text_settings.useEventColor then
         if issecretvalue(eventInfo.icons) then
             widget.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
+        elseif eventInfo.id and private.BossModsColors and private.BossModsColors[eventInfo.id] and private.BossModsColors[eventInfo.id].textColor then
+				local color = private.BossModsColors[eventInfo.id].textColor
+				widget.frame.SpellName:SetTextColor(color.r, color.g, color.b)
         elseif private.db.profile.dispellTextColor and eventInfo.icons and eventInfo.icons ~= 0 then
             for _, value in pairs(private.dispellTypeList) do
                 if bit.band(eventInfo.icons, value.mask) ~= 0 then
