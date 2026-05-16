@@ -53,6 +53,8 @@ private.EnableGlow = function(frame, type, duration, glowColor)
     end
 end
 
+---Stops a glow (if present) on a frame
+---@param frame frame
 private.StopGlow = function(frame)
     if frame.isGlowing == private.GlowTypes.PROC then
         CustomGlow.ProcGlow_Stop(frame)

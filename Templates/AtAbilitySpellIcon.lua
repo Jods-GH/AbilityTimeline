@@ -605,6 +605,7 @@ local function OnRelease(self)
 	for _, edgeTexture in pairs(self.frame.BossModsBorderEdges) do
 		edgeTexture:Hide()
 	end
+	private.StopGlow(self.frame)
 end
 
 local function Constructor()

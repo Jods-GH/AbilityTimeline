@@ -185,6 +185,7 @@ local function OnRelease(self)
 	self.frame.SpellIcon:SetTexture(nil)
 	self.frame.SpellName:SetText("")
 	self.frame.eventInfo = nil
+	private.StopGlow(self.frame)
 	self.frame:SetScript("OnUpdate", nil)
 	private.ClearEventTooltip(self.frame)
 end
