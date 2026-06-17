@@ -103,7 +103,7 @@ local HandleTexts = function(widget, eventInfo, remainingDuration)
     local textColor = GetTextColor(widget, remainingDuration)
     local EventIconTextureID = eventInfo.id
     if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators and private.BossModsSpellIndicators[eventID] then
-        EventIconTextureID = private.BossModsSpellIndicators[eventID]	
+        EventIconTextureID = private.BossModsSpellIndicators[eventInfo.id]	
     end
     C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 126, widget.frame.dispellTypeIcons)
     local atlas = widget.frame.dispellTypeIcons[1]:GetAtlas()
@@ -116,7 +116,7 @@ local HandleTexts = function(widget, eventInfo, remainingDuration)
     widget.frame.SpellName:SetText(formatedText)
     if private.db.profile.text_settings.useEventColor then
         if issecretvalue(eventInfo.icons) then
-            local color = C_EncounterTimeline.GetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent)
+            local color = C_EncounterTimeline.GetEventColor(eventInfo.id, Enum.EncounterEventColorTrigger.TimelineEvent)
             widget.frame.SpellName:SetTextColor(color.r, color.g, color.b)
         elseif eventInfo.id and private.BossModsColors and private.BossModsColors[eventInfo.id] and private.BossModsColors[eventInfo.id].textColor then
 				local color = private.BossModsColors[eventInfo.id].textColor
