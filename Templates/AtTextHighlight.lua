@@ -116,7 +116,8 @@ local HandleTexts = function(widget, eventInfo, remainingDuration)
     widget.frame.SpellName:SetText(formatedText)
     if private.db.profile.text_settings.useEventColor then
         if issecretvalue(eventInfo.icons) then
-            widget.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
+            local color = C_EncounterTimeline.GetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent)
+            widget.frame.SpellName:SetTextColor(color.r, color.g, color.b)
         elseif eventInfo.id and private.BossModsColors and private.BossModsColors[eventInfo.id] and private.BossModsColors[eventInfo.id].textColor then
 				local color = private.BossModsColors[eventInfo.id].textColor
 				widget.frame.SpellName:SetTextColor(color.r, color.g, color.b)

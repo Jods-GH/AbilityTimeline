@@ -24,9 +24,10 @@ local SetupEventColorisation = function()
         if icons then
             for mask, color in pairs(dispellTypeColors) do
                 if bit.band(icons, mask) ~= 0 then
-                    EventColors[eventID] = eventInfo.color
-                    private.spellIDColors[eventInfo.spellID] = eventInfo.color
-                    C_EncounterEvents.SetEventColor(eventID, color)
+                    local color = C_EncounterTimeline.GetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent)
+                    EventColors[eventID] = color
+                    private.spellIDColors[eventInfo.spellID] = color
+                    C_EncounterEvents.SetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent,  color)
                     break -- Only set the first matching color
                 end
             end
@@ -37,10 +38,10 @@ end
 local RemoveEventColorisation = function()
     for eventID, color in pairs(EventColors) do
         if color then
-            C_EncounterEvents.SetEventColor(eventID, color)
+            C_EncounterEvents.SetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent, color)
         else
             local color = CreateColor(private.db.profile.text_settings.defaultColor.r, private.db.profile.text_settings.defaultColor.g, private.db.profile.text_settings.defaultColor.b)
-            C_EncounterEvents.SetEventColor(eventID, color)
+            C_EncounterEvents.SetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent, color)
         end
     end
     wipe(EventColors)

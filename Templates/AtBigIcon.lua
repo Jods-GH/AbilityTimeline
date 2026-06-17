@@ -249,7 +249,8 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 
 	if private.db.profile.text_settings.useEventColor then
 			if issecretvalue(eventInfo.icons) then
-				widget.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
+				local color = C_EncounterTimeline.GetEventColor(eventInfo.id, Enum.EncounterEventColorTrigger.TimelineEvent)
+				widget.frame.SpellName:SetTextColor(color.r,color.g, color.b)
 			elseif private.db.profile.dispellTextColor and eventInfo.icons and eventInfo.icons ~= 0 then
 				for _, value in pairs(private.dispellTypeList) do
 					if bit.band(eventInfo.icons, value.mask) ~= 0 then

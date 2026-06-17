@@ -333,8 +333,9 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 		self.frame.SpellName:SetText(eventInfo.spellName)
 		if private.db.profile.text_settings.useEventColor then
 			if issecretvalue(eventInfo.icons) then
-				self.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
-				local r,g,b = eventInfo.color:GetRGB()
+				local color = C_EncounterTimeline.GetEventColor(eventInfo.id, Enum.EncounterEventColorTrigger.TimelineEvent)
+				self.frame.SpellName:SetTextColor(color.r, color.g, color.b)
+				local r,g,b = color:GetRGB()
 				private.Debug("Using event color for text for eventID: " .. eventInfo.id.. " with RGB values R: " .. r .. " G: " .. g .. " B: " .. b	)
 			elseif eventInfo.id and private.BossModsColors and private.BossModsColors[eventInfo.id] and private.BossModsColors[eventInfo.id].textColor then
 				local color = private.BossModsColors[eventInfo.id].textColor
@@ -352,9 +353,11 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 					end
 				end
 				if not colorHasBeenSet then
-					local r,g,b = eventInfo.color:GetRGB()
+					private.Debug(eventInfo, "color")
+					local color = C_EncounterTimeline.GetEventColor(eventInfo.id, Enum.EncounterEventColorTrigger.TimelineEvent)
+					local r,g,b = color:GetRGB()
 					private.Debug("No dispell type found for event, using event text color for eventID: " .. eventInfo.id.. " with RGB values R: " .. r .. " G: " .. g .. " B: " .. b	)				
-					self.frame.SpellName:SetTextColor(eventInfo.color.r, eventInfo.color.g, eventInfo.color.b)
+					self.frame.SpellName:SetTextColor(color.r, color.g, color.b)
 				else
 					private.Debug("color was set")
 				end
