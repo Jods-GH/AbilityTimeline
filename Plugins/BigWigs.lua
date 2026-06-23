@@ -157,10 +157,12 @@ BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_BarEmphasized", hideBWEmph
 
 
 local function DisableBlizApi(event)
+    private.Debug("BigWigs Disable Blizzard Timers")
     private.DisableBlizzTimersBW= true
 end
 
 local function EnableBlizApi(event)
+    private.Debug("BigWigs Enable Blizzard Timers")
     private.DisableBlizzTimersBW = false
 end
 
