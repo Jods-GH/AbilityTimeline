@@ -59,7 +59,24 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
     if timerIcon and type(timerIcon) == "number" then
         eventinfo.iconFileID = timerIcon
     elseif timerIcon and type(timerIcon) == "string" then
-        eventinfo.iconFileID = tonumber(timerIcon)
+        if string.find(timerIcon, "\\") then
+            local iconpath = string.gsub(timerIcon, "\\", "/")
+            local icon = GetFileIDFromPath(iconpath)
+            if icon then
+                eventinfo.iconFileID = icon
+            else
+                eventinfo.iconFileID = 134400 -- 134400 is the ? icon
+            end
+        elseif string.find(timerIcon, "/") then
+            local icon = GetFileIDFromPath(iconpath)
+            if icon then
+                eventinfo.iconFileID = icon
+            else
+                eventinfo.iconFileID = 134400 -- 134400 is the ? icon
+            end
+        else
+            eventinfo.iconFileID = tonumber(timerIcon)
+        end
     elseif spellInfo and spellInfo.iconID then
         eventinfo.iconFileID = spellInfo.iconID
     else
