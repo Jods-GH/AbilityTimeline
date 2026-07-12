@@ -19,5 +19,6 @@ private.OptionDefaults = {
 		enableDNDMessage = true,
 		disableLoginMessage = false,
 		disableReadyCheck = false,
+		disableAllBlizzTimers = false,
 	}
 }

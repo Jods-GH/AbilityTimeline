@@ -52,6 +52,8 @@ if L then
     L["disableBossModsBarsDescription"] = "Hides the bars of boss mods."
     L["disableBossModsEmphasisedBars"] = "Disable Boss Mods Emphasised Bars"
     L["disableBossModsEmphasisedBarsDescription"] = "Hides the emphasised bars of boss mods."
+    L["disableAllBlizzTimers"] = "Disable All Blizzard Timers"
+    L["disableAllBlizzTimersDescription"] = "Disables all Blizzard timers, including the ready check, pull timer, and encounter timers. This is useful if you want to use fully custom timers e.g. from Viserio."
 
     -- reminders
     L["ReminderEditTitle"] = "Edit Reminder"

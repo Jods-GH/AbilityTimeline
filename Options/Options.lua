@@ -84,6 +84,17 @@ private.options = {
         return private.db.profile.disableLoginMessage                             --Sets value of toggles depending on SavedVariables
       end,
     },
+    disableAllBlizzTimers = {
+      name = private.getLocalisation("disableAllBlizzTimers"),
+      desc = private.getLocalisation("disableAllBlizzTimersDescription"),
+      order = 32,
+      width = "full",
+      type = "toggle",
+      set = function(info, val) private.db.profile.disableAllBlizzTimers = val end, --Sets value of SavedVariables depending on toggles
+      get = function(info)
+        return private.db.profile.disableAllBlizzTimers                             --Sets value of toggles depending on SavedVariables
+      end,
+    },
     disableReadyCheck = {
       name = private.getLocalisation("disableReadyCheck"),
       desc = private.getLocalisation("disableReadyCheckDescription"),

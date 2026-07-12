@@ -80,6 +80,10 @@ private.addEvent                               = function(eventInfo)
       private.Debug("Event added in paused state, ignoring for now, eventID".. eventInfo.id)
 		return -- ignore paused bars when added, they are always canceled some time later
 	end
+   if eventInfo.source == Enum.EncounterTimelineEventSource.Encounter and private.db.profile.disableAllBlizzTimers  then
+      private.Debug("Event added and all Blizzard timers disabled, ignoring for now, eventID".. eventInfo.id)
+      return -- ignore blizzard timers when disabled
+   end
    private.createTimelineIcon(eventInfo)
 end
 
@@ -133,7 +137,8 @@ private.ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED = function(self, eventID)
       if not C_EncounterTimeline.HasAnyEvents() then
          private.handleFrame(false)
       end
-   elseif not private.activeFrames[eventID] and ((not private.DisableBlizzTimersBW and not private.DisableBlizzTimersDBM) or private.ActiveBossModTimers[eventID]) then
+      
+   elseif not private.activeFrames[eventID] and ((not private.DisableBlizzTimersBW and not private.DisableBlizzTimersDBM and not private.db.profile.disableAllBlizzTimers) or private.ActiveBossModTimers[eventID]) then
       local remainingTime = C_EncounterTimeline.GetEventTimeRemaining(eventID)
       if remainingTime <= 1 then
          return
