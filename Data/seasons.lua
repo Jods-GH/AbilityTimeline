@@ -18,3 +18,11 @@ private.Seasons["season-mn-1"] = {
   dungeons = { 278, 476, 945, 1201, 1299, 1300, 1315, 1316 } 
 }
 
+private.Seasons["season-mn-1-break-the-meta"] = { 
+  name = "Midnight Season 1 • Break the Meta", 
+  short_name = "BTM MN1", 
+  starts = { us = 1784041200, eu = 1784041200, tw = 1784041200, kr = 1784041200, cn = 1784156400 }, 
+  ends = { us = 1784646000, eu = 1784646000, tw = 1784646000, kr = 1784646000, cn = 1784761200 }, 
+  dungeons = { 278, 476, 945, 1201, 1299, 1300, 1315, 1316 } 
+}
+
