@@ -6,8 +6,13 @@
   <Script file="Data/Dungeons/1202.lua" />
   <Script file="Data/Dungeons/1299.lua" />
   <Script file="Data/Dungeons/1300.lua" />
+  <Script file="Data/Dungeons/1304.lua" />
+  <Script file="Data/Dungeons/1309.lua" />
+  <Script file="Data/Dungeons/1311.lua" />
+  <Script file="Data/Dungeons/1313.lua" />
   <Script file="Data/Dungeons/1315.lua" />
   <Script file="Data/Dungeons/1316.lua" />
+  <Script file="Data/Dungeons/1322.lua" />
   <Script file="Data/Dungeons/278.lua" />
   <Script file="Data/Dungeons/476.lua" />
   <Script file="Data/Dungeons/945.lua" />
