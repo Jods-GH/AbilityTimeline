@@ -7,7 +7,7 @@ local L = AceLocale:NewLocale(appName, "enUS", true)
 
 if L then
     L["AccessOptionsMessage"] = "Access the options via /at"
-    L["TimelineNotEnabledMessage"] = "The timeline feature is not enabled."
+    L["TimelineNotEnabledMessage"] = "The timeline feature is not enabled. Enable it by going to options -> gameplay enhancements -> enable boss abilities"
     L["TimelineNotSupportedMessage"] = "The timeline feature is not supported on this version."
     L["ReadyCheckBy"] = "Ready Check by"
     L["ReadyCheck"] = "Ready Check"
