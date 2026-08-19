@@ -10,3 +10,19 @@ private.Seasons["season-mn-2"] = {
   dungeons = { 1030, 1041, 1202, 1304, 1309, 1311, 1313, 1322 } 
 }
 
+private.Seasons["season-mn-1"] = { 
+  name = "MN Season 1 • Full", 
+  short_name = "MN1 (Full)", 
+  starts = { us = 1774364400, eu = 1774411200, tw = 1774479600, kr = 1774479600, cn = 1774479600 }, 
+  ends = { us = 1787065200, eu = 1787112000, tw = 1787180400, kr = 1787180400, cn = 1787180400 }, 
+  dungeons = { 278, 476, 945, 1201, 1299, 1300, 1315, 1316 } 
+}
+
+private.Seasons["season-mn-1-break-the-meta"] = { 
+  name = "Midnight Season 1 • Break the Meta", 
+  short_name = "BTM MN1", 
+  starts = { us = 1784041200, eu = 1784041200, tw = 1784041200, kr = 1784041200, cn = 1784156400 }, 
+  ends = { us = 1784646000, eu = 1784646000, tw = 1784646000, kr = 1784646000, cn = 1784761200 }, 
+  dungeons = { 278, 476, 945, 1201, 1299, 1300, 1315, 1316 } 
+}
+
