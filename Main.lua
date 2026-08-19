@@ -376,7 +376,7 @@ function AbilityTimeline:ZONE_CHANGED_NEW_AREA()
         C_EncounterTimeline.CancelScriptEvent(private.RerollKeyEventId)
         private.RerollKeyEventId = nil
     end
-    if private.db.profile.enableDNDMessage and private.db.global.active then
+    if private.db.profile.enableDNDMessage and private.db.global.active and not C_ChatInfo.InChatMessagingLockdown() then
         C_ChatInfo.SendChatMessage("", "DND")
         private.db.global.active = false
     end
