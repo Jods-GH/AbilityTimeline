@@ -196,6 +196,8 @@ if L then
     L["TimelineTravelSizeDescription"] = "Sets the travel Size of the timeline. (Height on Horizontal, Width on Vertical)"
     L["InverseTravelDirection"] = "Inverse Travel Direction"
     L["InverseTravelDirectionDescription"] = "Inverts the travel direction of the timeline."
+    L["TimelineWindow"] = "Timeline Window (seconds)"
+    L["TimelineWindowDescription"] = "How many seconds ahead the timeline shows. Abilities further out than this wait at the far edge until they enter the window."
     L["TextAnchor"] = "Text Anchor"
     L["TextAnchorDescription"] = "Sets the anchor position of the text relative to the icons."
     L["TextAnchorLeft"] = "Left"

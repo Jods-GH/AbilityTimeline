@@ -123,7 +123,8 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 				margin
 		end
 	end
-	if not (remainingDuration < private.AT_THRESHHOLD_TIME) then
+	local thresholdTime = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].threshold_time
+	if not (remainingDuration < thresholdTime) then
 		-- We are out of range of the moving timeline
 		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
 			timelineMainPosition = 0 - (iconSize / 2)
@@ -132,11 +133,11 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 		end
 	else
 		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
-			timelineMainPosition = moveHeight - ((remainingDuration) / private.AT_THRESHHOLD_TIME) * moveHeight -
+			timelineMainPosition = moveHeight - ((remainingDuration) / thresholdTime) * moveHeight -
 				(iconSize / 2)
 			isMoving = true
 		else
-			timelineMainPosition = ((remainingDuration) / private.AT_THRESHHOLD_TIME) * moveHeight + (iconSize / 2)
+			timelineMainPosition = ((remainingDuration) / thresholdTime) * moveHeight + (iconSize / 2)
 			isMoving = true
 		end
 	end
@@ -256,7 +257,7 @@ local calculateIconPosition = function(self, timeElapsed, moveHeight, isStopped)
 	local iconSize = private.db.profile.icon_settings and private.db.profile.icon_settings.size or variables.IconSize.height
 	local x, y, isMoving = getRawIconPosition(iconSize, moveHeight,
 		self.eventInfo.duration - timeElapsed, isStopped)
-	if self.eventInfo.duration - timeElapsed > private.AT_THRESHHOLD_TIME or isStopped then
+	if self.eventInfo.duration - timeElapsed > private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].threshold_time or isStopped then
 		-- only add offset for waiting icons
 		local xOffset, yOffset = calculateOffset(iconSize, moveHeight, self.eventInfo.id, timeElapsed, x,
 			y)

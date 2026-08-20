@@ -19,6 +19,7 @@ local variables             = {
     },
     timelineTextureColor = CreateColor(1, 1, 1, 1),
     IconMargin = 5,
+    thresholdTime = 10,
 }
 private.TIMELINE_DIRECTIONS = {
     VERTICAL = "VERTICAL",
@@ -48,7 +49,7 @@ local function HandleTickVisibility(layoutName)
     for _, tick in ipairs(private.TIMELINE_FRAME.frame.Ticks) do
         if private.db.global.timeline_frame[layoutName].ticks_enabled then
             tick:SetTick(private.TIMELINE_FRAME.frame, tick.tick, private.TIMELINE_FRAME:GetMoveSize(),
-                private.AT_THRESHHOLD_TIME,
+                private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].threshold_time,
                 private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction ==
                 private.TIMELINE_DIRECTIONS.HORIZONTAL)
             tick.frame:Show()
@@ -102,6 +103,10 @@ private.ModernizeTimelineFrame = function(layoutName)
     if not private.db.global.timeline_frame[layoutName].iconMargin then
         private.db.global.timeline_frame[layoutName].iconMargin = variables.IconMargin
     end
+
+    if not private.db.global.timeline_frame[layoutName].threshold_time then
+        private.db.global.timeline_frame[layoutName].threshold_time = variables.thresholdTime
+    end
 end
 
 LibEditMode:RegisterCallback('layout', function(layoutName)
@@ -138,7 +143,8 @@ local function HandleTicks(self)
     for i, tick in ipairs(private.TIMELINE_TICKS) do
         local widget = AceGUI:Create("AtTimelineTicks")
         self.frame.Ticks[i] = widget
-        widget:SetTick(self.frame, tick, self:GetMoveSize(), private.AT_THRESHHOLD_TIME,
+        widget:SetTick(self.frame, tick, self:GetMoveSize(),
+            private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].threshold_time,
             private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction ==
             private.TIMELINE_DIRECTIONS.HORIZONTAL)
         widget.frame:Show()
@@ -243,6 +249,26 @@ local function SetupEditModeSettings(frame)
                     isRadio = true,
                 },
             },
+            hidden = function()
+                return not areTravelSettingsExpanded
+            end,
+        },
+        {
+            name = private.getLocalisation("TimelineWindow"),
+            desc = private.getLocalisation("TimelineWindowDescription"),
+            kind = LibEditMode.SettingType.Slider,
+            default = variables.thresholdTime,
+            get = function(layoutName)
+                return private.db.global.timeline_frame[layoutName].threshold_time
+            end,
+            set = function(layoutName, value)
+                private.db.global.timeline_frame[layoutName].threshold_time = value
+                HandleTicks(private.TIMELINE_FRAME)
+                HandleTickVisibility(layoutName)
+            end,
+            minValue = 5,
+            maxValue = 60,
+            valueStep = 1,
             hidden = function()
                 return not areTravelSettingsExpanded
             end,

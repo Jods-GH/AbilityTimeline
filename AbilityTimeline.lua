@@ -37,7 +37,6 @@ end
 
 private.TIMELINE_TICKS                         = { 5 }
 private.AT_THRESHHOLD                          = 0.8
-private.AT_THRESHHOLD_TIME                     = 10
 
 private.BIGICON_THRESHHOLD_TIME                = 5
 
