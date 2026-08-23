@@ -16,6 +16,12 @@ end
 private.spellIDColors = {}
 
 local EventColors = {}
+if not C_EncounterEvents then
+    -- Classic clients have no encounter event colorisation API; dispel type
+    -- text coloring still works via the event icons on each timeline entry.
+    private.ToggleEventColorisation = function() end
+    return
+end
 local SetupEventColorisation = function()
     if EventColors and next(EventColors) then return end -- already setup
     for eventID in pairs(C_EncounterEvents.GetEventList()) do

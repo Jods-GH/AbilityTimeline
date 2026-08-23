@@ -345,8 +345,14 @@ function ImportUtil:DoesTagApplyToPlayer(tag)
     -- Get player info
     local playerName = UnitName("player")
     local playerClass, classFile = UnitClass("player")
-    local playerSpecID, playerSpec, _, _, playerRole, _, _, _, _, _ = C_SpecializationInfo.GetSpecializationInfo(
-    C_SpecializationInfo.GetSpecialization())
+    local playerSpecID, playerSpec, playerRole
+    if C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo then
+        playerSpecID, playerSpec, _, _, playerRole = C_SpecializationInfo.GetSpecializationInfo(
+        C_SpecializationInfo.GetSpecialization())
+    else
+        -- Classic clients have no specializations; fall back to the group role.
+        playerRole = UnitGroupRolesAssigned("player")
+    end
     local _, subgroup
     if UnitInRaid("player") then
         _, _, subgroup, _, _, _, _, _, _, _, _, _ = GetRaidRosterInfo(UnitInRaid("player"))
@@ -776,6 +782,10 @@ end
 ---@param encounterID number|nil
 ---@return string
 function ImportUtil:ExportAsEncoded(reminders, encounterID)
+    if not C_EncodingUtil then
+        private.Debug("C_EncodingUtil is not available on this client")
+        return ""
+    end
     local data = {
         encounterID = encounterID,
         reminders = {}

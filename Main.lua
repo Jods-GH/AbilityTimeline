@@ -10,24 +10,52 @@ local AbilityTimeline = LibStub("AceAddon-3.0"):NewAddon("AbilityTimeline", "Ace
 
 function AbilityTimeline:OnInitialize()
     local buildVersion, buildNumber, buildDate, interfaceVersion, localizedVersion, buildInfo = GetBuildInfo() -- Mainline
-    assert(interfaceVersion >= 120000, private.getLocalisation("WrongWoWVersionMessage"))
+    if not private.IS_CLASSIC then
+        assert(interfaceVersion >= 120000, private.getLocalisation("WrongWoWVersionMessage"))
+    end
     -- Called when the addon is loaded
-    AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_ADDED")
-    AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_REMOVED")
-    AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED")
+    -- Use the native Blizzard timeline feed when present and not provided by
+    -- our classic shim (the shim broadcasts AceEvent messages instead).
+    local timelineEventsAreNative = C_EncounterTimeline and not C_EncounterTimeline.__ABILITYTIMELINE_SHIM
+    if timelineEventsAreNative then
+        AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_ADDED")
+        AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_REMOVED")
+        AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED")
+        AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED")
+    else
+        -- The classic shim broadcasts timeline state as AceEvent messages,
+        -- because classic clients validate event names against real events.
+        AbilityTimeline:RegisterMessage("ENCOUNTER_TIMELINE_EVENT_ADDED")
+        AbilityTimeline:RegisterMessage("ENCOUNTER_TIMELINE_EVENT_REMOVED")
+        AbilityTimeline:RegisterMessage("ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED")
+        AbilityTimeline:RegisterMessage("ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED")
+    end
     AbilityTimeline:RegisterEvent("ENCOUNTER_START")
     AbilityTimeline:RegisterEvent("ENCOUNTER_END")
     AbilityTimeline:RegisterEvent("PLAYER_ENTERING_WORLD")
     AbilityTimeline:RegisterEvent("READY_CHECK")
     AbilityTimeline:RegisterEvent("READY_CHECK_FINISHED")
-    AbilityTimeline:RegisterEvent("START_PLAYER_COUNTDOWN")
-    AbilityTimeline:RegisterEvent("CANCEL_PLAYER_COUNTDOWN")
-    AbilityTimeline:RegisterEvent("CHALLENGE_MODE_COMPLETED")
+    if C_PartyInfo and C_PartyInfo.DoCountdown then
+        AbilityTimeline:RegisterEvent("START_PLAYER_COUNTDOWN")
+        AbilityTimeline:RegisterEvent("CANCEL_PLAYER_COUNTDOWN")
+    end
+    if C_ChallengeMode then
+        AbilityTimeline:RegisterEvent("CHALLENGE_MODE_COMPLETED")
+    end
     AbilityTimeline:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-    AbilityTimeline:RegisterEvent("CHALLENGE_MODE_RESET")
-    AbilityTimeline:RegisterEvent("CHALLENGE_MODE_START")
-    AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED")
+    if C_ChallengeMode then
+        AbilityTimeline:RegisterEvent("CHALLENGE_MODE_RESET")
+        AbilityTimeline:RegisterEvent("CHALLENGE_MODE_START")
+    end
     private.db = LibStub("AceDB-3.0"):New("AbilityTimeline", private.OptionDefaults, true) -- Generates Saved Variables with default Values (if they don't already exist)
+    -- On classic, layout callbacks fire only when we ask; retail fires them
+    -- during registration. Seed layout state before any frame is created.
+    if private.IS_CLASSIC then
+        local LibEditMode = LibStub:GetLibrary("LibEditMode", true)
+        local layoutName = LibEditMode and LibEditMode.GetActiveLayoutName and LibEditMode:GetActiveLayoutName()
+        private.ACTIVE_EDITMODE_LAYOUT = layoutName or private.ACTIVE_EDITMODE_LAYOUT or "Default"
+        private.modernize()
+    end
     private.Debug(private, "AT_Options")
     local OptionTable = {
         type = "group",
@@ -47,18 +75,30 @@ function AbilityTimeline:OnInitialize()
     if not private.TIMELINE_FRAME then
         private.createTimelineFrame()
     end
-    SetCVar("encounterTimelineEnabled", "1")
-    private.Debug(EncounterTimeline, "encounterTimeline")
+    if C_EncounterTimeline and not C_EncounterTimeline.__ABILITYTIMELINE_SHIM then
+        -- The addon needs the timeline data feed; force-enable it like retail does.
+        SetCVar("encounterTimelineEnabled", "1")
+    end
+    if EncounterTimeline then
+        private.Debug(EncounterTimeline, "encounterTimeline")
 
-    EncounterTimeline:UnregisterAllEvents()
-    EncounterTimeline:Hide()
-    EncounterTimeline:HookScript("OnShow", function() EncounterTimeline:Hide() end)
+        EncounterTimeline:UnregisterAllEvents()
+        EncounterTimeline:Hide()
+        EncounterTimeline:HookScript("OnShow", function() EncounterTimeline:Hide() end)
+    end
     -- SetCVar("encounterWarningsEnabled", "1")
 
     --init
     private.ToggleEventColorisation(private.db.profile.dispellTextColor)
     if private.initDbmSkin then
         private.initDbmSkin()
+    end
+
+    -- On classic clients our Edit Mode replacement does not fire layout
+    -- callbacks automatically at login, so trigger them once after setup.
+    local LibEditMode = LibStub:GetLibrary("LibEditMode", true)
+    if LibEditMode and LibEditMode.FireLayout then
+        LibEditMode:FireLayout("Default")
     end
 end
 
@@ -245,9 +285,32 @@ function AbilityTimeline:READY_CHECK_FINISHED()
     end
 end
 
+-- Classic clients have no player countdown API, so /pull runs a purely
+-- local pull timer as a timeline script event instead.
+local function startLocalPullTimer(seconds)
+    if private.PullTimerEventId and C_EncounterTimeline.GetEventState(private.PullTimerEventId) and C_EncounterTimeline.GetEventState(private.PullTimerEventId) == Enum.EncounterTimelineEventState.Active then
+        C_EncounterTimeline.CancelScriptEvent(private.PullTimerEventId)
+        private.PullTimerEventId = nil
+    end
+    local eventinfo = {
+        duration = seconds,
+        maxQueueDuration = 0,
+        overrideName = private.getLocalisation("PullTimer"),
+        spellID = 0,
+        iconFileID = 134376,
+        severity = 1,
+        paused = false
+    }
+    private.PullTimerEventId = C_EncounterTimeline.AddScriptEvent(eventinfo)
+end
+
 function AbilityTimeline:PullCommand(msg)
     if msg and msg:lower():trim() == "cancel" then
-        C_PartyInfo.DoCountdown(0)
+        if C_PartyInfo and C_PartyInfo.DoCountdown then
+            C_PartyInfo.DoCountdown(0)
+        else
+            AbilityTimeline:CANCEL_PLAYER_COUNTDOWN()
+        end
         return
     end
     local inInstance, instanceType = IsInInstance()
@@ -260,7 +323,11 @@ function AbilityTimeline:PullCommand(msg)
         end
     end
     local seconds = tonumber(msg) or smartSeconds
-    C_PartyInfo.DoCountdown(seconds)
+    if C_PartyInfo and C_PartyInfo.DoCountdown then
+        C_PartyInfo.DoCountdown(seconds)
+    else
+        startLocalPullTimer(seconds)
+    end
 end
 
 function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemaining, totalTime, informChat, initiatedByName)

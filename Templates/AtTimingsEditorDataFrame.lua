@@ -656,8 +656,9 @@ local function SetEncounter(self, encounterParams)
     self.journalInstanceID = encounterParams.journalInstanceID
     self.encounterID = encounterParams.dungeonEncounterID
 
-    local instanceName = EJ_GetInstanceInfo(self.journalInstanceID)
-    local encounterName = EJ_GetEncounterInfo(self.journalEncounterID)
+    local instanceName = (EJ_GetInstanceInfo and EJ_GetInstanceInfo(self.journalInstanceID)) or "Instance"
+    local encounterName = (EJ_GetEncounterInfo and EJ_GetEncounterInfo(self.journalEncounterID)) or
+    ("Encounter " .. tostring(self.encounterID))
     self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), instanceName,
         encounterName))
     -- Clear any existing pins/rows before loading new encounter data

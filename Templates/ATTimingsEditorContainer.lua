@@ -41,8 +41,10 @@ end
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
 
-    local frame = CreateFrame("Frame", Type .. count, UIParent, "PortraitFrameTemplateNoCloseButton")
-    frame:SetPortraitTextureRaw("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\portrait.tga")
+    local frame = CreateFrame("Frame", Type .. count, UIParent, private.PORTRAIT_FRAME_TEMPLATE)
+    if frame.SetPortraitTextureRaw then
+        frame:SetPortraitTextureRaw("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\portrait.tga")
+    end
     frame:SetSize(variables.FrameWidth, variables.FrameHeight)
     private.Debug(frame, "AT_TIMINGS_EDITOR_FRAME_BASE")
     frame:SetPoint("CENTER", UIParent, "CENTER")
@@ -66,7 +68,7 @@ local function Constructor()
         frame,
         "TOPLEFT",
         variables.Padding.x,
-        -variables.ContentFramePadding.y - frame.TitleContainer:GetHeight()
+        -variables.ContentFramePadding.y - private.GetTitleBarHeight(frame)
     )
     contentFrame:SetPoint(
         "BOTTOMRIGHT",

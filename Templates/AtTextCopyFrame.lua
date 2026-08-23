@@ -69,11 +69,13 @@ end
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
 
-    local frame = CreateFrame("Frame", Type .. count, UIParent, 'PortraitFrameTemplateNoCloseButton')
+    local frame = CreateFrame("Frame", Type .. count, UIParent, private.PORTRAIT_FRAME_TEMPLATE)
 
-    frame:SetPortraitTextureRaw("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\portrait.tga")
+    if frame.SetPortraitTextureRaw then
+        frame:SetPortraitTextureRaw("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\portrait.tga")
+    end
     frame:SetPoint("TOP", UIParent, "TOP", 0, -50)
-    frame:SetTitle(private.getLocalisation("CopyText"))
+    private.ApplyFrameTitle(frame, private.getLocalisation("CopyText"))
     frame:SetHeight(variables.height)
 
     frame.Content = AceGUI:Create("SimpleGroup")

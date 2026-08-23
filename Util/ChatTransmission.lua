@@ -81,7 +81,7 @@ local ChatHandler = function(prefix, message, _, sender)
             return
         end
 
-        local name = EJ_GetEncounterInfo(journalEncounterID)
+        local name = EJ_GetEncounterInfo and EJ_GetEncounterInfo(journalEncounterID)
         if not name then
             private.Debug("ChatHandler: Failed to lookup encounter name for journalEncounterID " .. journalEncounterID)
             return

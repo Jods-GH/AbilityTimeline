@@ -878,7 +878,7 @@ private.openSpellIconSettings = function()
         private.SPELL_ICON_SETTINGS_WINDOW.frame:Show()
     end
 
-    if EditModeManagerFrame:IsShown() then
+    if EditModeManagerFrame and EditModeManagerFrame:IsShown() then
         private.wasEditModeOpen = true
         HideUIPanel(EditModeManagerFrame)
     end
@@ -891,7 +891,7 @@ private.closeSpellIconSettings = function()
     private.Debug("Closing spell icon settings")
     private.SPELL_ICON_SETTINGS_WINDOW.frame:Hide()
 
-    if not EditModeManagerFrame:IsShown() and private.wasEditModeOpen then
+    if EditModeManagerFrame and not EditModeManagerFrame:IsShown() and private.wasEditModeOpen then
         private.wasEditModeOpen = false
         ShowUIPanel(EditModeManagerFrame)
     end
@@ -983,7 +983,7 @@ private.openBigIconSettings = function()
         private.BIG_ICON_SETTINGS_WINDOW.frame:Show()
     end
 
-    if EditModeManagerFrame:IsShown() then
+    if EditModeManagerFrame and EditModeManagerFrame:IsShown() then
         private.wasEditModeOpen = true
         HideUIPanel(EditModeManagerFrame)
     end
@@ -995,7 +995,7 @@ private.closeBigIconSettings = function()
     private.BIGICON_FRAME:SetWidth(private.db.profile.big_icon_settings.size)
     private.BIGICON_FRAME:SetHeight(private.db.profile.big_icon_settings.size)
 
-    if not EditModeManagerFrame:IsShown() and private.wasEditModeOpen then
+    if EditModeManagerFrame and not EditModeManagerFrame:IsShown() and private.wasEditModeOpen then
         private.wasEditModeOpen = false
         ShowUIPanel(EditModeManagerFrame)
     end
@@ -1090,7 +1090,7 @@ private.openHighlightTextSettings = function()
         private.HIGHLIGHT_TEXT_SETTINGS_WINDOW.frame:Show()
     end
 
-    if EditModeManagerFrame:IsShown() then
+    if EditModeManagerFrame and EditModeManagerFrame:IsShown() then
         private.wasEditModeOpen = true
         HideUIPanel(EditModeManagerFrame)
     end
@@ -1099,7 +1099,7 @@ end
 private.closeHighlightTextSettings = function()
     private.HIGHLIGHT_TEXT_SETTINGS_WINDOW.frame:Hide()
 
-    if not EditModeManagerFrame:IsShown() and private.wasEditModeOpen then
+    if EditModeManagerFrame and not EditModeManagerFrame:IsShown() and private.wasEditModeOpen then
         private.wasEditModeOpen = false
         ShowUIPanel(EditModeManagerFrame)
     end

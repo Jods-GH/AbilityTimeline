@@ -25,8 +25,10 @@ end
 
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
-    local frame = CreateFrame("Frame", "AtSpellIconSettingsFrame", UIParent, "PortraitFrameTemplateNoCloseButton")
-    frame:SetPortraitTextureRaw("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\portrait.tga")
+    local frame = CreateFrame("Frame", "AtSpellIconSettingsFrame", UIParent, private.PORTRAIT_FRAME_TEMPLATE)
+    if frame.SetPortraitTextureRaw then
+        frame:SetPortraitTextureRaw("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\portrait.tga")
+    end
     frame:SetPoint("CENTER", UIParent, "CENTER")
     frame:SetWidth(variables.width)
     frame:SetHeight(variables.height)
@@ -35,7 +37,7 @@ local function Constructor()
     frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
     frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
-    frame:SetTitle(private.getLocalisation("SpellIconSettings"))
+    private.ApplyFrameTitle(frame, private.getLocalisation("SpellIconSettings"))
 
     frame.Footer = CreateFrame("Frame", nil, frame)
     frame.Footer:SetHeight(30)
@@ -116,7 +118,7 @@ local function Constructor()
         frame,
         "TOPLEFT",
         variables.Padding.x + variables.ContentFramePadding.x,
-        -variables.ContentFramePadding.y - frame.TitleContainer:GetHeight()
+        -variables.ContentFramePadding.y - private.GetTitleBarHeight(frame)
     )
     contentFrame:SetPoint(
         "BOTTOMRIGHT",
@@ -140,7 +142,7 @@ local function Constructor()
         frame,
         "TOP",
         variables.Padding.x,
-        -variables.ContentFramePadding.y - frame.TitleContainer:GetHeight()
+        -variables.ContentFramePadding.y - private.GetTitleBarHeight(frame)
     )
     rightContentFrame:SetPoint(
         "BOTTOMRIGHT",

@@ -106,10 +106,12 @@ local HandleTexts = function(widget, eventInfo, remainingDuration)
         EventIconTextureID = private.BossModsSpellIndicators[eventInfo.id]	
     end
     C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 126, widget.frame.dispellTypeIcons)
-    local atlas = widget.frame.dispellTypeIcons[1]:GetAtlas()
+    -- Locally created events (pull timers, tests) carry no dispel icon bits,
+    -- so their textures stay hidden and GetAtlas() yields nothing.
+    local atlas = widget.frame.dispellTypeIcons[1] and widget.frame.dispellTypeIcons[1]:GetAtlas()
     local formatedText = string.format("%s in |c%s%i|r", eventInfo.spellName, textColor,
         math.ceil(remainingDuration))
-    if private.db.profile.highlight_text_settings.dispellIcons then
+    if private.db.profile.highlight_text_settings.dispellIcons and atlas then
         formatedText = string.format("|A:%s:20:20|a %s in |c%s%i|r", atlas, eventInfo.spellName, textColor,
             math.ceil(remainingDuration))
     end

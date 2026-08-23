@@ -48,6 +48,70 @@ private.modernize = function()
         .VERTICAL
     end
 
+    -- Seed the big icon / text highlight settings up front. The frame
+    -- templates normally do this lazily in their layout callbacks, but the
+    -- first timeline event can trigger highlight logic before those run.
+    local layout = private.ACTIVE_EDITMODE_LAYOUT
+
+    if not private.db.global.bigicon_frame then
+        private.db.global.bigicon_frame = {}
+    end
+    if not private.db.global.bigicon_frame[layout] then
+        private.db.global.bigicon_frame[layout] = {
+            point = 'CENTER',
+            x = 410,
+            y = -200,
+        }
+    end
+
+    if not private.db.global.bigicon_enabled then
+        private.db.global.bigicon_enabled = {}
+    end
+    if private.db.global.bigicon_enabled[layout] == nil then
+        private.db.global.bigicon_enabled[layout] = true
+    end
+
+    if not private.db.global.bigicon then
+        private.db.global.bigicon = {}
+    end
+    if not private.db.global.bigicon[layout] then
+        private.db.global.bigicon[layout] = {
+            grow_direction = 'RIGHT',
+            margin = 10,
+        }
+    end
+    if not private.db.global.bigicon[layout].margin then
+        private.db.global.bigicon[layout].margin = 10
+    end
+
+    if not private.db.global.text_highlight_frame then
+        private.db.global.text_highlight_frame = {}
+    end
+    if not private.db.global.text_highlight_frame[layout] then
+        private.db.global.text_highlight_frame[layout] = {
+            point = 'CENTER',
+            x = 0,
+            y = 0,
+        }
+    end
+
+    if not private.db.global.text_highlight_enabled then
+        private.db.global.text_highlight_enabled = {}
+    end
+    if private.db.global.text_highlight_enabled[layout] == nil then
+        private.db.global.text_highlight_enabled[layout] = true
+    end
+
+    if not private.db.global.text_highlight then
+        private.db.global.text_highlight = {}
+    end
+    if not private.db.global.text_highlight[layout] then
+        private.db.global.text_highlight[layout] = {
+            grow_direction = 'UP',
+            margin = 5,
+        }
+    end
+
     if not private.db.profile.icon_settings then
         private.db.profile.icon_settings = {}
     end

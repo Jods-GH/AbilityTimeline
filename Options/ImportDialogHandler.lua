@@ -299,7 +299,7 @@ private.showExportDialog = function(encounterID)
     exportText:SetNumLines(15)
     exportText:DisableButton(true)
 
-    local encounterName = EJ_GetEncounterInfo(encounterID) or ""
+    local encounterName = (EJ_GetEncounterInfo and EJ_GetEncounterInfo(encounterID)) or ""
 
     local function updateExport(format)
         local exportData = private.ImportUtil:ExportReminders(reminders, format, encounterID, encounterName)

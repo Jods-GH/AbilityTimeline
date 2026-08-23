@@ -40,8 +40,10 @@ private.RegisterEncounter = function(encounterID, meta, copyDefaults)
     end
     if meta then
         meta = meta or {}
-        meta.name = meta.name or (select(1, EJ_GetEncounterInfo(encounterID)) or "Unknown")
-        meta.instanceID = meta.instanceID or select(6, EJ_GetEncounterInfo(encounterID))
+        meta.name = meta.name or ((EJ_GetEncounterInfo and select(1, EJ_GetEncounterInfo(encounterID))) or "Unknown")
+        if not meta.instanceID and EJ_GetEncounterInfo then
+            meta.instanceID = select(6, EJ_GetEncounterInfo(encounterID))
+        end
         meta.source = meta.source or "ej"
     end
     -- If copyDefaults requested but there were no existing reminders, copy immediately

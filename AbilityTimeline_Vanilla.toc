@@ -1,4 +1,4 @@
-## Interface: 120100
+## Interface: 11509
 ## Title: AbilityTimeline
 ## Version: @project-version@
 ## Notes: Adds various improvements to blizzards encounter ability timeline.
@@ -16,7 +16,7 @@
 ## Author: Jods
 ## X-Curse-Project-ID: 1365171
 ## X-Wago-ID: qGYMWpGg
-## OptionalDeps: Ace3, DevTool, CustomNames, ElvUI, DBM-Core, BigWigs, LibEditMode
+## OptionalDeps: Ace3, DevTool, CustomNames, ElvUI, DBM-Core, BigWigs
 ## AddonCompartmentFunc: AbilityTimeline_AddonCompartmentFunction
 ## IconTexture: Interface\AddOns\AbilityTimeline\Media\Logo.tga
 ## Category-enUS: Dungeons & Raids
@@ -31,11 +31,15 @@
 ## Category-zhCN: 地下城和团队副本
 ## Category-zhTW: 地城與團隊
 
-#compat (polyfills + template probes; inert on retail)
+#compat
 Compat\Environment.lua
 
 #Libs
-embeds.xml
+embeds_vanilla.xml
+
+#compat (needs LibStub)
+Compat\FallbackEditMode.lua
+Compat\EncounterTimelineShim.lua
 
 #data
 Data\dungeons.xml
@@ -67,7 +71,7 @@ Locales\ptBR.lua
 Locales\ruRU.lua
 Locales\zhCN.lua
 Locales\zhTW.lua
- 
+
 Locales\Locales.lua
 
 #templates
@@ -104,5 +108,3 @@ Options\TimingEditor.lua
 Options\SpellIconsSettings.lua
 Main.lua
 AbilityTimeline.lua
-
-

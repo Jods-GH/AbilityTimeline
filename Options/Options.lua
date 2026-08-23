@@ -23,8 +23,10 @@ private.options = {
               for id, stored in pairs(private.db.profile.reminders) do
                 local first = stored[1]
                 if first then
-                  local encName = EJ_GetEncounterInfo(first.journalEncounterID)
-                  local instName = EJ_GetInstanceInfo(first.journalInstanceID)
+                  local encName = EJ_GetEncounterInfo and EJ_GetEncounterInfo(first.journalEncounterID)
+                  local instName = EJ_GetInstanceInfo and EJ_GetInstanceInfo(first.journalInstanceID)
+                  encName = encName or string.format("Encounter %s", tostring(id))
+                  instName = instName or "Instance"
                   local display = string.format("%s — %s", instName, encName)
                   out[tostring(id)] = display
                 end
@@ -199,8 +201,10 @@ private.options = {
 OPTIONS_INITIALIZED = false
 private.buildInstanceOptions = function()
   if OPTIONS_INITIALIZED then return end
+  if not EJ_SelectInstance then return end -- classic clients have no Encounter Journal
   for dungeonId, dungeonValue in pairs(private.Instances) do
-    EJ_SelectInstance(dungeonId)
+    -- Clients without the instance in their journal (e.g. Era) throw on select.
+    if pcall(EJ_SelectInstance, dungeonId) then
     local Instancename, Instancedescription, _, InstanceImage, _, _, _, _, _ = EJ_GetInstanceInfo()
     private.options.args.encounterOptions.args["dungeon" .. dungeonId] = {
       name = Instancename,
@@ -213,6 +217,7 @@ private.buildInstanceOptions = function()
     for encounterNumber, encounterID in pairs(dungeonValue.encounters) do
       local EncounterName, Encounterdescription, journalEncounterID, rootSectionID, link, journalInstanceID, dungeonEncounterID, instanceID =
           EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
+      if EncounterName then
       private.options.args.encounterOptions.args["dungeon" .. dungeonId].args["encounter" .. encounterNumber] = {
         name = EncounterName,
         -- description = Encounterdescription,
@@ -237,7 +242,9 @@ private.buildInstanceOptions = function()
           },
         }
       }
+      end
     end
+    end -- pcall(EJ_SelectInstance, ...)
   end
   OPTIONS_INITIALIZED = true
 end

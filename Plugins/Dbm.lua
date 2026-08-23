@@ -90,7 +90,7 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
     end
     local eventID = C_EncounterTimeline.AddScriptEvent(eventinfo)
     if timerColordId then
-        local r, g, b = DBT:GetColorForType(timerColordId)
+        local r, g, b = DBT.GetColorForType and DBT:GetColorForType(timerColordId)
         if r and g and b then
             local color = CreateColor(r, g, b)
             local colorTable = private.BossModsColors[eventID] or {}
