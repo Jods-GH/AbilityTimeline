@@ -84,7 +84,13 @@ function AbilityTimeline:OnInitialize()
 
         EncounterTimeline:UnregisterAllEvents()
         EncounterTimeline:Hide()
-        EncounterTimeline:HookScript("OnShow", function() EncounterTimeline:Hide() end)
+        -- Installing an insecure script on a Blizzard frame leaves permanent
+        -- addon taint behind, which can later break protected actions such as
+        -- Logout. With the shim owning the timeline feed the native frame
+        -- never shows anyway, so only hook when the native API is in charge.
+        if not C_EncounterTimeline.__ABILITYTIMELINE_SHIM then
+            EncounterTimeline:HookScript("OnShow", function() EncounterTimeline:Hide() end)
+        end
     end
     -- SetCVar("encounterWarningsEnabled", "1")
 
