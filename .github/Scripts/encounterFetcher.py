@@ -130,6 +130,32 @@ def int_or_none(x: Optional[str]) -> Optional[int]:
         return None
 
 
+def is_current_main_season(season: Dict, now: Optional[int] = None) -> bool:
+    """Return True only for a main season that is live right now.
+
+    Raider.IO's static data also returns expired seasons and non-main event
+    seasons (e.g. "Break the Meta"). We only want the main season(s) that are
+    currently running so old dungeons stop showing up in the settings. A season
+    counts as running if, in at least one region, its start is in the past and
+    its end is still in the future.
+    """
+    if not season.get("is_main_season"):
+        return False
+    if now is None:
+        now = int(time.time())
+
+    starts = season.get("starts", {}) or {}
+    ends = season.get("ends", {}) or {}
+    for region, start_iso in starts.items():
+        start_ts = iso_to_unix(start_iso)
+        if start_ts is None or start_ts > now:
+            continue
+        end_ts = iso_to_unix(ends.get(region))
+        if end_ts is None or end_ts > now:
+            return True
+    return False
+
+
 def build_lua_content(journal_instance_id: int, journal_instance_name: str, encounter_ids: List[int]) -> str:
     enc_list = ", ".join(str(i) for i in encounter_ids)
     content = (
@@ -154,10 +180,13 @@ def pretty_write_tree(tree: ET.ElementTree, xml_path: str) -> None:
     tree.write(xml_path, encoding="utf-8", xml_declaration=True)
 
 
-def to_windows_xml_path(*parts: str) -> str:
-    return "\\".join(parts)
-
 def update_dungeons_xml(xml_path: str, script_paths: Iterable[str]) -> None:
+    """Rewrite dungeons.xml so it references exactly the given script paths.
+
+    The XML is rebuilt from scratch rather than merged with any existing content,
+    so entries for dungeons from expired seasons are dropped instead of
+    accumulating over time.
+    """
     ns, xsi = register_xml_namespaces()
     script_tag = f"{{{ns}}}Script"
     root_tag = f"{{{ns}}}Ui"
@@ -165,34 +194,37 @@ def update_dungeons_xml(xml_path: str, script_paths: Iterable[str]) -> None:
     xml_dir = os.path.dirname(xml_path) or "."
     ensure_dir(xml_dir)
 
-    if os.path.exists(xml_path):
-        try:
-            tree = ET.parse(xml_path)
-            root = tree.getroot()
-            if root.tag != root_tag and not root.tag.endswith("Ui"):
-                root = ET.Element(root_tag, root.attrib)
-                tree = ET.ElementTree(root)
-        except ET.ParseError:
-            root = ET.Element(root_tag)
-            tree = ET.ElementTree(root)
-    else:
-        root = ET.Element(root_tag)
-        schema_loc_key = f"{{{xsi}}}schemaLocation"
-        root.attrib[schema_loc_key] = "http://www.blizzard.com/wow/ui/ ..\\FrameXML\\UI.xsd"
-        tree = ET.ElementTree(root)
+    root = ET.Element(root_tag)
+    schema_loc_key = f"{{{xsi}}}schemaLocation"
+    root.attrib[schema_loc_key] = "http://www.blizzard.com/wow/ui/ ..\\FrameXML\\UI.xsd"
+    tree = ET.ElementTree(root)
 
-    existing_files = {elem.get("file") for elem in list(root) if elem.tag == script_tag and elem.get("file")}
-    merged = existing_files.union(set(script_paths or []))
-
-    for elem in list(root):
-        if elem.tag == script_tag:
-            root.remove(elem)
-
-    for file_attr in sorted(merged):
+    for file_attr in sorted(set(script_paths or [])):
         ET.SubElement(root, script_tag, {"file": file_attr})
 
-    tree._setroot(root)
     pretty_write_tree(tree, xml_path)
+
+
+def prune_stale_dungeon_files(output_dir: str, keep_instance_ids: set[int]) -> None:
+    """Delete Dungeons/<id>.lua files whose instance id is no longer part of any
+    current season, so expired-season dungeons stop being registered/displayed."""
+    if not os.path.isdir(output_dir):
+        return
+    for entry in os.listdir(output_dir):
+        if not entry.endswith(".lua"):
+            continue
+        stem = entry[:-len(".lua")]
+        instance_id = int_or_none(stem)
+        if instance_id is None:
+            log.warning("Skipping unexpected file in %s: %s", output_dir, entry)
+            continue
+        if instance_id not in keep_instance_ids:
+            stale_path = os.path.join(output_dir, entry)
+            try:
+                os.remove(stale_path)
+                log.info("Removed stale dungeon file %s", stale_path)
+            except OSError as e:
+                log.warning("Failed to remove stale dungeon file %s: %s", stale_path, e)
 
 
 
@@ -244,10 +276,18 @@ def main():
     if not seasons:
         log.warning("No seasons found in Raider.IO data.")
     created_script_paths: set[str] = set()
+    current_instance_ids: set[int] = set()
     seasons_collection: Dict[str, Dict] = {}
     for season in seasons:
         # choose directory name: prefer slug, fallback to name
         season_slug = season.get("slug") or (season.get("short_name") or season.get("name") or "season")
+
+        # Only keep the main season(s) that are currently running. This drops
+        # expired seasons and non-main event seasons that Raider.IO still returns.
+        if not is_current_main_season(season):
+            log.info("Skipping season %s (not a currently running main season).", season_slug)
+            continue
+
         season_dungeon_ids: List[int] = []
 
         dungeons = season.get("dungeons", [])
@@ -301,7 +341,8 @@ def main():
             with open(out_path, "w", encoding="utf-8") as f:
                 f.write(lua_content)
             log.info("Wrote %s", out_path)
-            created_script_paths.add(to_windows_xml_path(out_path))
+            created_script_paths.add(out_path.replace(os.sep, "/"))
+            current_instance_ids.add(journal_instance_id)
             if journal_instance_id not in season_dungeon_ids:
                 season_dungeon_ids.append(journal_instance_id)
 
@@ -312,6 +353,10 @@ def main():
             "ends": season.get("ends", {}) or {},
             "dungeons": sorted(set(season_dungeon_ids)),
         }
+    # Remove dungeon files belonging to seasons that are no longer returned by
+    # Raider.IO, so they stop being registered and shown in the settings.
+    prune_stale_dungeon_files(OUTPUT_DIR, current_instance_ids)
+
     dungeons_xml_path = os.path.join("Data", "dungeons.xml")
     update_dungeons_xml(dungeons_xml_path, created_script_paths)
     log.info("Updated dungeons XML: %s", dungeons_xml_path)
