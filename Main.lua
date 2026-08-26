@@ -160,7 +160,14 @@ function AbilityTimeline:ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED(event, eventID)
 end
 
 function AbilityTimeline:PLAYER_ENTERING_WORLD()
-    private.buildInstanceOptions()
+    if not C_AddOns.IsAddOnLoaded("Blizzard_EncounterJournal") then
+        C_AddOns.LoadAddOn("Blizzard_EncounterJournal")
+        C_Timer.After(5, function()
+            private.buildInstanceOptions()
+        end)
+    else
+        private.buildInstanceOptions()
+    end
 end
 
 function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, difficultyID, groupSize, playerDifficultyID)

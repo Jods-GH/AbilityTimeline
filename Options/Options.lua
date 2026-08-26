@@ -218,6 +218,7 @@ private.buildInstanceOptions = function()
   for dungeonId, dungeonValue in pairs(private.Instances) do
     EJ_SelectInstance(dungeonId)
     local Instancename, Instancedescription, _, InstanceImage, _, _, _, _, _ = EJ_GetInstanceInfo()
+    assert(Instancename, "BetterTimeline: EncounterJournal returned nil for instance name for dungeonId " .. dungeonId .. " please alert the Author.")
     private.options.args.encounterOptions.args["dungeon" .. dungeonId] = {
       name = Instancename,
       -- description = Instancedescription,
@@ -229,6 +230,7 @@ private.buildInstanceOptions = function()
     for encounterNumber, encounterID in pairs(dungeonValue.encounters) do
       local EncounterName, Encounterdescription, journalEncounterID, rootSectionID, link, journalInstanceID, dungeonEncounterID, instanceID =
           EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
+      assert(EncounterName, "BetterTimeline: EncounterJournal returned nil for encounter name for encounterNumber " .. encounterNumber .. " in dungeonId " .. dungeonId .. " please alert the Author.")
       private.options.args.encounterOptions.args["dungeon" .. dungeonId].args["encounter" .. encounterNumber] = {
         name = EncounterName,
         -- description = Encounterdescription,
