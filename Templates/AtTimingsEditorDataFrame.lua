@@ -229,6 +229,8 @@ local function SaveReminders(self)
         -- persist EJ ids so the encounter can be restored precisely
         if self.journalEncounterID then r.journalEncounterID = self.journalEncounterID end
         if self.journalInstanceID then r.journalInstanceID = self.journalInstanceID end
+        if self.instanceName then r.instanceName = self.instanceName end
+        if self.encounterName then r.encounterName = self.encounterName end
         table.insert(copy, r)
     end
     private.db.profile.reminders[self.encounterID] = copy
@@ -658,6 +660,8 @@ local function SetEncounter(self, encounterParams)
 
     local instanceName = EJ_GetInstanceInfo(self.journalInstanceID)
     local encounterName = EJ_GetEncounterInfo(self.journalEncounterID)
+    self.instanceName = instanceName or encounterParams.instanceName
+    self.encounterName = encounterName or encounterParams.name
     self.container:SetTitle(string.format("%s%s - %s", private.getLocalisation("TimingsEditorTitle"), instanceName,
         encounterName))
     -- Clear any existing pins/rows before loading new encounter data

@@ -36,10 +36,6 @@ class BlizzardAuthError(Exception):
     pass
 
 def fetch_raidbots_metadata():
-    """Fetch metadata from raidbots to derive expansion ID from WoW build version.
-    
-    Returns (expansion_id, wow_build) tuple. Example: wow_build "11.1.7.61559" -> expansion_id 10
-    """
     print("\nFetching raidbots metadata...")
     url = "https://www.raidbots.com/static/data/live/metadata.json"
     
@@ -131,14 +127,6 @@ def int_or_none(x: Optional[str]) -> Optional[int]:
 
 
 def is_current_main_season(season: Dict, now: Optional[int] = None) -> bool:
-    """Return True only for a main season that is live right now.
-
-    Raider.IO's static data also returns expired seasons and non-main event
-    seasons (e.g. "Break the Meta"). We only want the main season(s) that are
-    currently running so old dungeons stop showing up in the settings. A season
-    counts as running if, in at least one region, its start is in the past and
-    its end is still in the future.
-    """
     if not season.get("is_main_season"):
         return False
     if now is None:
@@ -181,12 +169,6 @@ def pretty_write_tree(tree: ET.ElementTree, xml_path: str) -> None:
 
 
 def update_dungeons_xml(xml_path: str, script_paths: Iterable[str]) -> None:
-    """Rewrite dungeons.xml so it references exactly the given script paths.
-
-    The XML is rebuilt from scratch rather than merged with any existing content,
-    so entries for dungeons from expired seasons are dropped instead of
-    accumulating over time.
-    """
     ns, xsi = register_xml_namespaces()
     script_tag = f"{{{ns}}}Script"
     root_tag = f"{{{ns}}}Ui"
@@ -206,8 +188,6 @@ def update_dungeons_xml(xml_path: str, script_paths: Iterable[str]) -> None:
 
 
 def prune_stale_dungeon_files(output_dir: str, keep_instance_ids: set[int]) -> None:
-    """Delete Dungeons/<id>.lua files whose instance id is no longer part of any
-    current season, so expired-season dungeons stop being registered/displayed."""
     if not os.path.isdir(output_dir):
         return
     for entry in os.listdir(output_dir):

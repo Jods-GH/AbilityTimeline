@@ -1,6 +1,29 @@
 local appName, app = ...
 ---@class AbilityTimeline
 local private = app
+
+--Only reminders that carry a saved name are included
+local function getNamedReminderValues()
+  local out = {}
+  if private.db and private.db.profile and private.db.profile.reminders then
+    for id, stored in pairs(private.db.profile.reminders) do
+      local first = stored and stored[1]
+      if first and (first.instanceName or first.encounterName) then
+        if first.instanceName and first.encounterName then
+          out[tostring(id)] = string.format("%s — %s", first.instanceName, first.encounterName)
+        else
+          out[tostring(id)] = first.encounterName or first.instanceName
+        end
+      end
+    end
+  end
+  return out
+end
+
+local function hasNamedReminders()
+  return next(getNamedReminderValues()) ~= nil
+end
+
 ---@type AceConfigOptionsTable
 private.options = {
   name = private.getLocalisation("addonOptions"),
@@ -12,26 +35,20 @@ private.options = {
       type = "group",
       order = 10,
       args = {
+        no_reminders_hint = {
+          name = private.getLocalisation("NoRemindersHint"),
+          type = "description",
+          order = 20,
+          fontSize = "medium",
+          hidden = function() return hasNamedReminders() end,
+        },
         recent_encounters = {
           name = private.getLocalisation("CreatedReminders"),
           desc = private.getLocalisation("CreatedRemindersDescription"),
           type = "select",
           order = 21,
-          values = function()
-            local out = {}
-            if private.db and private.db.profile and private.db.profile.reminders then
-              for id, stored in pairs(private.db.profile.reminders) do
-                local first = stored[1]
-                if first then
-                  local encName = EJ_GetEncounterInfo(first.journalEncounterID)
-                  local instName = EJ_GetInstanceInfo(first.journalInstanceID)
-                  local display = string.format("%s — %s", instName, encName)
-                  out[tostring(id)] = display
-                end
-              end
-            end
-            return out
-          end,
+          disabled = function() return not hasNamedReminders() end,
+          values = getNamedReminderValues,
           set = function(info, val) private._recentSelected = tonumber(val) end,
           get = function(info) return tostring(private._recentSelected or "") end,
           width = "full",
@@ -47,13 +64,12 @@ private.options = {
             -- Open the selected saved encounter (keyed by dungeonEncounterID)
             private.RegisterEncounter(sel, nil, false)
             local stored = private.db.profile.reminders[sel]
-            local first = stored[1]
+            local first = stored and stored[1]
             if first then
               local params = {
                 journalEncounterID = first.journalEncounterID,
                 journalInstanceID = first.journalInstanceID,
-                dungeonEncounterID =
-                    tonumber(sel)
+                dungeonEncounterID = tonumber(sel)
               }
               private.openTimingsEditor(params)
             end

@@ -38,6 +38,7 @@ if L then
     L['reminderBrowserDescription'] = "Browse and manage your created encounter reminders."
     L["CreatedReminders"] = "Created Reminders"
     L["CreatedRemindersDescription"] = "Select an encounter to edit its reminders."
+    L["NoRemindersHint"] = "You haven't created any reminders yet. Open the Encounter Journal, pick an encounter and use the AbilityTimeline button to create reminders to get started."
     L["disableAllOnEncounterEnd"] = "Remove active Reminders"
     L["disableAllOnEncounterEndDescription"] = "Disables all active reminder events when an encounter ends."
     L["IconDangerIconDescription"] = "Displays a danger icon |TInterface\\EncounterJournal\\UI-EJ-Icons:::::256:64:135:153:7:25|t on the timeline for effects which are classified as Deadly by Blizzard."
