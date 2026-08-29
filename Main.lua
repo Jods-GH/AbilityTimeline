@@ -338,10 +338,9 @@ function AbilityTimeline:CHALLENGE_MODE_START()
         if challengeMapID then
             local name, id, timeLimit, texture, backgroundTexture, mapID = C_ChallengeMode.GetMapUIInfo(challengeMapID)
             if name and timeLimit then
-                local serverTime = C_DateAndTime.GetServerTimeLocal()
-                local finishTime = serverTime + (timeLimit or 0)
-                local calenderTime = C_DateAndTime.GetCalendarTimeFromEpoch(finishTime * 1000)
-                local timeToDisplay = calenderTime.hour .. ":" .. (calenderTime.minute)
+                local calenderTime = C_DateAndTime.GetCurrentCalendarTime()
+                local adjustedTime = C_DateAndTime.AdjustTimeByMinutes(calenderTime, timeLimit / 60)
+                local timeToDisplay = adjustedTime.hour .. ":" .. (adjustedTime.minute)
                 message = private.getLocalisation("CurrentlyDoingMplusKey"):format(activeKeystoneLevel, name,
                     timeToDisplay)
             end

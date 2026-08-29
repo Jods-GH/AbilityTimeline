@@ -15,7 +15,7 @@ if L then
     L["PullTimerBy"] = "Pull Timer by"
     L["RerollKey"] = "Reroll Mythic + Key"
     L["CurrentlyDoingMplusKeyFallback"] = "[BetterTimeline] Currently busy doing a Mythic+ dungeon!"
-    L["CurrentlyDoingMplusKey"] = "[BetterTimeline] Currently busy doing Mythic +%i %s timer expires around %i!"
+    L["CurrentlyDoingMplusKey"] = "[BetterTimeline] Currently busy doing Mythic +%i %s timer expires around %s!"
     L["CurrentlyBusyInEncounter"] = "[BetterTimeline] Currently busy fighting %s <%s>!"
 
     --options
