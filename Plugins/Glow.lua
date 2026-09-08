@@ -16,7 +16,12 @@ private.GlowTypes = {
 ---@param duration number
 ---@param glowColor colorRGBA?
 private.EnableGlow = function(frame, glowType, duration, glowColor)
-    if frame.isGlowing and (frame.isGlowing ~= glowType or frame.glowColor ~= glowColor) then
+    if frame.isGlowing and (frame.glowType ~= glowType or glowColor and not frame.glowColor or
+            (frame.glowColor and glowColor and
+                (frame.glowColor.r ~= glowColor.r or
+                    frame.glowColor.g ~= glowColor.g or
+                    frame.glowColor.b ~= glowColor.b or
+                    frame.glowColor.a ~= glowColor.a))) then
         private.StopGlow(frame)
     elseif frame.isGlowing then
         return
@@ -28,29 +33,18 @@ private.EnableGlow = function(frame, glowType, duration, glowColor)
     end
     if glowType == private.GlowTypes.PROC then
         CustomGlow.ProcGlow_Start(frame, { color = modifiedGlowColor })
-        frame.isGlowing = glowType
-        C_Timer.After(duration, function()
-            private.StopGlow(frame)
-        end)
     elseif glowType == private.GlowTypes.PIXEL then
         CustomGlow.PixelGlow_Start(frame, modifiedGlowColor)
-        frame.isGlowing = glowType
-        C_Timer.After(duration, function()
-            private.StopGlow(frame)
-        end)
-    elseif typglowTypee == private.GlowTypes.AUTOCAST then
+    elseif glowType == private.GlowTypes.AUTOCAST then
         CustomGlow.AutoCastGlow_Start(frame, modifiedGlowColor)
-        frame.isGlowing = glowType
-        C_Timer.After(duration, function()
-            private.StopGlow(frame)
-        end)
     elseif glowType == private.GlowTypes.BUTTON then
         CustomGlow.ButtonGlow_Start(frame, modifiedGlowColor)
-        frame.isGlowing = glowType
-        C_Timer.After(duration, function()
-            private.StopGlow(frame)
-        end)
     end
+    frame.isGlowing = true
+    frame.glowType = glowType
+    C_Timer.After(duration, function()
+        private.StopGlow(frame)
+    end)
 end
 
 ---Stops a glow (if present) on a frame
@@ -66,4 +60,6 @@ private.StopGlow = function(frame)
         CustomGlow.ButtonGlow_Stop(frame)
     end
     frame.isGlowing = false
+    frame.glowType = nil
+    frame.glowColor = nil
 end
