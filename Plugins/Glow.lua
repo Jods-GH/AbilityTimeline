@@ -12,13 +12,13 @@ private.GlowTypes = {
 }
 ---Enables a glow on a frame for a given duration
 ---@param frame frame
----@param type GlowType
+---@param glowType GlowType
 ---@param duration number
 ---@param glowColor colorRGBA?
-private.EnableGlow = function(frame, type, duration, glowColor)
-    if frame.isGlowing and (frame.isGlowing ~= type or frame.glowColor ~= glowColor) then
+private.EnableGlow = function(frame, glowType, duration, glowColor)
+    if frame.isGlowing and (frame.isGlowing ~= glowType or frame.glowColor ~= glowColor) then
         private.StopGlow(frame)
-    elseif frame.isGlowing and frame.isGlowing == type and frame.glowColor == glowColor then
+    elseif frame.isGlowing then
         return
     end
     local modifiedGlowColor = nil
@@ -26,27 +26,27 @@ private.EnableGlow = function(frame, type, duration, glowColor)
     if glowColor then
         modifiedGlowColor = { glowColor.r, glowColor.g, glowColor.b, glowColor.a }
     end
-    if type == private.GlowTypes.PROC then
-        CustomGlow.ProcGlow_Start(frame, modifiedGlowColor)
-        frame.isGlowing = type
+    if glowType == private.GlowTypes.PROC then
+        CustomGlow.ProcGlow_Start(frame, { color = modifiedGlowColor })
+        frame.isGlowing = glowType
         C_Timer.After(duration, function()
             private.StopGlow(frame)
         end)
-    elseif type == private.GlowTypes.PIXEL then
+    elseif glowType == private.GlowTypes.PIXEL then
         CustomGlow.PixelGlow_Start(frame, modifiedGlowColor)
-        frame.isGlowing = type
+        frame.isGlowing = glowType
         C_Timer.After(duration, function()
             private.StopGlow(frame)
         end)
-    elseif type == private.GlowTypes.AUTOCAST then
+    elseif typglowTypee == private.GlowTypes.AUTOCAST then
         CustomGlow.AutoCastGlow_Start(frame, modifiedGlowColor)
-        frame.isGlowing = type
+        frame.isGlowing = glowType
         C_Timer.After(duration, function()
             private.StopGlow(frame)
         end)
-    elseif type == private.GlowTypes.BUTTON then
+    elseif glowType == private.GlowTypes.BUTTON then
         CustomGlow.ButtonGlow_Start(frame, modifiedGlowColor)
-        frame.isGlowing = type
+        frame.isGlowing = glowType
         C_Timer.After(duration, function()
             private.StopGlow(frame)
         end)

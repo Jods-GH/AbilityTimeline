@@ -72,7 +72,7 @@ local HandleCooldown     = function(self, remainingTime)
 			if (remainingTime <= time) then
 				self.CooldownText:SetTextColor(color.r, color.g, color.b)
 				if value.useGlow then
-					private.EnableGlow(self, value.glowType, time, value.glowColor)
+					private.EnableGlow(self, value.glowType, remainingTime, value.glowColor)
 				end
 				return
 			end
