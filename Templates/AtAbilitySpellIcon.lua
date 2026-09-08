@@ -14,6 +14,9 @@ local variables = {
 	TextOffset = {
 		x = 10,
 		y = 0,
+	},
+	ExtraIcons={
+		IconSize = 16,
 	}
 }
 
@@ -95,11 +98,6 @@ local handleAnchors      = function(self, isStopped)
 	for _, texture in pairs(self.DangerIcon) do
 		texture:ClearAllPoints()
 		texture:SetPoint(relPos, self, anchorPos, 0, 0)
-	end
-
-	for i, texture in pairs(self.RoleIcons) do
-		texture:ClearAllPoints()
-		texture:SetPoint(anchorPos, self, relPos, 18 * (i - 1), 0)
 	end
 end
 ---returns a raw icon position without any overlap handling
@@ -535,8 +533,19 @@ local function ApplySettings(self)
 		private.SetZoom(self.frame.SpellIcon, 1 - private.db.profile.icon_settings.zoom)
 		self.frame.SpellIcon.zoomApplied = 1 - private.db.profile.icon_settings.zoom
 	end
-
+	if private.db.profile.icon_settings.borderWidth then
+		self.frame.BossModsBorderEdges[1]:SetHeight(private.db.profile.icon_settings.borderWidth)
+		self.frame.BossModsBorderEdges[2]:SetHeight(private.db.profile.icon_settings.borderWidth)
+		self.frame.BossModsBorderEdges[3]:SetWidth(private.db.profile.icon_settings.borderWidth)
+		self.frame.BossModsBorderEdges[4]:SetWidth(private.db.profile.icon_settings.borderWidth)
+	end
 	for i, edges in ipairs(self.frame.DispellTypeBorderEdges) do
+		if private.db.profile.icon_settings.borderWidth then
+			edges[1]:SetHeight(private.db.profile.icon_settings.borderWidth)
+			edges[2]:SetHeight(private.db.profile.icon_settings.borderWidth)
+			edges[3]:SetWidth(private.db.profile.icon_settings.borderWidth)
+			edges[4]:SetWidth(private.db.profile.icon_settings.borderWidth)
+		end
 		for _, edgeTexture in ipairs(edges) do
 			if private.db.profile.icon_settings.border == private.IconBorderSettings.dispell then
 				edgeTexture:Show()
@@ -553,6 +562,15 @@ local function ApplySettings(self)
 	end
 
 	for i, texture in ipairs(self.frame.dispellTypeIcons) do
+		if private.db.profile.icon_settings.dispellIconSize then
+			texture:SetSize(private.db.profile.icon_settings.dispellIconSize, private.db.profile.icon_settings.dispellIconSize)
+		end
+		texture:ClearAllPoints()
+		if private.db.profile.icon_settings.dispellIconAnchor and private.db.profile.icon_settings.dispellIconOffset then
+			texture:SetPoint(private.db.profile.icon_settings.dispellIconAnchor, self.frame, private.db.profile.icon_settings.dispellIconAnchor, private.db.profile.icon_settings.dispellIconOffset.x, private.db.profile.icon_settings.dispellIconOffset.y)
+		elseif private.db.profile.icon_settings.dispellIconAnchor then
+			texture:SetPoint(private.db.profile.icon_settings.dispellIconAnchor, self.frame, private.db.profile.icon_settings.dispellIconAnchor)
+		end
 		if private.db.profile.icon_settings.dispellIcons then
 			texture:Show()
 		else
@@ -566,7 +584,23 @@ local function ApplySettings(self)
 			texture:Hide()
 		end
 	end
+
 	for i, texture in ipairs(self.frame.RoleIcons) do
+		if private.db.profile.icon_settings.roleIconSize then
+			texture:SetSize(private.db.profile.icon_settings.roleIconSize, private.db.profile.icon_settings.roleIconSize)
+		end
+		
+		texture:ClearAllPoints()
+		
+		if private.db.profile.icon_settings.roleIconAnchor and private.db.profile.icon_settings.roleIconOffset then
+			if private.db.profile.icon_settings.roleIconSize then
+				texture:SetPoint(private.db.profile.icon_settings.roleIconAnchor, self.frame, private.db.profile.icon_settings.roleIconAnchor, private.db.profile.icon_settings.roleIconOffset.x + (i - 1) * private.db.profile.icon_settings.roleIconSize, private.db.profile.icon_settings.roleIconOffset.y)
+			else
+				texture:SetPoint(private.db.profile.icon_settings.roleIconAnchor, self.frame, private.db.profile.icon_settings.roleIconAnchor, private.db.profile.icon_settings.roleIconOffset.x + (i - 1) * variables.RoleIcon.IconSize, private.db.profile.icon_settings.roleIconOffset.y)
+			end
+		elseif private.db.profile.icon_settings.roleIconAnchor then
+			texture:SetPoint(private.db.profile.icon_settings.roleIconAnchor, self.frame, private.db.profile.icon_settings.roleIconAnchor, (i - 1) * self.frame.RoleIcons[1]:GetSize(), 0)
+		end
 		if private.db.profile.icon_settings.roleIcons then
 			texture:Show()
 		else
@@ -681,7 +715,7 @@ local function Constructor()
 	for i = 1, 3 do
 		local texture = frame:CreateTexture(nil, "OVERLAY")
 		texture:SetPoint("LEFT", frame, "RIGHT", 18 * (i - 1), 0)
-		texture:SetSize(16, 16)
+		texture:SetSize(variables.ExtraIcons.IconSize, variables.ExtraIcons.IconSize)
 		texture:Show()
 		table.insert(frame.RoleIcons, texture)
 	end
@@ -689,7 +723,7 @@ local function Constructor()
 	frame.DangerIcon = {}
 
 	local dangerTexture = frame:CreateTexture(nil, "OVERLAY")
-	dangerTexture:SetSize(16, 16)
+	dangerTexture:SetSize(variables.ExtraIcons.IconSize, variables.ExtraIcons.IconSize)
 	dangerTexture:SetPoint("CENTER", frame, "TOPLEFT", 0, 0)
 	dangerTexture:Show()
 	table.insert(frame.DangerIcon, dangerTexture)
@@ -698,7 +732,7 @@ local function Constructor()
 
 	local dispellTypeTexture = frame:CreateTexture(nil, "OVERLAY")
 	dispellTypeTexture:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -3, 3)
-	dispellTypeTexture:SetSize(16, 16)
+	dispellTypeTexture:SetSize(variables.ExtraIcons.IconSize, variables.ExtraIcons.IconSize)
 	dispellTypeTexture:Show()
 	table.insert(frame.dispellTypeIcons, dispellTypeTexture)
 

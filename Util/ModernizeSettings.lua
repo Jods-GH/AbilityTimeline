@@ -86,6 +86,30 @@ private.modernize = function()
         private.db.profile.icon_settings.strata = private.FrameStrata.FULLSCREEN
     end
 
+    if private.db.profile.icon_settings.borderWidth == nil then
+        private.db.profile.icon_settings.borderWidth = 3
+    end
+
+    if private.db.profile.icon_settings.roleIconSize == nil then
+        private.db.profile.icon_settings.roleIconSize = 16
+    end
+    if private.db.profile.icon_settings.roleIconAnchor == nil then
+        private.db.profile.icon_settings.roleIconAnchor = "RIGHT"
+    end
+    if private.db.profile.icon_settings.roleIconOffset == nil then
+        private.db.profile.icon_settings.roleIconOffset = { x = 18, y = 0 }
+    end
+
+    if private.db.profile.icon_settings.dispellIconSize == nil then
+        private.db.profile.icon_settings.dispellIconSize = 16
+    end
+    if private.db.profile.icon_settings.dispellIconAnchor == nil then
+        private.db.profile.icon_settings.dispellIconAnchor = "BOTTOMRIGHT"
+    end
+    if private.db.profile.icon_settings.dispellIconOffset == nil then
+        private.db.profile.icon_settings.dispellIconOffset = { x = -3, y = 3 }
+    end
+
     if not private.db.profile.big_icon_settings then
         private.db.profile.big_icon_settings = {}
     end
@@ -99,14 +123,50 @@ private.modernize = function()
     if not private.db.profile.big_icon_settings.TextOffset then
         private.db.profile.big_icon_settings.TextOffset = { x = 0, y = 10 }
     end
-    if private.db.profile.big_icon_settings.dispellBorders == nil then
-        private.db.profile.big_icon_settings.dispellBorders = true
+    if private.db.profile.big_icon_settings.border == nil then
+        if private.db.profile.big_icon_settings.dispellBorders == true then
+            private.db.profile.big_icon_settings.border = private.IconBorderSettings.dispell
+            private.db.profile.big_icon_settings.dispellBorders = nil
+        elseif private.db.profile.big_icon_settings.dispellBorders == false then
+            private.db.profile.big_icon_settings.border = private.IconBorderSettings.none
+            private.db.profile.big_icon_settings.dispellBorders = nil
+        else
+            private.db.profile.big_icon_settings.border = private.IconBorderSettings.dispell
+        end
     end
     if private.db.profile.big_icon_settings.dispellIcons == nil then
         private.db.profile.big_icon_settings.dispellIcons = true
     end
     if private.db.profile.big_icon_settings.dangerIcon == nil then
         private.db.profile.big_icon_settings.dangerIcon = true
+    end
+
+    if private.db.profile.big_icon_settings.roleIcons == nil then
+        private.db.profile.big_icon_settings.roleIcons = false
+    end
+
+    if private.db.profile.big_icon_settings.borderWidth == nil then
+        private.db.profile.big_icon_settings.borderWidth = 3
+    end
+
+    if private.db.profile.big_icon_settings.roleIconSize == nil then
+        private.db.profile.big_icon_settings.roleIconSize = 16
+    end
+    if private.db.profile.big_icon_settings.roleIconAnchor == nil then
+        private.db.profile.big_icon_settings.roleIconAnchor = "TOP"
+    end
+    if private.db.profile.big_icon_settings.roleIconOffset == nil then
+        private.db.profile.big_icon_settings.roleIconOffset = { x = 0, y = 18 }
+    end
+
+    if private.db.profile.big_icon_settings.dispellIconSize == nil then
+        private.db.profile.big_icon_settings.dispellIconSize = 16
+    end
+    if private.db.profile.big_icon_settings.dispellIconAnchor == nil then
+        private.db.profile.big_icon_settings.dispellIconAnchor = "BOTTOMRIGHT"
+    end
+    if private.db.profile.big_icon_settings.dispellIconOffset == nil then
+        private.db.profile.big_icon_settings.dispellIconOffset = { x = -3, y = 3 }
     end
 
     if not private.db.profile.text_settings then

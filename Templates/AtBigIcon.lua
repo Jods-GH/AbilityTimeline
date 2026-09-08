@@ -135,16 +135,49 @@ local function ApplySettings(self)
 		self.frame.SpellIcon.zoomApplied = 1 - private.db.profile.big_icon_settings.zoom
 	end
 
+	if private.db.profile.big_icon_settings.borderWidth then
+		self.frame.BossModsBorderEdges[1]:SetHeight(private.db.profile.big_icon_settings.borderWidth)
+		self.frame.BossModsBorderEdges[2]:SetHeight(private.db.profile.big_icon_settings.borderWidth)
+		self.frame.BossModsBorderEdges[3]:SetWidth(private.db.profile.big_icon_settings.borderWidth)
+		self.frame.BossModsBorderEdges[4]:SetWidth(private.db.profile.big_icon_settings.borderWidth)
+	end
 	for i, edges in ipairs(self.frame.DispellTypeBorderEdges) do
+		if private.db.profile.big_icon_settings.borderWidth then
+			edges[1]:SetHeight(private.db.profile.big_icon_settings.borderWidth)
+			edges[2]:SetHeight(private.db.profile.big_icon_settings.borderWidth)
+			edges[3]:SetWidth(private.db.profile.big_icon_settings.borderWidth)
+			edges[4]:SetWidth(private.db.profile.big_icon_settings.borderWidth)
+		end
 		for _, edgeTexture in ipairs(edges) do
-			if private.db.profile.big_icon_settings.dispellBorders then
+			if private.db.profile.big_icon_settings.border == private.IconBorderSettings.dispell then
 				edgeTexture:Show()
 			else
 				edgeTexture:Hide()
 			end
 		end
 	end
+
+	if private.db.profile.big_icon_settings.border ~= private.IconBorderSettings.bossmods then
+		for _, edgeTexture in pairs(self.frame.BossModsBorderEdges) do
+			edgeTexture:Hide()
+		end
+	end
+
 	for i, texture in ipairs(self.frame.DispellTypeIcons) do
+		if private.db.profile.big_icon_settings.dispellIconSize then
+			texture:SetSize(private.db.profile.big_icon_settings.dispellIconSize,
+				private.db.profile.big_icon_settings.dispellIconSize)
+		end
+		texture:ClearAllPoints()
+		if private.db.profile.big_icon_settings.dispellIconAnchor and private.db.profile.big_icon_settings.dispellIconOffset then
+			texture:SetPoint(private.db.profile.big_icon_settings.dispellIconAnchor, self.frame.TextureHolder,
+				private.db.profile.big_icon_settings.dispellIconAnchor,
+				private.db.profile.big_icon_settings.dispellIconOffset.x,
+				private.db.profile.big_icon_settings.dispellIconOffset.y)
+		elseif private.db.profile.big_icon_settings.dispellIconAnchor then
+			texture:SetPoint(private.db.profile.big_icon_settings.dispellIconAnchor, self.frame.TextureHolder,
+				private.db.profile.big_icon_settings.dispellIconAnchor)
+		end
 		if private.db.profile.big_icon_settings.dispellIcons then
 			texture:Show()
 		else
@@ -153,6 +186,30 @@ local function ApplySettings(self)
 	end
 	for i, texture in ipairs(self.frame.DangerIcon) do
 		if private.db.profile.big_icon_settings.dangerIcon then
+			texture:Show()
+		else
+			texture:Hide()
+		end
+	end
+
+	for i, texture in ipairs(self.frame.RoleIcons) do
+		if private.db.profile.big_icon_settings.roleIconSize then
+			texture:SetSize(private.db.profile.big_icon_settings.roleIconSize,
+				private.db.profile.big_icon_settings.roleIconSize)
+		end
+
+		texture:ClearAllPoints()
+
+		if private.db.profile.big_icon_settings.roleIconAnchor and private.db.profile.big_icon_settings.roleIconOffset then
+			texture:SetPoint(private.db.profile.big_icon_settings.roleIconAnchor, self.frame.TextureHolder,
+				private.db.profile.big_icon_settings.roleIconAnchor,
+				private.db.profile.big_icon_settings.roleIconOffset.x + (i - 1) * self.frame.RoleIcons[1]:GetSize(),
+				private.db.profile.big_icon_settings.roleIconOffset.y)
+		elseif private.db.profile.big_icon_settings.roleIconAnchor then
+			texture:SetPoint(private.db.profile.big_icon_settings.roleIconAnchor, self.frame.TextureHolder,
+				private.db.profile.big_icon_settings.roleIconAnchor, (i - 1) * self.frame.RoleIcons[1]:GetSize(), 0)
+		end
+		if private.db.profile.big_icon_settings.roleIcons then
 			texture:Show()
 		else
 			texture:Hide()
@@ -188,6 +245,9 @@ local function OnRelease(self)
 	private.StopGlow(self.frame)
 	self.frame:SetScript("OnUpdate", nil)
 	private.ClearEventTooltip(self.frame)
+	for _, edgeTexture in pairs(self.frame.BossModsBorderEdges) do
+		edgeTexture:Hide()
+	end
 end
 
 local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
@@ -222,7 +282,7 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 		if private.db.profile.big_icon_settings.dispellIcons then
 			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 126, widget.frame.DispellTypeIcons)
 		end
-		if private.db.profile.big_icon_settings.dispellBorders then
+		if private.db.profile.big_icon_settings.border == private.IconBorderSettings.dispell then
 			for i, dispellValue in ipairs(private.dispellTypeList) do
 				for _, edgeTexture in ipairs(widget.frame.DispellTypeBorderEdges[i]) do
 					local textureArray = {}
@@ -233,9 +293,22 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 						dispellValue.color.a)
 				end
 			end
+		elseif private.db.profile.big_icon_settings.border == private.IconBorderSettings.bossmods and private.BossModsColors[eventInfo.id] and private.BossModsColors[eventInfo.id].borderColor then
+			local color = private.BossModsColors[eventInfo.id].borderColor
+			for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
+				edgeTexture:SetColorTexture(color.r, color.g, color.b, color.a)
+				edgeTexture:Show()
+			end
+		else
+			for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
+				edgeTexture:Hide()
+			end
 		end
 		if private.db.profile.big_icon_settings.dangerIcon then
 			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 1, widget.frame.DangerIcon)
+		end
+		if private.db.profile.big_icon_settings.roleIcons then
+			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 896, widget.frame.RoleIcons)
 		end
 	end
 
@@ -330,6 +403,38 @@ local function Constructor()
 	dispellTypeTexture:SetSize(16, 16)
 	dispellTypeTexture:Show()
 	table.insert(frame.DispellTypeIcons, dispellTypeTexture)
+
+	frame.BossModsBorderEdges = {}
+	local bossBorderWidth = private.db.profile.big_icon_settings.borderWidth or 3
+
+	-- Top edge
+	local bossTopEdge = frame.TextureHolder:CreateTexture(nil, "BORDER")
+	bossTopEdge:SetPoint("TOPLEFT", frame.TextureHolder, "TOPLEFT", 0, 0)
+	bossTopEdge:SetPoint("TOPRIGHT", frame.TextureHolder, "TOPRIGHT", 0, 0)
+	bossTopEdge:SetHeight(bossBorderWidth)
+	bossTopEdge:Hide()
+
+	-- Bottom edge
+	local bossBottomEdge = frame.TextureHolder:CreateTexture(nil, "BORDER")
+	bossBottomEdge:SetPoint("BOTTOMLEFT", frame.TextureHolder, "BOTTOMLEFT", 0, 0)
+	bossBottomEdge:SetPoint("BOTTOMRIGHT", frame.TextureHolder, "BOTTOMRIGHT", 0, 0)
+	bossBottomEdge:SetHeight(bossBorderWidth)
+	bossBottomEdge:Hide()
+
+	-- Left edge
+	local bossLeftEdge = frame.TextureHolder:CreateTexture(nil, "BORDER")
+	bossLeftEdge:SetPoint("TOPLEFT", frame.TextureHolder, "TOPLEFT", 0, 0)
+	bossLeftEdge:SetPoint("BOTTOMLEFT", frame.TextureHolder, "BOTTOMLEFT", 0, 0)
+	bossLeftEdge:SetWidth(bossBorderWidth)
+	bossLeftEdge:Hide()
+
+	-- Right edge
+	local bossRightEdge = frame.TextureHolder:CreateTexture(nil, "BORDER")
+	bossRightEdge:SetPoint("TOPRIGHT", frame.TextureHolder, "TOPRIGHT", 0, 0)
+	bossRightEdge:SetPoint("BOTTOMRIGHT", frame.TextureHolder, "BOTTOMRIGHT", 0, 0)
+	bossRightEdge:SetWidth(bossBorderWidth)
+	bossRightEdge:Hide()
+	frame.BossModsBorderEdges = { bossTopEdge, bossBottomEdge, bossLeftEdge, bossRightEdge }
 
 	frame.DispellTypeBorderEdges = {}
 

@@ -26,3 +26,15 @@ private.FrameStrataOrder = {
     private.FrameStrata.TOOLTIP,
 
 }
+
+private.AnchorPointOrder = {
+    "TOPLEFT",
+    "TOP",
+    "TOPRIGHT",
+    "LEFT",
+    "CENTER",
+    "RIGHT",
+    "BOTTOMLEFT",
+    "BOTTOM",
+    "BOTTOMRIGHT",
+}

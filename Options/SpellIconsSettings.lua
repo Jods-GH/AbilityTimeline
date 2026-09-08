@@ -5,12 +5,238 @@ local AceGUI = LibStub("AceGUI-3.0")
 local SharedMedia = LibStub("LibSharedMedia-3.0")
 
 
-local createGeneralSettings = function(widget, parentWindow, iconSettings, maxIconSize)
+local getScrollHeight = function(parentWindow, tabRows)
+    return parentWindow.frame:GetHeight() - 115 - (((tabRows or 1) - 1) * 20)
+end
+
+
+
+local addAdditionalInformationControls = function(scroll, widget, iconSettings, extended)
+    local dispellIconSetting = AceGUI:Create("CheckBox")
+    dispellIconSetting:SetLabel(private.getLocalisation("IconDispellIcon"))
+    private.AddFrameTooltip(dispellIconSetting.frame, "IconDispellIconDescription")
+    dispellIconSetting:SetValue(iconSettings.dispellIcons)
+    dispellIconSetting:SetCallback("OnValueChanged", function(_, _, value)
+        iconSettings.dispellIcons = value
+        widget:ApplySettings()
+    end)
+    scroll:AddChild(dispellIconSetting)
+
+    if extended then
+        local dispellIconSizeSetting = AceGUI:Create("Slider")
+        dispellIconSizeSetting:SetLabel(private.getLocalisation("DispellIconSize"))
+        private.AddFrameTooltip(dispellIconSizeSetting.frame, "DispellIconSizeDescription")
+        dispellIconSizeSetting:SetSliderValues(1, 64, 1)
+        dispellIconSizeSetting:SetValue(iconSettings.dispellIconSize)
+        dispellIconSizeSetting:SetCallback("OnValueChanged", function(_, _, value)
+            iconSettings.dispellIconSize = value
+            widget:ApplySettings()
+        end)
+        dispellIconSizeSetting:SetRelativeWidth(0.5)
+        scroll:AddChild(dispellIconSizeSetting)
+
+        local dispellIconAnchorSetting = AceGUI:Create("Dropdown")
+        dispellIconAnchorSetting:SetLabel(private.getLocalisation("DispellIconAnchor"))
+        private.AddFrameTooltip(dispellIconAnchorSetting.frame, "DispellIconAnchorDescription")
+        for _, value in ipairs(private.AnchorPointOrder) do
+            dispellIconAnchorSetting:AddItem(value, value)
+        end
+        dispellIconAnchorSetting:SetValue(iconSettings.dispellIconAnchor)
+        dispellIconAnchorSetting:SetCallback("OnValueChanged", function(_, _, value)
+            iconSettings.dispellIconAnchor = value
+            widget:ApplySettings()
+        end)
+        dispellIconAnchorSetting:SetRelativeWidth(0.5)
+        scroll:AddChild(dispellIconAnchorSetting)
+
+        local dispellIconOffsetX = AceGUI:Create("Slider")
+        dispellIconOffsetX:SetLabel(private.getLocalisation("DispellIconOffsetX"))
+        private.AddFrameTooltip(dispellIconOffsetX.frame, "DispellIconOffsetXDescription")
+        dispellIconOffsetX:SetSliderValues(-100, 100, 1)
+        dispellIconOffsetX:SetValue(iconSettings.dispellIconOffset.x)
+        dispellIconOffsetX:SetCallback("OnValueChanged", function(_, _, value)
+            iconSettings.dispellIconOffset.x = value
+            widget:ApplySettings()
+        end)
+        dispellIconOffsetX:SetRelativeWidth(0.5)
+        scroll:AddChild(dispellIconOffsetX)
+
+        local dispellIconOffsetY = AceGUI:Create("Slider")
+        dispellIconOffsetY:SetLabel(private.getLocalisation("DispellIconOffsetY"))
+        private.AddFrameTooltip(dispellIconOffsetY.frame, "DispellIconOffsetYDescription")
+        dispellIconOffsetY:SetSliderValues(-100, 100, 1)
+        dispellIconOffsetY:SetValue(iconSettings.dispellIconOffset.y)
+        dispellIconOffsetY:SetCallback("OnValueChanged", function(_, _, value)
+            iconSettings.dispellIconOffset.y = value
+            widget:ApplySettings()
+        end)
+        dispellIconOffsetY:SetRelativeWidth(0.5)
+        scroll:AddChild(dispellIconOffsetY)
+    end
+
+    local borderSetting = AceGUI:Create("Dropdown")
+    borderSetting:SetLabel(private.getLocalisation("IconBorder"))
+    private.AddFrameTooltip(borderSetting.frame, "IconBorderDescription")
+
+    borderSetting:AddItem(private.IconBorderSettings.dispell, private.getLocalisation("IconDispellBorder"))
+    borderSetting:AddItem(private.IconBorderSettings.bossmods, private.getLocalisation("IconBossModsBorder"))
+    borderSetting:AddItem(private.IconBorderSettings.none, private.getLocalisation("IconNoneBorder"))
+
+    borderSetting:SetValue(iconSettings.border)
+    borderSetting:SetCallback("OnValueChanged", function(_, _, value)
+        iconSettings.border = value
+        if value == private.IconBorderSettings.bossmods then
+            for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
+                edgeTexture:Show()
+                edgeTexture:SetColorTexture(1, 0, 1, 1)
+            end
+            for _, edgeTexture in pairs(widget.frame.DispellTypeBorderEdges[3]) do
+                edgeTexture:Hide()
+            end
+        elseif value == private.IconBorderSettings.dispell then
+            for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
+                edgeTexture:Hide()
+            end
+            for _, edgeTexture in pairs(widget.frame.DispellTypeBorderEdges[3]) do
+                edgeTexture:Show()
+            end
+        else
+            for _, edgeTexture in pairs(widget.frame.DispellTypeBorderEdges[3]) do
+                edgeTexture:Hide()
+            end
+            for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
+                edgeTexture:Hide()
+            end
+        end
+    end)
+    scroll:AddChild(borderSetting)
+
+    if extended then
+        local borderWidthSetting = AceGUI:Create("Slider")
+        borderWidthSetting:SetLabel(private.getLocalisation("IconBorderWidth"))
+        private.AddFrameTooltip(borderWidthSetting.frame, "IconBorderWidthDescription")
+        borderWidthSetting:SetSliderValues(1, 20, 1)
+        borderWidthSetting:SetValue(iconSettings.borderWidth)
+        borderWidthSetting:SetCallback("OnValueChanged", function(_, _, value)
+            iconSettings.borderWidth = value
+            widget:ApplySettings()
+        end)
+        borderWidthSetting:SetRelativeWidth(0.5)
+        scroll:AddChild(borderWidthSetting)
+    end
+
+    local dispellTextColorSetting = AceGUI:Create("CheckBox")
+    dispellTextColorSetting:SetLabel(private.getLocalisation("DispellTextColor"))
+    private.AddFrameTooltip(dispellTextColorSetting.frame, "DispellTextColorDescription")
+    dispellTextColorSetting:SetValue(private.db.profile.dispellTextColor)
+    dispellTextColorSetting:SetCallback("OnValueChanged", function(_, _, value)
+        private.db.profile.dispellTextColor = value
+        if value then
+            widget.frame.SpellName:SetTextColor(0, 0.5019607843137255, 1)
+        else
+            widget.frame.SpellName:SetTextColor(1, 1, 1)
+        end
+        private.ToggleEventColorisation(value)
+    end)
+    scroll:AddChild(dispellTextColorSetting)
+
+    local dangerIconSetting = AceGUI:Create("CheckBox")
+    dangerIconSetting:SetLabel(private.getLocalisation("IconDangerIcon"))
+    private.AddFrameTooltip(dangerIconSetting.frame, "IconDangerIconDescription")
+    dangerIconSetting:SetValue(iconSettings.dangerIcon)
+    dangerIconSetting:SetCallback("OnValueChanged", function(_, _, value)
+        iconSettings.dangerIcon = value
+        widget:ApplySettings()
+    end)
+    scroll:AddChild(dangerIconSetting)
+
+    local roleIconSetting = AceGUI:Create("CheckBox")
+    roleIconSetting:SetLabel(private.getLocalisation("IconRoleIcons"))
+    private.AddFrameTooltip(roleIconSetting.frame, "IconRoleIconsDescription")
+    roleIconSetting:SetValue(iconSettings.roleIcons)
+    roleIconSetting:SetCallback("OnValueChanged", function(_, _, value)
+        iconSettings.roleIcons = value
+        widget:ApplySettings()
+    end)
+    scroll:AddChild(roleIconSetting)
+
+    if extended then
+        local roleIconSizeSetting = AceGUI:Create("Slider")
+        roleIconSizeSetting:SetLabel(private.getLocalisation("RoleIconSize"))
+        private.AddFrameTooltip(roleIconSizeSetting.frame, "RoleIconSizeDescription")
+        roleIconSizeSetting:SetSliderValues(1, 64, 1)
+        roleIconSizeSetting:SetValue(iconSettings.roleIconSize)
+        roleIconSizeSetting:SetCallback("OnValueChanged", function(_, _, value)
+            iconSettings.roleIconSize = value
+            widget:ApplySettings()
+        end)
+        roleIconSizeSetting:SetRelativeWidth(0.5)
+        scroll:AddChild(roleIconSizeSetting)
+
+        local roleIconAnchorSetting = AceGUI:Create("Dropdown")
+        roleIconAnchorSetting:SetLabel(private.getLocalisation("RoleIconAnchor"))
+        private.AddFrameTooltip(roleIconAnchorSetting.frame, "RoleIconAnchorDescription")
+        for _, value in ipairs(private.AnchorPointOrder) do
+            roleIconAnchorSetting:AddItem(value, value)
+        end
+        roleIconAnchorSetting:SetValue(iconSettings.roleIconAnchor)
+        roleIconAnchorSetting:SetCallback("OnValueChanged", function(_, _, value)
+            iconSettings.roleIconAnchor = value
+            widget:ApplySettings()
+        end)
+        roleIconAnchorSetting:SetRelativeWidth(0.5)
+        scroll:AddChild(roleIconAnchorSetting)
+
+        local roleIconOffsetX = AceGUI:Create("Slider")
+        roleIconOffsetX:SetLabel(private.getLocalisation("RoleIconOffsetX"))
+        private.AddFrameTooltip(roleIconOffsetX.frame, "RoleIconOffsetXDescription")
+        roleIconOffsetX:SetSliderValues(-100, 100, 1)
+        roleIconOffsetX:SetValue(iconSettings.roleIconOffset.x)
+        roleIconOffsetX:SetCallback("OnValueChanged", function(_, _, value)
+            iconSettings.roleIconOffset.x = value
+            widget:ApplySettings()
+        end)
+        roleIconOffsetX:SetRelativeWidth(0.5)
+        scroll:AddChild(roleIconOffsetX)
+
+        local roleIconOffsetY = AceGUI:Create("Slider")
+        roleIconOffsetY:SetLabel(private.getLocalisation("RoleIconOffsetY"))
+        private.AddFrameTooltip(roleIconOffsetY.frame, "RoleIconOffsetYDescription")
+        roleIconOffsetY:SetSliderValues(-100, 100, 1)
+        roleIconOffsetY:SetValue(iconSettings.roleIconOffset.y)
+        roleIconOffsetY:SetCallback("OnValueChanged", function(_, _, value)
+            iconSettings.roleIconOffset.y = value
+            widget:ApplySettings()
+        end)
+        roleIconOffsetY:SetRelativeWidth(0.5)
+        scroll:AddChild(roleIconOffsetY)
+    end
+end
+
+
+local createAdditionalInformationSettings = function(widget, parentWindow, iconSettings, tabRows)
     local scrollContainer = AceGUI:Create("SimpleGroup")
     local scroll = AceGUI:Create("ScrollFrame")
     scrollContainer:SetLayout("Fill") -- important!
     scrollContainer:SetFullWidth(true)
-    scrollContainer:SetHeight(parentWindow.frame:GetHeight() - 115)
+    scrollContainer:SetHeight(getScrollHeight(parentWindow, tabRows))
+    scroll:SetLayout("Flow")
+    scroll:SetFullWidth(true)
+    scrollContainer:AddChild(scroll)
+
+    addAdditionalInformationControls(scroll, widget, iconSettings, true)
+
+    return scrollContainer
+end
+
+
+local createGeneralSettings = function(widget, parentWindow, iconSettings, maxIconSize, includeAdditional, tabRows)
+    if includeAdditional == nil then includeAdditional = true end
+    local scrollContainer = AceGUI:Create("SimpleGroup")
+    local scroll = AceGUI:Create("ScrollFrame")
+    scrollContainer:SetLayout("Fill") -- important!
+    scrollContainer:SetFullWidth(true)
+    scrollContainer:SetHeight(getScrollHeight(parentWindow, tabRows))
     scroll:SetLayout("Flow")
     scroll:SetFullWidth(true)
     scrollContainer:AddChild(scroll)
@@ -54,98 +280,6 @@ local createGeneralSettings = function(widget, parentWindow, iconSettings, maxIc
     strataSetting:SetRelativeWidth(0.5)
     scroll:AddChild(strataSetting)
 
-    local dispellIconSetting = AceGUI:Create("CheckBox")
-    dispellIconSetting:SetLabel(private.getLocalisation("IconDispellIcon"))
-    private.AddFrameTooltip(dispellIconSetting.frame, "IconDispellIconDescription")
-    dispellIconSetting:SetValue(iconSettings.dispellIcons)
-    dispellIconSetting:SetCallback("OnValueChanged", function(_, _, value)
-        iconSettings.dispellIcons = value
-        widget:ApplySettings()
-    end)
-    scroll:AddChild(dispellIconSetting)
-
-    -- local dispellBorderSetting = AceGUI:Create("CheckBox")
-    -- dispellBorderSetting:SetLabel(private.getLocalisation("IconDispellBorder"))
-    -- private.AddFrameTooltip(dispellBorderSetting.frame, "IconDispellBorderDescription")
-    -- dispellBorderSetting:SetValue(iconSettings.dispellBorders)
-    -- dispellBorderSetting:SetCallback("OnValueChanged", function(_, _, value)
-    --     iconSettings.dispellBorders = value
-    --     widget:ApplySettings()
-    -- end)
-    -- scroll:AddChild(dispellBorderSetting)
-
-    local borderSetting = AceGUI:Create("Dropdown")
-    borderSetting:SetLabel(private.getLocalisation("IconBorder"))
-    private.AddFrameTooltip(borderSetting.frame, "IconBorderDescription")
-    
-    borderSetting:AddItem(private.IconBorderSettings.dispell, private.getLocalisation("IconDispellBorder"))
-    borderSetting:AddItem(private.IconBorderSettings.bossmods, private.getLocalisation("IconBossModsBorder"))
-    borderSetting:AddItem(private.IconBorderSettings.none, private.getLocalisation("IconNoneBorder"))
-    
-    borderSetting:SetValue(iconSettings.border)
-    borderSetting:SetCallback("OnValueChanged", function(_, _, value)
-        iconSettings.border = value
-        if value == private.IconBorderSettings.bossmods then
-            for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
-                edgeTexture:Show()
-                edgeTexture:SetColorTexture(1, 0, 1, 1)
-            end
-            for _, edgeTexture in pairs(widget.frame.DispellTypeBorderEdges[3]) do
-                edgeTexture:Hide()
-            end
-        elseif value == private.IconBorderSettings.dispell then
-            for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
-                edgeTexture:Hide()
-            end
-            for _, edgeTexture in pairs(widget.frame.DispellTypeBorderEdges[3]) do
-                edgeTexture:Show()
-            end
-        else
-            for _, edgeTexture in pairs(widget.frame.DispellTypeBorderEdges[3]) do
-                edgeTexture:Hide()
-            end
-            for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
-                edgeTexture:Hide()
-            end
-        end
-    end)
-    scroll:AddChild(borderSetting)
-
-    local dispellTextColorSetting = AceGUI:Create("CheckBox")
-    dispellTextColorSetting:SetLabel(private.getLocalisation("DispellTextColor"))
-    private.AddFrameTooltip(dispellTextColorSetting.frame, "DispellTextColorDescription")
-    dispellTextColorSetting:SetValue(private.db.profile.dispellTextColor)
-    dispellTextColorSetting:SetCallback("OnValueChanged", function(_, _, value)
-        private.db.profile.dispellTextColor = value
-        if value then
-            widget.frame.SpellName:SetTextColor(0, 0.5019607843137255, 1)
-        else
-            widget.frame.SpellName:SetTextColor(1, 1, 1)
-        end
-        private.ToggleEventColorisation(value)
-    end)
-    scroll:AddChild(dispellTextColorSetting)
-
-    local dangerIconSetting = AceGUI:Create("CheckBox")
-    dangerIconSetting:SetLabel(private.getLocalisation("IconDangerIcon"))
-    private.AddFrameTooltip(dangerIconSetting.frame, "IconDangerIconDescription")
-    dangerIconSetting:SetValue(iconSettings.dangerIcon)
-    dangerIconSetting:SetCallback("OnValueChanged", function(_, _, value)
-        iconSettings.dangerIcon = value
-        widget:ApplySettings()
-    end)
-    scroll:AddChild(dangerIconSetting)
-
-    local roleIconSetting = AceGUI:Create("CheckBox")
-    roleIconSetting:SetLabel(private.getLocalisation("IconRoleIcons"))
-    private.AddFrameTooltip(roleIconSetting.frame, "IconRoleIconsDescription")
-    roleIconSetting:SetValue(iconSettings.roleIcons)
-    roleIconSetting:SetCallback("OnValueChanged", function(_, _, value)
-        iconSettings.roleIcons = value
-        widget:ApplySettings()
-    end)
-    scroll:AddChild(roleIconSetting)
-
     local useTooltipSetting = AceGUI:Create("Dropdown")
     useTooltipSetting:SetLabel(private.getLocalisation("UseTooltip"))
     private.AddFrameTooltip(useTooltipSetting.frame, "UseTooltipDescription")
@@ -156,18 +290,22 @@ local createGeneralSettings = function(widget, parentWindow, iconSettings, maxIc
     useTooltipSetting:SetCallback("OnValueChanged", function(_, _, value)
         iconSettings.useTooltip = value
     end)
+    useTooltipSetting:SetRelativeWidth(0.5)
     scroll:AddChild(useTooltipSetting)
 
+    if includeAdditional then
+        addAdditionalInformationControls(scroll, widget, iconSettings, false)
+    end
 
     return scrollContainer
 end
 
-local createHighlightTextGeneralSettings = function(widget, parentWindow, Settings)
+local createHighlightTextGeneralSettings = function(widget, parentWindow, Settings, tabRows)
     local scrollContainer = AceGUI:Create("SimpleGroup")
     local scroll = AceGUI:Create("ScrollFrame")
     scrollContainer:SetLayout("Fill") -- important!
     scrollContainer:SetFullWidth(true)
-    scrollContainer:SetHeight(parentWindow.frame:GetHeight() - 115)
+    scrollContainer:SetHeight(getScrollHeight(parentWindow, tabRows))
     scroll:SetLayout("Flow")
     scroll:SetFullWidth(true)
     scrollContainer:AddChild(scroll)
@@ -223,12 +361,12 @@ local createHighlightTextGeneralSettings = function(widget, parentWindow, Settin
     return scrollContainer
 end
 
-local createTextSettings = function(widget, parentWindow, iconSettings, textSettings, isVerticalEnabled)
+local createTextSettings = function(widget, parentWindow, iconSettings, textSettings, isVerticalEnabled, tabRows)
     local scrollContainer = AceGUI:Create("SimpleGroup")
     local scroll = AceGUI:Create("ScrollFrame")
     scrollContainer:SetLayout("Fill") -- important!
     scrollContainer:SetFullWidth(true)
-    scrollContainer:SetHeight(parentWindow.frame:GetHeight() - 115)
+    scrollContainer:SetHeight(getScrollHeight(parentWindow, tabRows))
     scroll:SetLayout("Flow")
     scroll:SetFullWidth(true)
     scrollContainer:AddChild(scroll)
@@ -442,12 +580,12 @@ local createTextSettings = function(widget, parentWindow, iconSettings, textSett
     return scrollContainer
 end
 
-local createHighlightTextTextSettings = function(widget, parentWindow, textSettings)
+local createHighlightTextTextSettings = function(widget, parentWindow, textSettings, tabRows)
     local scrollContainer = AceGUI:Create("SimpleGroup")
     local scroll = AceGUI:Create("ScrollFrame")
     scrollContainer:SetLayout("Fill") -- important!
     scrollContainer:SetFullWidth(true)
-    scrollContainer:SetHeight(parentWindow.frame:GetHeight() - 115)
+    scrollContainer:SetHeight(getScrollHeight(parentWindow, tabRows))
     scroll:SetLayout("Flow")
     scroll:SetFullWidth(true)
     scrollContainer:AddChild(scroll)
@@ -768,12 +906,12 @@ end
 ---Creates the cooldown settings tab content
 ---@param widget AceGUIWidget
 ---@return AceGUIWidget
-local createCooldownSettings = function(widget, parentWindow, disableGlowSettings, disableFontSettings)
+local createCooldownSettings = function(widget, parentWindow, disableGlowSettings, disableFontSettings, tabRows)
     local scrollContainer = AceGUI:Create("SimpleGroup")
     local scroll = AceGUI:Create("ScrollFrame")
     scrollContainer:SetLayout("Fill")
     scrollContainer:SetFullWidth(true)
-    scrollContainer:SetHeight(parentWindow.frame:GetHeight() - 115)
+    scrollContainer:SetHeight(getScrollHeight(parentWindow, tabRows))
     scroll:SetLayout("Flow")
     scroll:SetFullWidth(true)
     scrollContainer:AddChild(scroll)
@@ -842,6 +980,10 @@ local createSpellIconSettingsFrame = function()
             value = "GeneralSettings"
         },
         {
+            text = private.getLocalisation("AdditionalSettings"),
+            value = "AdditionalSettings"
+        },
+        {
             text = private.getLocalisation("TextSettings"),
             value = "TextSettings"
         },
@@ -855,12 +997,15 @@ local createSpellIconSettingsFrame = function()
         tabGroup:ReleaseChildren()
         if value == "TextSettings" then
             tabGroup:AddChild(createTextSettings(widget, private.SPELL_ICON_SETTINGS_WINDOW,
-                private.db.profile.icon_settings, private.db.profile.text_settings, false))
+                private.db.profile.icon_settings, private.db.profile.text_settings, false, 2))
         elseif value == "CooldownSettings" then
-            tabGroup:AddChild(createCooldownSettings(widget, private.SPELL_ICON_SETTINGS_WINDOW))
+            tabGroup:AddChild(createCooldownSettings(widget, private.SPELL_ICON_SETTINGS_WINDOW, nil, nil, 2))
+        elseif value == "AdditionalSettings" then
+            tabGroup:AddChild(createAdditionalInformationSettings(widget, private.SPELL_ICON_SETTINGS_WINDOW,
+                private.db.profile.icon_settings, 2))
         else
             tabGroup:AddChild(createGeneralSettings(widget, private.SPELL_ICON_SETTINGS_WINDOW,
-                private.db.profile.icon_settings, 100))
+                private.db.profile.icon_settings, 100, false, 2))
         end
     end)
     tabGroup:SetFullWidth(true)
@@ -929,7 +1074,17 @@ local createBigIconSettingsFrame = function()
         edgeTexture:SetColorTexture(private.dispellTypeList[3].color.r, private.dispellTypeList[3].color.g,
             private.dispellTypeList[3].color.b, private.dispellTypeList[3].color.a)
     end
+    widget.frame.RoleIcons[1]:SetAtlas('icons_16x16_heal')
     widget.frame.DangerIcon[1]:SetAtlas('icons_16x16_deadly')
+    for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
+        edgeTexture:SetColorTexture(1, 20 / 255, 147 / 255, 1)
+    end
+    if private.db.profile.big_icon_settings.border == private.IconBorderSettings.bossmods then
+        for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
+            edgeTexture:Show()
+        end
+    end
+    widget:ApplySettings()
     widget.frame:Show()
     private.BIG_ICON_SETTINGS_WINDOW.frame.CloseButton:SetScript("OnClick", function() private.closeBigIconSettings() end)
     widget:ClearAllPoints()
@@ -943,6 +1098,10 @@ local createBigIconSettingsFrame = function()
         {
             text = private.getLocalisation("GeneralSettings"),
             value = "GeneralSettings"
+        },
+        {
+            text = private.getLocalisation("AdditionalSettings"),
+            value = "AdditionalSettings"
         },
         {
             text = private.getLocalisation("TextSettings"),
@@ -960,12 +1119,15 @@ local createBigIconSettingsFrame = function()
             local isVerticalEnabled = (private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].grow_direction == "RIGHT") or
                 (private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].grow_direction == "LEFT")
             tabGroup:AddChild(createTextSettings(widget, private.BIG_ICON_SETTINGS_WINDOW,
-                private.db.profile.big_icon_settings, private.db.profile.big_icon_text_settings, isVerticalEnabled))
+                private.db.profile.big_icon_settings, private.db.profile.big_icon_text_settings, isVerticalEnabled, 2))
         elseif value == "CooldownSettings" then
-            tabGroup:AddChild(createCooldownSettings(widget, private.BIG_ICON_SETTINGS_WINDOW))
+            tabGroup:AddChild(createCooldownSettings(widget, private.BIG_ICON_SETTINGS_WINDOW, nil, nil, 2))
+        elseif value == "AdditionalSettings" then
+            tabGroup:AddChild(createAdditionalInformationSettings(widget, private.BIG_ICON_SETTINGS_WINDOW,
+                private.db.profile.big_icon_settings, 2))
         else
             tabGroup:AddChild(createGeneralSettings(widget, private.BIG_ICON_SETTINGS_WINDOW,
-                private.db.profile.big_icon_settings, 150))
+                private.db.profile.big_icon_settings, 150, false, 2))
         end
     end)
     tabGroup:SetFullWidth(true)
