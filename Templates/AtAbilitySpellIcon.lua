@@ -20,18 +20,40 @@ local variables = {
 	}
 }
 
-private.TEXT_RELATIVE_POSITIONS = {
+private.RELATIVE_POSITIONS = {
 	RIGHT = "LEFT",
 	LEFT = "RIGHT",
 	TOP = "BOTTOM",
 	BOTTOM = "TOP",
 }
 
-setmetatable(private.TEXT_RELATIVE_POSITIONS, {
+setmetatable(private.RELATIVE_POSITIONS, {
 	__index = function(_, key)
 		error(string.format(private.getLocalisation('InvalidTextPosition') .. "%s", tostring(key)), 2);
 	end,
 })
+
+---handles the RoleIcons anchoring depending on the selected RoleIcon anchor
+---@param self Frame
+---@param isStopped boolean
+local handleRoleIconAnchors = function(self, isStopped)
+	local anchor = private.db.profile.icon_settings.roleIconAnchor
+	if not anchor then return end
+	local offset = private.db.profile.icon_settings.roleIconOffset or { x = 0, y = 0 }
+	local size = private.db.profile.icon_settings.roleIconSize or variables.ExtraIcons.IconSize
+	local xOffset = offset.x
+	local stackDir = 1
+	-- only left/right aligned anchors follow the spell name when it swaps sides while queued
+	if isStopped and (anchor == "LEFT" or anchor == "RIGHT") then
+		anchor = private.RELATIVE_POSITIONS[anchor]
+		xOffset = -offset.x
+		stackDir = -1
+	end
+	for i, texture in ipairs(self.RoleIcons) do
+		texture:ClearAllPoints()
+		texture:SetPoint(anchor, self, anchor, xOffset + stackDir * (i - 1) * size, offset.y)
+	end
+end
 ---handles the Text anchoring depending on the selected text anchor
 ---@param self Frame
 ---@param isStopped boolean
@@ -40,10 +62,10 @@ local handleAnchors      = function(self, isStopped)
 	local relPos, anchorPos, xOffset, yOffset
 	if isStopped then
 		relPos = private.db.profile.text_settings.text_anchor
-		anchorPos = private.TEXT_RELATIVE_POSITIONS
+		anchorPos = private.RELATIVE_POSITIONS
 			[private.db.profile.text_settings.text_anchor]
 	else
-		relPos = private.TEXT_RELATIVE_POSITIONS[private.db.profile.text_settings.text_anchor]
+		relPos = private.RELATIVE_POSITIONS[private.db.profile.text_settings.text_anchor]
 		anchorPos = private.db.profile.text_settings.text_anchor
 	end
 
@@ -99,6 +121,7 @@ local handleAnchors      = function(self, isStopped)
 		texture:ClearAllPoints()
 		texture:SetPoint(relPos, self, anchorPos, 0, 0)
 	end
+	handleRoleIconAnchors(self, isStopped)
 end
 ---returns a raw icon position without any overlap handling
 ---@param iconSize number -- the size of the icon
@@ -589,24 +612,13 @@ local function ApplySettings(self)
 		if private.db.profile.icon_settings.roleIconSize then
 			texture:SetSize(private.db.profile.icon_settings.roleIconSize, private.db.profile.icon_settings.roleIconSize)
 		end
-		
-		texture:ClearAllPoints()
-		
-		if private.db.profile.icon_settings.roleIconAnchor and private.db.profile.icon_settings.roleIconOffset then
-			if private.db.profile.icon_settings.roleIconSize then
-				texture:SetPoint(private.db.profile.icon_settings.roleIconAnchor, self.frame, private.db.profile.icon_settings.roleIconAnchor, private.db.profile.icon_settings.roleIconOffset.x + (i - 1) * private.db.profile.icon_settings.roleIconSize, private.db.profile.icon_settings.roleIconOffset.y)
-			else
-				texture:SetPoint(private.db.profile.icon_settings.roleIconAnchor, self.frame, private.db.profile.icon_settings.roleIconAnchor, private.db.profile.icon_settings.roleIconOffset.x + (i - 1) * variables.RoleIcon.IconSize, private.db.profile.icon_settings.roleIconOffset.y)
-			end
-		elseif private.db.profile.icon_settings.roleIconAnchor then
-			texture:SetPoint(private.db.profile.icon_settings.roleIconAnchor, self.frame, private.db.profile.icon_settings.roleIconAnchor, (i - 1) * self.frame.RoleIcons[1]:GetSize(), 0)
-		end
 		if private.db.profile.icon_settings.roleIcons then
 			texture:Show()
 		else
 			texture:Hide()
 		end
 	end
+	handleRoleIconAnchors(self.frame, self.frame.isStopped)
 	if private.db.profile.text_settings.useBackground then
 		local texture = SharedMedia:Fetch("background", private.db.profile.text_settings.backgroundTexture)
 		self.frame.SpellNameBackground:SetPoint("LEFT", self.frame.SpellName, "LEFT",
