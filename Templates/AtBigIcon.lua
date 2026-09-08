@@ -18,7 +18,7 @@ local variables          = {
 local handleAnchors      = function(self)
 	self.SpellName:ClearAllPoints()
 	local relPos, anchorPos, xOffset, yOffset
-	relPos = private.TEXT_RELATIVE_POSITIONS[private.db.profile.big_icon_text_settings.text_anchor]
+	relPos = private.RELATIVE_POSITIONS[private.db.profile.big_icon_text_settings.text_anchor]
 	anchorPos = private.db.profile.big_icon_text_settings.text_anchor
 	if relPos == 'LEFT' then
 		if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.TextOffset then
