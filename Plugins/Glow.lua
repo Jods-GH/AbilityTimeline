@@ -50,13 +50,16 @@ end
 ---Stops a glow (if present) on a frame
 ---@param frame frame
 private.StopGlow = function(frame)
-    if frame.isGlowing == private.GlowTypes.PROC then
+    if not frame.isGlowing then
+        return
+    end
+    if frame.glowType == private.GlowTypes.PROC then
         CustomGlow.ProcGlow_Stop(frame)
-    elseif frame.isGlowing == private.GlowTypes.PIXEL then
+    elseif frame.glowType == private.GlowTypes.PIXEL then
         CustomGlow.PixelGlow_Stop(frame)
-    elseif frame.isGlowing == private.GlowTypes.AUTOCAST then
+    elseif frame.glowType == private.GlowTypes.AUTOCAST then
         CustomGlow.AutoCastGlow_Stop(frame)
-    elseif frame.isGlowing == private.GlowTypes.BUTTON then
+    elseif frame.glowType == private.GlowTypes.BUTTON then
         CustomGlow.ButtonGlow_Stop(frame)
     end
     frame.isGlowing = false
