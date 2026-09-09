@@ -242,12 +242,12 @@ local function OnRelease(self)
 	self.frame.SpellIcon:SetTexture(nil)
 	self.frame.SpellName:SetText("")
 	self.frame.eventInfo = nil
-	private.StopGlow(self.frame)
 	self.frame:SetScript("OnUpdate", nil)
 	private.ClearEventTooltip(self.frame)
 	for _, edgeTexture in pairs(self.frame.BossModsBorderEdges) do
 		edgeTexture:Hide()
 	end
+	private.StopGlow(self.frame)
 end
 
 local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
