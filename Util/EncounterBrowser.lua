@@ -85,6 +85,7 @@ local function ensureEJButton()
         if not infoFrame.AbilityTimelineAddButton then
             local btn = CreateFrame("Button", "AbilityTimelineEJAddButton", infoFrame, "EncounterTabTemplate")
             btn:SetPoint("TOP", EncounterJournalEncounterFrameInfoModelTab, "BOTTOM", 0, 0)
+            btn:SetSize(EncounterJournalEncounterFrameInfoModelTab:GetWidth(), EncounterJournalEncounterFrameInfoModelTab:GetHeight())
 
             btn.texture = btn:CreateTexture(nil, "OVERLAY")
             btn.texture:SetAllPoints()
@@ -97,7 +98,7 @@ local function ensureEJButton()
                 -- match skinning of EJ tabs if relevant for elvui
                 if C_AddOns.IsAddOnLoaded("ElvUI") and ElvUI then
                     btn:CreateBackdrop('Transparent')
-                    btn.backdrop:SetInside(nil, 2, 2)
+                    btn.backdrop:SetInside(nil, 1, 1)
                     btn:SetNormalTexture(0)
                     btn:SetPushedTexture(0)
                     btn:SetDisabledTexture(0)
