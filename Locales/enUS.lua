@@ -101,7 +101,7 @@ if L then
     L["IconNoneBorder"] = "No Border"
     L["IconBossModsBorder"] = "Boss Mods Border"
     L["IconBorder"] = "Icon Border"
-    L["IconBorderDescription"] = "Selects the type of border to be used. Dispell will show a border based on the dispell type of the spell, Boss Mods will show a border based on the color set by boss mods (e.g. Bar color for bw) and None will disable borders."
+    L["IconBorderDescription"] = "Selects the type of border to be used. Dispell will show a border based on the dispell type of the spell, Boss Mods will show a border based on the color set by boss mods (e.g. Bar Background!! color for bw and Barcolor in dbm) and None will disable borders."
     L["IconDispellIcon"] = "Dispell Icon"
     L["IconDispellIconDescription"] = "Toggles the dispell type icon overlay on the spell icon."
     L["TextDispellIcon"] = "Dispell Icon"
