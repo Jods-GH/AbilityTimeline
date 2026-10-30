@@ -74,9 +74,48 @@ LibEditMode:RegisterCallback('delete', function(layoutName)
     end
 end)
 
+local TEST_EVENT_DURATIONS = { 8, 15, 25 }
+local testEventTicker
+
+---adds our own test events where blizzard has no edit mode events
+private.addTestEvents = function()
+    for index, duration in ipairs(TEST_EVENT_DURATIONS) do
+        private.manager.addEvent({
+            source = private.manager.SOURCES.Addon,
+            sourceID = "test" .. index,
+            duration = duration,
+            spellName = "Test Spell",
+            spellID = 376864,
+            iconFileID = 135127,
+        })
+    end
+end
+
+local removeTestEvents = function()
+    for index in ipairs(TEST_EVENT_DURATIONS) do
+        local eventID = private.manager.getEventIDFromSource(private.manager.SOURCES.Addon, "test" .. index)
+        if eventID then
+            private.manager.removeEvent(eventID)
+        end
+    end
+end
+
+LibEditMode:RegisterCallback('enter', function()
+    -- on retail the blizzard edit mode events show the timeline
+    if not private.isRetail then
+        private.handleFrame(true)
+        private.addTestEvents()
+        testEventTicker = C_Timer.NewTicker(TEST_EVENT_DURATIONS[#TEST_EVENT_DURATIONS], private.addTestEvents)
+    end
+end)
+
 LibEditMode:RegisterCallback('exit', function()
-    if C_EncounterTimeline then
+    if private.isRetail then
         C_EncounterTimeline.CancelEditModeEvents()
+    elseif testEventTicker then
+        testEventTicker:Cancel()
+        testEventTicker = nil
+        removeTestEvents()
     end
     if not private.manager.hasEvents() then
         private.handleFrame(false)

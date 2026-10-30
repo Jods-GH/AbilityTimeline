@@ -38,7 +38,7 @@ local function onPositionChanged(frame, layoutName, point, x, y)
         private.db.global.bigicon_frame[layoutName].x, private.db.global.bigicon_frame[layoutName].y)
 end
 
-LibEditMode:RegisterCallback('layout', function(layoutName)
+private.BigIcon.applyLayout = function(layoutName)
     -- this will be called every time the Edit Mode layout is changed (which also happens at login),
     -- use it to load the saved button position from savedvariables and position it
     if not private.db.global.bigicon_frame then
@@ -77,7 +77,9 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
     if not private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin then
         private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin = variables.margin
     end
-end)
+end
+
+LibEditMode:RegisterCallback('layout', private.BigIcon.applyLayout)
 
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)

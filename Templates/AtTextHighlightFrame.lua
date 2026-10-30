@@ -36,7 +36,7 @@ local function onPositionChanged(frame, layoutName, point, x, y)
         private.db.global.text_highlight_frame[layoutName].x, private.db.global.text_highlight_frame[layoutName].y)
 end
 
-LibEditMode:RegisterCallback('layout', function(layoutName)
+private.TextHighlight.applyLayout = function(layoutName)
     -- this will be called every time the Edit Mode layout is changed (which also happens at login),
     -- use it to load the saved button position from savedvariables and position it
     if not private.db.global.text_highlight_frame then
@@ -65,7 +65,9 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
         private.TEXT_HIGHLIGHT_FRAME:SetPoint(private.db.global.text_highlight_frame[layoutName].point,
             private.db.global.text_highlight_frame[layoutName].x, private.db.global.text_highlight_frame[layoutName].y)
     end
-end)
+end
+
+LibEditMode:RegisterCallback('layout', private.TextHighlight.applyLayout)
 
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)

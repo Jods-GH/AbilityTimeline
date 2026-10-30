@@ -124,7 +124,7 @@ private.ModernizeTimelineFrame = function(layoutName)
     end
 end
 
-LibEditMode:RegisterCallback('layout', function(layoutName)
+private.TimelineFrame.applyLayout = function(layoutName)
     -- this will be called every time the Edit Mode layout is changed (which also happens at login),
     -- use it to load the saved button position from savedvariables and position it
    private.ModernizeTimelineFrame(layoutName)
@@ -147,7 +147,9 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
         HandleTickVisibility(layoutName)
         private.TIMELINE_FRAME.SetBackDrop(private.TIMELINE_FRAME.frame)
     end
-end)
+end
+
+LibEditMode:RegisterCallback('layout', private.TimelineFrame.applyLayout)
 
 
 local function HandleTicks(self)
@@ -511,6 +513,9 @@ local function SetupEditModeSettings(frame)
             end,
             set = function(layoutName, value)
                 C_CVar.SetCVar("encounterTimelineHideQueuedCountdowns", value and "1" or "0")
+            end,
+            hidden = function()
+                return not private.isRetail
             end,
         },
         -- {

@@ -2,7 +2,7 @@ local appName, app = ...
 ---@class AbilityTimeline
 local private = app
 
-if not C_EncounterTimeline then return end
+if not private.isRetail then return end
 
 local SOURCE = private.manager.SOURCES.EncounterTimeline
 local timelineEvents = {}

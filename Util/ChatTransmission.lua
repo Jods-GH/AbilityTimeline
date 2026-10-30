@@ -2,6 +2,7 @@ local appName, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceCom = LibStub("AceComm-3.0")
+local InChatMessagingLockdown = C_ChatInfo.InChatMessagingLockdown or function() return false end
 local CHAT_LINK_FORMAT = "|cffffff00|Hgarrmission:abilitytimeline-%s:%i|h[Ability Timeline Reminder]|h|r"
 local CHAT_LINK_MESSAGE = "BetterTimeline Reminder: %i"
 local COM_CHAT_PREFIX = "AbilityTimeline"
@@ -23,7 +24,7 @@ local FindComChannel = function()
 end
 local ExportToChat = function(reminders, encounterID, target)
     local encodedReminders = private.ImportUtil:ExportAsEncoded(reminders, encounterID)
-    if C_ChatInfo.InChatMessagingLockdown() then
+    if InChatMessagingLockdown() then
         private.Debug("ExportToChat: In chat messaging lockdown, cannot send reminders.")
         return
     elseif FindComChannel() == nil then
@@ -49,7 +50,7 @@ local ExportToChat = function(reminders, encounterID, target)
 end
 
 local ChatHandler = function(prefix, message, _, sender)
-    if C_ChatInfo.InChatMessagingLockdown() or prefix ~= COM_CHAT_PREFIX or sender == UnitName("player") then return end
+    if InChatMessagingLockdown() or prefix ~= COM_CHAT_PREFIX or sender == UnitName("player") then return end
     if string.find(message, CHAT_REQUEST_PREFIX) then
         private.Debug("ChatHandler: Received reminder request from " .. sender)
         local encounterID = tonumber(string.match(message, CHAT_REQUEST_PREFIX .. "(%d+)"))
@@ -81,7 +82,7 @@ local ChatHandler = function(prefix, message, _, sender)
             return
         end
 
-        local name = EJ_GetEncounterInfo(journalEncounterID)
+        local name = EJ_GetEncounterInfo and EJ_GetEncounterInfo(journalEncounterID)
         if not name then
             private.Debug("ChatHandler: Failed to lookup encounter name for journalEncounterID " .. journalEncounterID)
             return
@@ -106,7 +107,7 @@ local ChatHandler = function(prefix, message, _, sender)
 end
 
 private.StartExportingToChat = function(encounterID)
-    if C_ChatInfo.InChatMessagingLockdown() then
+    if InChatMessagingLockdown() then
         private.Debug("ExportToChat: In chat messaging lockdown, cannot send reminders.")
         return
     elseif FindComChannel() == nil then
@@ -125,7 +126,7 @@ AceCom:RegisterComm(COM_CHAT_PREFIX, ChatHandler)
 
 -- this is inspired by WeakAuras / MDT link handling
 hooksecurefunc("SetItemRef", function(link, text)
-    if C_ChatInfo.InChatMessagingLockdown() then
+    if InChatMessagingLockdown() then
         private.Debug("SetItemRef: In chat messaging lockdown, cannot request reminders.")
         return
     end

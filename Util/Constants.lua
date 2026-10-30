@@ -2,6 +2,8 @@ local appName, app = ...
 ---@class AbilityTimeline
 local private = app
 
+private.isRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
+
 private.FrameStrata = {
     PARENT = "PARENT",
     BACKGROUND = "BACKGROUND",

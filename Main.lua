@@ -5,12 +5,14 @@ local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 local AceDBOptions = LibStub("AceDBOptions-3.0")
 local CustomNames = C_AddOns.IsAddOnLoaded("CustomNames") and LibStub("CustomNames")
+local issecretvalue = issecretvalue or function() return false end
+local InChatMessagingLockdown = C_ChatInfo.InChatMessagingLockdown or function() return false end
 ---@class MyAddon : AceAddon-3.0, AceConsole-3.0, AceConfig-3.0, AceGUI-3.0, AceConfigDialog-3.0
 local AbilityTimeline = LibStub("AceAddon-3.0"):NewAddon("AbilityTimeline", "AceConsole-3.0", "AceEvent-3.0")
 
 function AbilityTimeline:OnInitialize()
     local buildVersion, buildNumber, buildDate, interfaceVersion, localizedVersion, buildInfo = GetBuildInfo() -- Mainline
-    assert(interfaceVersion >= 120000, private.getLocalisation("WrongWoWVersionMessage"))
+    assert(not private.isRetail or interfaceVersion >= 120000, private.getLocalisation("WrongWoWVersionMessage"))
     -- Called when the addon is loaded
     AbilityTimeline:RegisterEvent("ENCOUNTER_START")
     AbilityTimeline:RegisterEvent("ENCOUNTER_END")
@@ -19,10 +21,12 @@ function AbilityTimeline:OnInitialize()
     AbilityTimeline:RegisterEvent("READY_CHECK_FINISHED")
     AbilityTimeline:RegisterEvent("START_PLAYER_COUNTDOWN")
     AbilityTimeline:RegisterEvent("CANCEL_PLAYER_COUNTDOWN")
-    AbilityTimeline:RegisterEvent("CHALLENGE_MODE_COMPLETED")
     AbilityTimeline:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-    AbilityTimeline:RegisterEvent("CHALLENGE_MODE_RESET")
-    AbilityTimeline:RegisterEvent("CHALLENGE_MODE_START")
+    if private.isRetail then
+        AbilityTimeline:RegisterEvent("CHALLENGE_MODE_COMPLETED")
+        AbilityTimeline:RegisterEvent("CHALLENGE_MODE_RESET")
+        AbilityTimeline:RegisterEvent("CHALLENGE_MODE_START")
+    end
     private.db = LibStub("AceDB-3.0"):New("AbilityTimeline", private.OptionDefaults, true) -- Generates Saved Variables with default Values (if they don't already exist)
     private.Debug(private, "AT_Options")
     local OptionTable = {
@@ -34,6 +38,9 @@ function AbilityTimeline:OnInitialize()
     }
     if not private.db.profile.disableLoginMessage then
         AbilityTimeline:Print(private.getLocalisation("AccessOptionsMessage"))
+        if not private.isRetail and not C_AddOns.IsAddOnLoaded("DBM-Core") and not C_AddOns.IsAddOnLoaded("BigWigs") then
+            AbilityTimeline:Print(private.getLocalisation("NoBossModClassicMessage"))
+        end
     end
     AceConfig:RegisterOptionsTable(appName, OptionTable) --
     AceConfigDialog:AddToBlizOptions(appName, appName)
@@ -90,16 +97,18 @@ end
 
 
 function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
-    if C_EncounterTimeline and not C_EncounterTimeline.IsFeatureEnabled() then
+    if private.isRetail and not C_EncounterTimeline.IsFeatureEnabled() then
         AbilityTimeline:Print(private.getLocalisation("TimelineNotEnabledMessage"))
-    elseif C_EncounterTimeline and not C_EncounterTimeline.IsFeatureAvailable() then
+    elseif private.isRetail and not C_EncounterTimeline.IsFeatureAvailable() then
         AbilityTimeline:Print(private.getLocalisation("TimelineNotSupportedMessage"))
     elseif msg == "iconeditor" then
         private.openSpellIconSettings()
     elseif msg == "version" then
         AbilityTimeline:Print("Ability Timeline Version: " ..  C_AddOns.GetAddOnMetadata(appName, "Version"))
-    elseif msg == "test" and C_EncounterTimeline then
+    elseif msg == "test" and private.isRetail then
         C_EncounterTimeline.AddEditModeEvents()
+    elseif msg == "test" then
+        private.addTestEvents()
     elseif string.find(string.lower(msg), "test (.-)") then
         local duration = tonumber(string.match(string.lower(msg), "test (%d+)"))
         if duration then
@@ -132,10 +141,12 @@ end
 function AbilityTimeline:PLAYER_ENTERING_WORLD()
     if not C_AddOns.IsAddOnLoaded("Blizzard_EncounterJournal") then
         C_AddOns.LoadAddOn("Blizzard_EncounterJournal")
-        C_Timer.After(5, function()
-            private.buildInstanceOptions()
-        end)
-    else
+        if private.isRetail then
+            C_Timer.After(5, function()
+                private.buildInstanceOptions()
+            end)
+        end
+    elseif private.isRetail then
         private.buildInstanceOptions()
     end
 end
@@ -152,7 +163,7 @@ function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, diff
     if private.db.profile.debugMode and encounterID == 3463 then
         encounterID = 1701
     end
-    if not C_ChatInfo.InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
+    if not InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
         local name, groupType, isHeroic, isChallengeMode, displayHeroic, displayMythic, toggleDifficultyID, isLFR, minPlayers, maxPlayers =
         GetDifficultyInfo(difficultyID)
         private.db.global.active = true
@@ -172,7 +183,7 @@ function AbilityTimeline:ENCOUNTER_END(event, encounterID, encounterName, diffic
         private.manager.removeAllEvents(private.manager.SOURCES.Reminder)
     end
     C_Timer.After(1, function() -- since for some reason encounter end fires before combat lockdown is over we delay
-        if not C_ChatInfo.InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
+        if not InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
             if private.db.global.active then
                 C_ChatInfo.SendChatMessage("", "DND") -- clear dnd message
                 private.db.global.active = false
@@ -293,14 +304,14 @@ function AbilityTimeline:CANCEL_PLAYER_COUNTDOWN()
 end
 
 function AbilityTimeline:CHALLENGE_MODE_RESET(event, mapID)
-    if not C_ChatInfo.InChatMessagingLockdown() and private.db.profile.enableDNDMessage and private.db.global.active then
+    if not InChatMessagingLockdown() and private.db.profile.enableDNDMessage and private.db.global.active then
         C_ChatInfo.SendChatMessage(private.getLocalisation("CurrentlyDoingMplusKeyFallback"), "DND")
         private.db.global.active = false
     end
 end
 
 function AbilityTimeline:CHALLENGE_MODE_START()
-    if not C_ChatInfo.InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
+    if not InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
         local message = private.getLocalisation("CurrentlyDoingMplusKeyFallback")
         local activeKeystoneLevel, activeAffixIDs, wasActiveKeystoneCharged = C_ChallengeMode.GetActiveKeystoneInfo()
         local challengeMapID = C_ChallengeMode.GetActiveChallengeMapID()
@@ -353,7 +364,7 @@ function AbilityTimeline:ZONE_CHANGED_NEW_AREA()
         private.manager.removeEvent(private.RerollKeyEventId)
         private.RerollKeyEventId = nil
     end
-    if private.db.profile.enableDNDMessage and private.db.global.active and not C_ChatInfo.InChatMessagingLockdown() then
+    if private.db.profile.enableDNDMessage and private.db.global.active and not InChatMessagingLockdown() then
         C_ChatInfo.SendChatMessage("", "DND")
         private.db.global.active = false
     end

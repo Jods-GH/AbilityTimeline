@@ -48,6 +48,7 @@ local RemoveEventColorisation = function()
 end
 
 private.ToggleEventColorisation = function(enable)
+    if not private.isRetail then return end
     if enable then
         SetupEventColorisation()
     else

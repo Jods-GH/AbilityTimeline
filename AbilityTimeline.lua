@@ -2,6 +2,7 @@ local appName, app                             = ...
 ---@class AbilityTimeline
 local private                                  = app
 local AceGUI                                   = LibStub("AceGUI-3.0")
+local LibEditMode                              = LibStub("LibEditMode")
 
 private.activeFrames                             = {}
 
@@ -42,7 +43,7 @@ end)
 private.manager.RegisterCallback("AbilityTimeline", "EVENT_DISPLAY_STOP", function(_, eventID, display)
    if display ~= "timeline" then return end
    private.removeAtIconFrame(eventID)
-   if not private.manager.hasVisibleEvents() then
+   if not private.manager.hasVisibleEvents() and not LibEditMode:IsInEditMode() then
       private.handleFrame(false)
    end
 end)
@@ -61,6 +62,13 @@ private.createTimelineFrame = function()
 
 
    private.TEXT_HIGHLIGHT_FRAME = AceGUI:Create("AtTextHighlightFrame")
+
+   -- LibEditMode can report the layout while the first frame is still being created
+   if private.ACTIVE_EDITMODE_LAYOUT then
+      private.TimelineFrame.applyLayout(private.ACTIVE_EDITMODE_LAYOUT)
+      private.BigIcon.applyLayout(private.ACTIVE_EDITMODE_LAYOUT)
+      private.TextHighlight.applyLayout(private.ACTIVE_EDITMODE_LAYOUT)
+   end
 end
 
 private.handleFrame = function(show)

@@ -345,8 +345,11 @@ function ImportUtil:DoesTagApplyToPlayer(tag)
     -- Get player info
     local playerName = UnitName("player")
     local playerClass, classFile = UnitClass("player")
-    local playerSpecID, playerSpec, _, _, playerRole, _, _, _, _, _ = C_SpecializationInfo.GetSpecializationInfo(
-    C_SpecializationInfo.GetSpecialization())
+    local playerSpecID, playerSpec, playerRole, _
+    local specIndex = C_SpecializationInfo.GetSpecialization and C_SpecializationInfo.GetSpecialization()
+    if specIndex then
+        playerSpecID, playerSpec, _, _, playerRole = C_SpecializationInfo.GetSpecializationInfo(specIndex)
+    end
     local _, subgroup
     if UnitInRaid("player") then
         _, _, subgroup, _, _, _, _, _, _, _, _, _ = GetRaidRosterInfo(UnitInRaid("player"))

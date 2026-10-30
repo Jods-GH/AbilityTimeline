@@ -210,6 +210,7 @@ private.options = {
       name = private.getLocalisation("reminderOptions"),
       desc = private.getLocalisation("reminderOptionsDescription"),
       type = "group",
+      hidden = function() return not private.isRetail end,
       args = {
 
       },
