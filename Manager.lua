@@ -26,7 +26,6 @@ private.manager.SOURCES                        = {
 }
 
 private.TIMELINE_TICKS                         = { 5 }
-private.BIGICON_THRESHHOLD_TIME                = 5
 
 local STATES                                   = private.manager.STATES
 local activeTimers                             = private.manager.activeTimers
@@ -46,23 +45,29 @@ local ICON_ATLASES                             = {
    [512] = "icons_16x16_damage",
 }
 
-local isHighlighted = function(remaining, state)
-   return state == STATES.Active and remaining > 0 and remaining <= private.BIGICON_THRESHHOLD_TIME
+local isHighlighted = function(remaining, state, threshold)
+   return state == STATES.Active and remaining > 0 and remaining <= threshold
 end
 
 ---rules deciding when an event is rendered by each display
 private.manager.displays = {
    timeline = function(event, remaining, state)
-      return state ~= STATES.Active or remaining > 0
+      return private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].enabled and
+         (state ~= STATES.Active or remaining > 0)
    end,
    bigIcon = function(event, remaining, state)
-      return private.db.global.bigicon_enabled[private.ACTIVE_EDITMODE_LAYOUT] and isHighlighted(remaining, state)
+      local layoutName = private.ACTIVE_EDITMODE_LAYOUT
+      return private.db.global.bigicon_enabled[layoutName] and
+         isHighlighted(remaining, state, private.db.global.bigicon[layoutName].threshold_time)
    end,
    textHighlight = function(event, remaining, state)
-      return private.db.global.text_highlight_enabled[private.ACTIVE_EDITMODE_LAYOUT] and isHighlighted(remaining, state)
+      local layoutName = private.ACTIVE_EDITMODE_LAYOUT
+      return private.db.global.text_highlight_enabled[layoutName] and
+         isHighlighted(remaining, state, private.db.global.text_highlight[layoutName].threshold_time)
    end,
    audio = function(event, remaining, state)
-      return private.db.profile.useAudioCountdowns and isHighlighted(remaining, state)
+      return private.db.profile.useAudioCountdowns and
+         isHighlighted(remaining, state, private.db.profile.audioCountdownTime)
    end,
 }
 

@@ -9,6 +9,7 @@ local variables = {
     width = 300,
     height = 20,
     margin = 5,
+    thresholdTime = 5,
 }
 
 private.TextHighlight = {}
@@ -59,6 +60,9 @@ private.TextHighlight.applyLayout = function(layoutName)
             grow_direction = 'UP',
             margin = variables.margin,
         }
+    end
+    if not private.db.global.text_highlight[layoutName].threshold_time then
+        private.db.global.text_highlight[layoutName].threshold_time = variables.thresholdTime
     end
     if private.TEXT_HIGHLIGHT_FRAME then
         private.TEXT_HIGHLIGHT_FRAME:ClearAllPoints()
@@ -134,6 +138,21 @@ local function Constructor()
             end,
             minValue = 1,
             maxValue = 50,
+            valueStep = 1,
+        },
+        {
+            name = private.getLocalisation("TextHighlightThreshold"),
+            desc = private.getLocalisation("TextHighlightThresholdDescription"),
+            kind = LibEditMode.SettingType.Slider,
+            default = variables.thresholdTime,
+            get = function(layoutName)
+                return private.db.global.text_highlight[layoutName].threshold_time
+            end,
+            set = function(layoutName, value)
+                private.db.global.text_highlight[layoutName].threshold_time = value
+            end,
+            minValue = 1,
+            maxValue = 30,
             valueStep = 1,
         },
     })

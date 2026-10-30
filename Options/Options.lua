@@ -182,6 +182,21 @@ private.options = {
             .useAudioCountdowns --Sets value of toggles depending on SavedVariables
       end,
     },
+    audioCountdownTime = {
+      name = private.getLocalisation("audioCountdownTime"),
+      desc = private.getLocalisation("audioCountdownTimeDescription"),
+      order = 41,
+      width = "full",
+      type = "range",
+      min = 1,
+      max = 5,
+      step = 1,
+      disabled = function() return not private.db.profile.useAudioCountdowns end,
+      set = function(info, val) private.db.profile.audioCountdownTime = val end,
+      get = function(info)
+        return private.db.profile.audioCountdownTime
+      end,
+    },
     enableKeyRerollTimer = {
       name = private.getLocalisation("enableKeyRerollTimer"),
       desc = private.getLocalisation("enableKeyRerollTimerDescription"),

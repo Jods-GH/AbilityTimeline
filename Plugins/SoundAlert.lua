@@ -51,7 +51,7 @@ private.AUDIO_ALERT_FRAME:SetScript("OnUpdate", function(self, elapsed)
     for id, value in pairs(private.REGISTERED_AUDIO_ALERTS) do
         local remaining = private.manager.getEventRemainingTime(id)
         for soundTime, soundName in pairs(SOUND_ALERTS) do
-            if remaining and remaining <= soundTime and not tContains(value.played, soundTime) then
+            if remaining and remaining <= soundTime and soundTime <= private.db.profile.audioCountdownTime and not tContains(value.played, soundTime) then
                 table.insert(value.played, soundTime)
                 local soundFile = SharedMedia:Fetch("sound", value.voice .. "_" .. soundName)
                 if soundFile then

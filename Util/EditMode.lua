@@ -101,9 +101,9 @@ local removeTestEvents = function()
 end
 
 LibEditMode:RegisterCallback('enter', function()
-    -- on retail the blizzard edit mode events show the timeline
+    private.handleFrame(true)
+    -- on retail the blizzard edit mode events are used instead
     if not private.isRetail then
-        private.handleFrame(true)
         private.addTestEvents()
         testEventTicker = C_Timer.NewTicker(TEST_EVENT_DURATIONS[#TEST_EVENT_DURATIONS], private.addTestEvents)
     end
@@ -117,7 +117,7 @@ LibEditMode:RegisterCallback('exit', function()
         testEventTicker = nil
         removeTestEvents()
     end
-    if not private.manager.hasEvents() then
+    if not private.manager.hasVisibleEvents() then
         private.handleFrame(false)
     end
 end)

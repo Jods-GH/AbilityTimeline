@@ -33,6 +33,9 @@ private.modernize = function()
     if not private.db.profile.editor.defaultEncounterDuration then
         private.db.profile.editor.defaultEncounterDuration = 300
     end
+    if not private.db.profile.audioCountdownTime then
+        private.db.profile.audioCountdownTime = 5
+    end
     if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].height then
         private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travelSize = private.db.global.timeline_frame
             [private.ACTIVE_EDITMODE_LAYOUT].height

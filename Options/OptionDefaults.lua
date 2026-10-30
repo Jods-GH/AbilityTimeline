@@ -6,6 +6,7 @@ private.OptionDefaults = {
 	profile = {
 		debugMode = false,
 		useAudioCountdowns = true,
+		audioCountdownTime = 5,
 		enableKeyRerollTimer = true,
 		icon_settings = {
 			size = 50,

@@ -23,6 +23,8 @@ local variables             = {
     timelineBorderSize = 2,
     IconMargin = 5,
     thresholdTime = 10,
+    tickInterval = 5,
+    minTickDistance = 40,
 }
 private.TIMELINE_DIRECTIONS = {
     VERTICAL = "VERTICAL",
@@ -79,6 +81,9 @@ private.ModernizeTimelineFrame = function(layoutName)
     end
     if not private.db.global.timeline_frame[layoutName].y then
         private.db.global.timeline_frame[layoutName].y = variables.position.y
+    end
+    if private.db.global.timeline_frame[layoutName].enabled == nil then
+        private.db.global.timeline_frame[layoutName].enabled = true
     end
     if private.db.global.timeline_frame[layoutName].ticks_enabled == nil then
         private.db.global.timeline_frame[layoutName].ticks_enabled = variables.ticks_enabled
@@ -157,6 +162,14 @@ local function HandleTicks(self)
         self.frame.Ticks[i].frame:Hide()
         self.frame.Ticks[i]:Release()
     end
+    self.frame.Ticks = {}
+    local thresholdTime = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].threshold_time
+    local minTickTime = variables.minTickDistance * thresholdTime / self:GetMoveSize()
+    local step = variables.tickInterval * math.max(math.ceil(minTickTime / variables.tickInterval), 1)
+    private.TIMELINE_TICKS = {}
+    for tick = step, thresholdTime - 1, step do
+        table.insert(private.TIMELINE_TICKS, tick)
+    end
     for i, tick in ipairs(private.TIMELINE_TICKS) do
         local widget = AceGUI:Create("AtTimelineTicks")
         self.frame.Ticks[i] = widget
@@ -215,6 +228,18 @@ local function SetupEditModeSettings(frame)
     local areTravelSettingsExpanded = false
     local areVisualSettingsExpanded = false
     LibEditMode:AddFrameSettings(frame, {
+        {
+            name = private.getLocalisation("EnableTimeline"),
+            desc = private.getLocalisation("EnableTimelineDescription"),
+            kind = LibEditMode.SettingType.Checkbox,
+            default = true,
+            get = function(layoutName)
+                return private.db.global.timeline_frame[layoutName].enabled
+            end,
+            set = function(layoutName, value)
+                private.db.global.timeline_frame[layoutName].enabled = value
+            end,
+        },
         {
             name = private.getLocalisation("ExpandTravelSettings"),
             expandedLabel = private.getLocalisation("CollapseTravelSettings"),
