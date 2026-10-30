@@ -52,7 +52,7 @@ end
 ---rules deciding when an event is rendered by each display
 private.manager.displays = {
    timeline = function(event, remaining, state)
-      return private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].enabled and
+      return private.db.profile.useTimelineModule and private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].enabled and
          (state ~= STATES.Active or remaining > 0)
    end,
    bigIcon = function(event, remaining, state)

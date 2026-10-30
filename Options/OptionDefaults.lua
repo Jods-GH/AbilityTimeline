@@ -5,6 +5,7 @@ local private = app
 private.OptionDefaults = {
 	profile = {
 		debugMode = false,
+		useTimelineModule = true,
 		useAudioCountdowns = true,
 		audioCountdownTime = 5,
 		enableKeyRerollTimer = true,

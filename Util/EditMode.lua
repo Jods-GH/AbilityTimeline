@@ -101,7 +101,9 @@ local removeTestEvents = function()
 end
 
 LibEditMode:RegisterCallback('enter', function()
-    private.handleFrame(true)
+    if private.db.profile.useTimelineModule then
+        private.handleFrame(true)
+    end
     -- on retail the blizzard edit mode events are used instead
     if not private.isRetail then
         private.addTestEvents()

@@ -77,6 +77,30 @@ private.options = {
         },
       },
     },
+    useTimelineModule = {
+      name = private.getLocalisation("useTimelineModule"),
+      desc = private.getLocalisation("useTimelineModuleDescription"),
+      order = 29,
+      width = "full",
+      type = "toggle",
+      hidden = function() return not private.isRetail end,
+      set = function(info, val)
+        private.db.profile.useTimelineModule = val
+        StaticPopupDialogs["ABILITYTIMELINE_RELOAD"] = StaticPopupDialogs["ABILITYTIMELINE_RELOAD"] or {
+          text = private.getLocalisation("ReloadRequired"),
+          button1 = RELOADUI,
+          button2 = CANCEL,
+          OnAccept = ReloadUI,
+          timeout = 0,
+          whileDead = true,
+          hideOnEscape = true,
+        }
+        StaticPopup_Show("ABILITYTIMELINE_RELOAD")
+      end,
+      get = function(info)
+        return private.db.profile.useTimelineModule
+      end,
+    },
     debugMode = {
       name = private.getLocalisation("debugMode"),
       desc = private.getLocalisation("debugModeDescription"),

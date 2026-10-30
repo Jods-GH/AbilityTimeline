@@ -197,7 +197,9 @@ private.initEncounterTimelineSource = function()
     SetCVar("encounterTimelineEnabled", "1")
     private.Debug(EncounterTimeline, "encounterTimeline")
 
-    EncounterTimeline:UnregisterAllEvents()
-    EncounterTimeline:Hide()
-    EncounterTimeline:HookScript("OnShow", function() EncounterTimeline:Hide() end)
+    if private.db.profile.useTimelineModule then
+        EncounterTimeline:UnregisterAllEvents()
+        EncounterTimeline:Hide()
+        EncounterTimeline:HookScript("OnShow", function() EncounterTimeline:Hide() end)
+    end
 end
