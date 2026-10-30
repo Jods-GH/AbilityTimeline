@@ -1116,8 +1116,8 @@ local createBigIconSettingsFrame = function()
         private.Debug("Selected tab: " .. value)
         tabGroup:ReleaseChildren()
         if value == "TextSettings" then
-            local isVerticalEnabled = (private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].grow_direction == "RIGHT") or
-                (private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].grow_direction == "LEFT")
+            local growDirection = private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].grow_direction
+            local isVerticalEnabled = growDirection == "RIGHT" or growDirection == "LEFT" or growDirection == "HORIZONTAL"
             tabGroup:AddChild(createTextSettings(widget, private.BIG_ICON_SETTINGS_WINDOW,
                 private.db.profile.big_icon_settings, private.db.profile.big_icon_text_settings, isVerticalEnabled, 2))
         elseif value == "CooldownSettings" then

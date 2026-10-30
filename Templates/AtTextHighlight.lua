@@ -63,13 +63,6 @@ end
 ---@param self AtTextHighlight
 local function OnRelease(self)
     self.frame:SetScript("OnUpdate", nil)
-    for i, f in ipairs(private.HIGHLIGHT_TEXTS) do
-        if f == self then
-            table.remove(private.HIGHLIGHT_TEXTS, i)
-            break
-        end
-    end
-    private.evaluateTextPositions()
 end
 
 
@@ -119,9 +112,6 @@ end
 
 local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
     widget.eventInfo = eventInfo
-    local yOffset = (variables.text_height + private.db.global.text_highlight[private.ACTIVE_EDITMODE_LAYOUT].margin) *
-        (#private.HIGHLIGHT_TEXTS)
-    widget.yOffset = yOffset
     if not disableOnUpdate then
         HandleTexts(widget, eventInfo, eventInfo.duration)
         widget.frame:SetScript("OnUpdate", function(self)
@@ -131,16 +121,12 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
             end
         end)
     end
-    widget.frame:SetPoint("BOTTOM", private.TEXT_HIGHLIGHT_FRAME.frame, "BOTTOM", 0, yOffset)
     widget.frame:Show()
 end
 
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
     local frame = CreateFrame("Frame", "HIGHLIGHT_TEXT_" .. count, private.TEXT_HIGHLIGHT_FRAME.frame)
-    local yOffset = (variables.text_height + private.db.global.text_highlight[private.ACTIVE_EDITMODE_LAYOUT].margin) *
-        (#private.HIGHLIGHT_TEXTS)
-    frame.yOffset = yOffset
     frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
     frame.SpellName:SetWordWrap(false)
     frame.SpellName:SetPoint("CENTER", frame, "CENTER")
@@ -159,7 +145,6 @@ local function Constructor()
     frame.SpellNameBackground:Hide()
     frame:SetWidth(variables.text_width)
     frame:SetHeight(variables.text_height)
-    frame:SetPoint("BOTTOM", private.TEXT_HIGHLIGHT_FRAME.frame, "BOTTOM", 0, yOffset)
 
     frame.dispellTypeTexture = frame:CreateTexture(nil, "OVERLAY")
     frame.dispellTypeIcons = {}
@@ -174,7 +159,6 @@ local function Constructor()
         frame = frame,
         SetEventInfo = SetEventInfo,
         eventInfo = {},
-        yOffset = 0,
         GetTextColor = GetTextColor,
         ApplySettings = ApplySettings,
     }

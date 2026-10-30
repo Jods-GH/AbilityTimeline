@@ -23,6 +23,9 @@ local variables             = {
     timelineBorderSize = 2,
     IconMargin = 5,
     thresholdTime = 10,
+    preventOverlap = true,
+    mergeTimers = true,
+    mergeWindow = 0.2,
     tickInterval = 5,
     minTickDistance = 40,
 }
@@ -127,6 +130,18 @@ private.ModernizeTimelineFrame = function(layoutName)
     if not private.db.global.timeline_frame[layoutName].threshold_time then
         private.db.global.timeline_frame[layoutName].threshold_time = variables.thresholdTime
     end
+
+    if private.db.global.timeline_frame[layoutName].prevent_overlap == nil then
+        private.db.global.timeline_frame[layoutName].prevent_overlap = variables.preventOverlap
+    end
+
+    if private.db.global.timeline_frame[layoutName].merge_timers == nil then
+        private.db.global.timeline_frame[layoutName].merge_timers = variables.mergeTimers
+    end
+
+    if not private.db.global.timeline_frame[layoutName].merge_window then
+        private.db.global.timeline_frame[layoutName].merge_window = variables.mergeWindow
+    end
 end
 
 private.TimelineFrame.applyLayout = function(layoutName)
@@ -151,6 +166,9 @@ private.TimelineFrame.applyLayout = function(layoutName)
         private.TIMELINE_FRAME:HandleTicks()
         HandleTickVisibility(layoutName)
         private.TIMELINE_FRAME.SetBackDrop(private.TIMELINE_FRAME.frame)
+        if private.refreshTimelineGroups then
+            private.refreshTimelineGroups()
+        end
     end
 end
 
@@ -227,7 +245,7 @@ local function SetupEditModeSettings(frame)
 
     local areTravelSettingsExpanded = false
     local areVisualSettingsExpanded = false
-    LibEditMode:AddFrameSettings(frame, {
+    local settings = {
         {
             name = private.getLocalisation("EnableTimeline"),
             desc = private.getLocalisation("EnableTimelineDescription"),
@@ -265,6 +283,7 @@ local function SetupEditModeSettings(frame)
             set = function(layoutName, value)
                 private.db.global.timeline_frame[layoutName].inverse_travel_direction = value
                 HandleTickVisibility(layoutName)
+                private.refreshTimelineGroups()
             end,
             hidden = function()
                 return not areTravelSettingsExpanded
@@ -282,6 +301,7 @@ local function SetupEditModeSettings(frame)
                 private.db.global.timeline_frame[layoutName].travel_direction = value
                 HandleSizeChanges(private.TIMELINE_FRAME)
                 HandleTickVisibility(layoutName)
+                private.refreshTimelineGroups()
             end,
             default = private.TIMELINE_DIRECTIONS.VERTICAL,
             height = 100,
@@ -319,6 +339,57 @@ local function SetupEditModeSettings(frame)
             valueStep = 1,
             hidden = function()
                 return not areTravelSettingsExpanded
+            end,
+        },
+        {
+            name = private.getLocalisation("PreventOverlap"),
+            desc = private.getLocalisation("PreventOverlapDescription"),
+            kind = LibEditMode.SettingType.Checkbox,
+            default = variables.preventOverlap,
+            get = function(layoutName)
+                return private.db.global.timeline_frame[layoutName].prevent_overlap
+            end,
+            set = function(layoutName, value)
+                private.db.global.timeline_frame[layoutName].prevent_overlap = value
+            end,
+            hidden = function()
+                return not areTravelSettingsExpanded
+            end,
+        },
+        {
+            name = private.getLocalisation("MergeTimers"),
+            desc = private.getLocalisation("MergeTimersDescription"),
+            kind = LibEditMode.SettingType.Checkbox,
+            default = variables.mergeTimers,
+            get = function(layoutName)
+                return private.db.global.timeline_frame[layoutName].merge_timers
+            end,
+            set = function(layoutName, value)
+                private.db.global.timeline_frame[layoutName].merge_timers = value
+            end,
+            hidden = function()
+                return not areTravelSettingsExpanded
+            end,
+        },
+        {
+            name = private.getLocalisation("MergeWindow"),
+            desc = private.getLocalisation("MergeWindowDescription"),
+            kind = LibEditMode.SettingType.Slider,
+            default = variables.mergeWindow,
+            get = function(layoutName)
+                return private.db.global.timeline_frame[layoutName].merge_window
+            end,
+            set = function(layoutName, value)
+                private.db.global.timeline_frame[layoutName].merge_window = value
+            end,
+            minValue = 0,
+            maxValue = 2,
+            valueStep = 0.1,
+            formatter = function(value)
+                return string.format("%.1f", value)
+            end,
+            hidden = function(layoutName)
+                return not areTravelSettingsExpanded or not private.db.global.timeline_frame[layoutName].merge_timers
             end,
         },
         {
@@ -514,12 +585,13 @@ local function SetupEditModeSettings(frame)
             name = private.getLocalisation("IconMargin"),
             desc = private.getLocalisation("IconMarginDescription"),
             kind = LibEditMode.SettingType.Slider,
-            default = variables.iconMargin,
+            default = variables.IconMargin,
             get = function(layoutName)
                 return private.db.global.timeline_frame[layoutName].iconMargin
             end,
             set = function(layoutName, value)
                 private.db.global.timeline_frame[layoutName].iconMargin = value
+                private.refreshTimelineGroups()
             end,
             minValue = 0,
             maxValue = 50,
@@ -569,7 +641,8 @@ local function SetupEditModeSettings(frame)
         --         },
         --     },
         -- }
-    })
+    }
+    LibEditMode:AddFrameSettings(frame, settings)
 
     local buttons = {
         {

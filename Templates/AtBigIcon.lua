@@ -291,10 +291,6 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 		end
 	end
 
-	local xOffset = (private.db.profile.big_icon_settings.size + private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin) *
-	(#private.BIG_ICONS)
-	widget.frame:SetPoint("LEFT", private.BIGICON_FRAME.frame, "LEFT", xOffset, 0)
-	widget.frame.xOffset = xOffset
 	widget.frame.SpellIcon:SetAllPoints(widget.frame)
 	widget.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
 	widget.frame.SpellName:SetText(eventInfo.spellName)

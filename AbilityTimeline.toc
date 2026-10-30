@@ -42,6 +42,7 @@ Util\ChatTransmission.lua
 Util\Zoom.lua
 Util\EventColorisation.lua
 Manager.lua
+Util\DynamicGroup.lua
 
 # Locales
 Locales\enUS.lua
@@ -70,6 +71,7 @@ Templates\AtTimingsEditorDataFrame.lua
 Templates\ATTimingsEditorContainer.lua
 Templates\AtAbilitySpellIcon.lua
 Templates\AtTimelineFrame.lua
+Templates\AtGroupAnchorFrame.lua
 Templates\AtBigIconFrame.lua
 Templates\AtTextHighlightFrame.lua
 Templates\AtBigIcon.lua

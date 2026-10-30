@@ -82,6 +82,18 @@ private.BigIcon.applyLayout = function(layoutName)
     if not private.db.global.bigicon[layoutName].threshold_time then
         private.db.global.bigicon[layoutName].threshold_time = variables.thresholdTime
     end
+
+    if not private.db.global.bigicon[layoutName].limit then
+        private.db.global.bigicon[layoutName].limit = 0
+    end
+
+    if not private.db.global.bigicon[layoutName].sort then
+        private.db.global.bigicon[layoutName].sort = private.DynamicGroup.SORT.ASCENDING
+    end
+
+    if private.evaluateBigIconPositions and layoutName == private.ACTIVE_EDITMODE_LAYOUT then
+        private.evaluateBigIconPositions()
+    end
 end
 
 LibEditMode:RegisterCallback('layout', private.BigIcon.applyLayout)
@@ -98,7 +110,7 @@ local function Constructor()
 
     LibEditMode:AddFrame(frame, onPositionChanged, private.BigIcon.defaultPosition,
         "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline Big Icon")
-    LibEditMode:AddFrameSettings(frame, {
+    local settings = {
         {
             name = private.getLocalisation("EnableBigIcon"),
             desc = private.getLocalisation("EnableBigIconDescription"),
@@ -110,59 +122,6 @@ local function Constructor()
             set = function(layoutName, value)
                 private.db.global.bigicon_enabled[layoutName] = value
             end,
-        },
-        {
-            name = private.getLocalisation("GrowDirection"),
-            desc = private.getLocalisation("IconGrowDirectionDescription"),
-            kind = LibEditMode.SettingType.Dropdown,
-
-            get = function(layoutName)
-                return private.db.global.bigicon[layoutName].grow_direction
-            end,
-            set = function(layoutName, value)
-                private.db.global.bigicon[layoutName].grow_direction = value
-                private.evaluateBigIconPositions()
-            end,
-            default = 'RIGHT',
-            height = 100,
-            values = {
-                {
-                    text = private.getLocalisation("GrowDirectionRight"),
-                    value = 'RIGHT',
-                    isRadio = true,
-                },
-                {
-                    text = private.getLocalisation("GrowDirectionLeft"),
-                    value = 'LEFT',
-                    isRadio = true,
-                },
-                {
-                    text = private.getLocalisation("GrowDirectionUp"),
-                    value = 'UP',
-                    isRadio = true,
-                },
-                {
-                    text = private.getLocalisation("GrowDirectionDown"),
-                    value = 'DOWN',
-                    isRadio = true,
-                },
-            },
-        },
-        {
-            name = private.getLocalisation("BigIconMargin"),
-            desc = private.getLocalisation("BigIconMarginDescription"),
-            kind = LibEditMode.SettingType.Slider,
-            default = variables.margin,
-            get = function(layoutName)
-                return private.db.global.bigicon[layoutName].margin
-            end,
-            set = function(layoutName, value)
-                private.db.global.bigicon[layoutName].margin = value
-                private.evaluateBigIconPositions()
-            end,
-            minValue = 1,
-            maxValue = 50,
-            valueStep = 1,
         },
         {
             name = private.getLocalisation("BigIconThreshold"),
@@ -179,7 +138,34 @@ local function Constructor()
             maxValue = 30,
             valueStep = 1,
         },
+    }
+    -- grow, spacing, limit and sort are shared with all other dynamic groups, listed after the enable checkbox
+    local groupSettings = private.DynamicGroup.BuildEditModeSettings(function(layoutName)
+        return private.db.global.bigicon[layoutName]
+    end, function()
+        private.evaluateBigIconPositions()
+    end, {
+        growValues = {
+            private.DynamicGroup.GROW.RIGHT,
+            private.DynamicGroup.GROW.LEFT,
+            private.DynamicGroup.GROW.UP,
+            private.DynamicGroup.GROW.DOWN,
+            private.DynamicGroup.GROW.HORIZONTAL,
+            private.DynamicGroup.GROW.VERTICAL,
+        },
+        growKey = "grow_direction",
+        spacingKey = "margin",
+        spacingName = private.getLocalisation("BigIconMargin"),
+        spacingDescription = private.getLocalisation("BigIconMarginDescription"),
+        defaults = {
+            grow = private.DynamicGroup.GROW.RIGHT,
+            spacing = variables.margin,
+        },
     })
+    for i, setting in ipairs(groupSettings) do
+        table.insert(settings, 1 + i, setting)
+    end
+    LibEditMode:AddFrameSettings(frame, settings)
 
     local buttons = {
         {

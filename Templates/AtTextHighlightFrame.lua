@@ -64,6 +64,18 @@ private.TextHighlight.applyLayout = function(layoutName)
     if not private.db.global.text_highlight[layoutName].threshold_time then
         private.db.global.text_highlight[layoutName].threshold_time = variables.thresholdTime
     end
+    if not private.db.global.text_highlight[layoutName].margin then
+        private.db.global.text_highlight[layoutName].margin = variables.margin
+    end
+    if not private.db.global.text_highlight[layoutName].limit then
+        private.db.global.text_highlight[layoutName].limit = 0
+    end
+    if not private.db.global.text_highlight[layoutName].sort then
+        private.db.global.text_highlight[layoutName].sort = private.DynamicGroup.SORT.ASCENDING
+    end
+    if private.evaluateTextPositions and layoutName == private.ACTIVE_EDITMODE_LAYOUT then
+        private.evaluateTextPositions()
+    end
     if private.TEXT_HIGHLIGHT_FRAME then
         private.TEXT_HIGHLIGHT_FRAME:ClearAllPoints()
         private.TEXT_HIGHLIGHT_FRAME:SetPoint(private.db.global.text_highlight_frame[layoutName].point,
@@ -84,7 +96,7 @@ local function Constructor()
     LibEditMode:AddFrame(frame, onPositionChanged, private.TextHighlight.defaultPosition,
         "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline Text Highlight")
 
-    LibEditMode:AddFrameSettings(frame, {
+    local settings = {
         {
             name = private.getLocalisation("EnableTextHighlight"),
             desc = private.getLocalisation("EnableTextHighlightDescription"),
@@ -96,49 +108,6 @@ local function Constructor()
             set = function(layoutName, value)
                 private.db.global.text_highlight_enabled[layoutName] = value
             end,
-        },
-        {
-            name = private.getLocalisation("GrowDirection"),
-            desc = private.getLocalisation("TextGrowDirectionDescription"),
-            kind = LibEditMode.SettingType.Dropdown,
-
-            get = function(layoutName)
-                return private.db.global.text_highlight[layoutName].grow_direction
-            end,
-            set = function(layoutName, value)
-                private.db.global.text_highlight[layoutName].grow_direction = value
-                private.evaluateTextPositions()
-            end,
-            default = 'UP',
-            height = 100,
-            values = {
-                {
-                    text = private.getLocalisation("GrowDirectionUp"),
-                    value = 'UP',
-                    isRadio = true,
-                },
-                {
-                    text = private.getLocalisation("GrowDirectionDown"),
-                    value = 'DOWN',
-                    isRadio = true,
-                },
-            },
-        },
-        {
-            name = private.getLocalisation("TextHighlightMargin"),
-            desc = private.getLocalisation("TextHighlightMarginDescription"),
-            kind = LibEditMode.SettingType.Slider,
-            default = variables.margin,
-            get = function(layoutName)
-                return private.db.global.text_highlight[layoutName].margin
-            end,
-            set = function(layoutName, value)
-                private.db.global.text_highlight[layoutName].margin = value
-                private.evaluateTextPositions()
-            end,
-            minValue = 1,
-            maxValue = 50,
-            valueStep = 1,
         },
         {
             name = private.getLocalisation("TextHighlightThreshold"),
@@ -155,7 +124,32 @@ local function Constructor()
             maxValue = 30,
             valueStep = 1,
         },
+    }
+    -- grow, spacing, limit and sort are shared with all other dynamic groups, listed after the enable checkbox
+    local groupSettings = private.DynamicGroup.BuildEditModeSettings(function(layoutName)
+        return private.db.global.text_highlight[layoutName]
+    end, function()
+        private.evaluateTextPositions()
+    end, {
+        growValues = {
+            private.DynamicGroup.GROW.UP,
+            private.DynamicGroup.GROW.DOWN,
+            private.DynamicGroup.GROW.VERTICAL,
+        },
+        growKey = "grow_direction",
+        spacingKey = "margin",
+        growDescription = private.getLocalisation("TextGrowDirectionDescription"),
+        spacingName = private.getLocalisation("TextHighlightMargin"),
+        spacingDescription = private.getLocalisation("TextHighlightMarginDescription"),
+        defaults = {
+            grow = private.DynamicGroup.GROW.UP,
+            spacing = variables.margin,
+        },
     })
+    for i, setting in ipairs(groupSettings) do
+        table.insert(settings, 1 + i, setting)
+    end
+    LibEditMode:AddFrameSettings(frame, settings)
 
     local buttons = {
         {

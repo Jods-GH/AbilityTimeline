@@ -17,8 +17,11 @@ local variables = {
 	},
 	ExtraIcons={
 		IconSize = 16,
-	}
+	},
+	MaxMergedIcons = 4,
 }
+
+private.MAX_MERGED_TIMELINE_ICONS = variables.MaxMergedIcons
 
 private.RELATIVE_POSITIONS = {
 	RIGHT = "LEFT",
@@ -128,10 +131,11 @@ end
 ---@param moveHeight number -- the total height of the timeline for position calculation
 ---@param remainingDuration number -- remaining duration of the icon
 ---@param isStopped boolean -- whether the icon is currently stopped (paused/blocked)
+---@param unclamped boolean|nil -- keeps moving past the far end instead of stopping there (icons pushed back by overlap handling)
 ---@return integer -- x position
 ---@return integer -- y position
 ---@return boolean -- is moving
-local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isStopped)
+local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isStopped, unclamped)
 	local timelineOtherPosition = 0
 	local timelineMainPosition = 0
 	local isMoving = false
@@ -145,7 +149,7 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 		end
 	end
 	local thresholdTime = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].threshold_time
-	if not (remainingDuration < thresholdTime) then
+	if not unclamped and not (remainingDuration < thresholdTime) then
 		-- We are out of range of the moving timeline
 		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
 			timelineMainPosition = 0 - (iconSize / 2)
@@ -170,100 +174,18 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 end
 
 
----Returns if an icon is currently in a non moving state
----@param state number
----@return boolean
-local function isStoppedForPosition(state)
-	return state == private.ENCOUNTER_STATES.Paused or state == private.ENCOUNTER_STATES.Queued
-end
+-- zones a timeline icon can be in, icons in grouped zones are positioned by the zone's dynamic group
+private.TIMELINE_ZONES = {
+	MOVING = "MOVING",               -- travels along the timeline
+	WAITING = "WAITING",             -- waits at the far end until it enters the timeline window
+	QUEUED = "QUEUED",               -- reached 0 and waits for the cast
+	PAUSED = "PAUSED",               -- paused and shown in the paused group
+	INLINE_PAUSED = "INLINE_PAUSED", -- paused and shown besides the timeline at its position
+}
+local ZONES = private.TIMELINE_ZONES
 
--- TODO FIX THIS We should use something similar to the "dynamic group" idea of WeakAuras
--- Currently the offset is ignored when calculating if a conflict is happening. The official timeline also does no conflict resolving and just overlaps icons so maybe we should do the same?
-local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, rawSourcePosX, rawSourcePosY)
-	local margin = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin or 5
-	local eventList = private.manager.getEventList()
-	local totalEvents = 0
-	local conflictingYEvents = 0
-	local shorterYConflictingEvents = 0
-	local conflictingXEvents = 0
-	local shorterXConflictingEvents = 0
-	local sourceRemainingTime = private.manager.getEventRemainingTime(sourceEventID)
-	local sourceState = private.manager.getEventState(sourceEventID)
-	local sourceUpperXBound = rawSourcePosX + (iconSize / 2) +
-		margin
-	local sourceLowerXBound = rawSourcePosX - (iconSize / 2) -
-		margin
-	local sourceUpperYBound = rawSourcePosY + (iconSize / 2) +
-		margin
-	local sourceLowerYBound = rawSourcePosY - (iconSize / 2) -
-		margin
-	for _, eventID in pairs(eventList) do
-		if eventID ~= sourceEventID and private.activeFrames[eventID] then
-			local remainingTime = private.manager.getEventRemainingTime(eventID)
-			local state = private.manager.getEventState(eventID)
-			if sourceState == state then
-				totalEvents = totalEvents + 1
-				local x, y = getRawIconPosition(iconSize, timelineHeight, remainingTime,
-					isStoppedForPosition(state))
-				local upperXBound = x + iconSize / 2 +
-					margin
-				local lowerXBound = x - iconSize / 2 -
-					margin
-				local upperYBound = y + iconSize / 2 +
-					margin
-				local lowerYBound = y - iconSize / 2 -
-					margin
-				if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.VERTICAL then
-					if upperYBound >= sourceLowerYBound and upperYBound <= sourceUpperYBound or
-						lowerYBound >= sourceLowerYBound and lowerYBound <= sourceUpperYBound then
-						conflictingYEvents = conflictingYEvents + 1
-						-- use eventID as tiebreaker to have a consistent order
-						if remainingTime < sourceRemainingTime or (remainingTime == sourceRemainingTime and eventID < sourceEventID) then
-							shorterYConflictingEvents = shorterYConflictingEvents + 1
-						end
-					end
-				else
-					if upperXBound >= sourceLowerXBound and upperXBound <= sourceUpperXBound or
-						lowerXBound >= sourceLowerXBound and lowerXBound <= sourceUpperXBound then
-						conflictingXEvents = conflictingXEvents + 1
-						-- use eventID as tiebreaker to have a consistent order
-						if remainingTime < sourceRemainingTime or (remainingTime == sourceRemainingTime and eventID < sourceEventID) then
-							shorterXConflictingEvents = shorterXConflictingEvents + 1
-						end
-					end
-				end
-			end
-		end
-	end
-	return
-		shorterXConflictingEvents *
-		(iconSize + margin),
-		shorterYConflictingEvents *
-		(iconSize + margin)
-end
+local ApplySpellName
 
----comment
----@param self AtAbilitySpellIcon
----@param timeElapsed number -- time elapsed since the ability was started
----@param moveHeight number -- total height of the timeline for position calculation
----@param isStopped boolean -- whether the icon is currently stopped (paused/blocked)
----@return integer x -- xPosition of an icon including potential offsets to handle overlaps
----@return integer y -- yPosition of an icon including potential offsets to handle overlaps
----@return boolean ismoving -- whether the icon is currently moving
-local calculateIconPosition = function(self, timeElapsed, moveHeight, isStopped)
-	local iconSize = private.db.profile.icon_settings and private.db.profile.icon_settings.size or variables.IconSize.height
-	local x, y, isMoving = getRawIconPosition(iconSize, moveHeight,
-		self.eventInfo.duration - timeElapsed, isStopped)
-	if self.eventInfo.duration - timeElapsed > private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].threshold_time or isStopped then
-		-- only add offset for waiting icons
-		local xOffset, yOffset = calculateOffset(iconSize, moveHeight, self.eventInfo.id, x, y)
-		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
-			return x - xOffset, y - yOffset, isMoving
-		end
-		return x + xOffset, y + yOffset, isMoving
-	end
-	return x, y, isMoving
-end
 ---Plays a short highlight animation
 ---@param self Frame
 local PlayHighlight         = function(self)
@@ -312,15 +234,44 @@ local HandleCooldown        = function(self, remainingTime)
 	end
 end
 
----Sets the event info and all associated handling for an icon
+---Updates text anchors, cooldown and (for non grouped zones) the position of a timeline icon
 ---@param self AtAbilitySpellIcon
----@param eventInfo EncounterTimelineEventInfo
----@param disableOnUpdate boolean -- if true, the OnUpdate script will not be set
-local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
-	self:ApplySettings()
-	self.frame.eventInfo = eventInfo
-	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
-	private.Debug("============================")
+---@param state number -- state of the event
+---@param timeRemaining number -- remaining time of the event
+---@param positionRemaining number -- remaining time used to position the icon on the timeline
+---@param zone string -- zone of the icon
+local UpdateTimeline = function(self, state, timeRemaining, positionRemaining, zone)
+	local frame = self.frame
+	local isStopped = zone == ZONES.QUEUED or zone == ZONES.PAUSED or zone == ZONES.INLINE_PAUSED
+	local changed = state ~= frame.state or isStopped ~= frame.isStopped
+	if changed then
+		frame.state = state
+		frame.isStopped = isStopped
+		handleAnchors(frame, isStopped)
+	end
+	if changed or state ~= private.ENCOUNTER_STATES.Paused then
+		HandleCooldown(frame, timeRemaining)
+	end
+	if zone == ZONES.MOVING or zone == ZONES.INLINE_PAUSED then
+		local iconSize = private.db.profile.icon_settings and private.db.profile.icon_settings.size or variables.IconSize.height
+		local xPos, yPos, isMoving = getRawIconPosition(iconSize, private.TIMELINE_FRAME:GetMoveSize(), positionRemaining,
+			isStopped, true)
+		frame.frameIsMoving = isMoving
+		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
+			frame:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "LEFT", xPos, yPos)
+		else
+			frame:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "BOTTOM", xPos, yPos)
+		end
+	else
+		frame.frameIsMoving = false
+	end
+end
+
+---Sets the spell name text of the icon and its color
+---@param self AtAbilitySpellIcon
+---@param disableOnUpdate boolean|nil -- disables debug output for previews
+ApplySpellName              = function(self, disableOnUpdate)
+	local eventInfo = self.frame.eventInfo
 	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
 		self.frame.SpellName:SetText("")
 		if eventInfo and eventInfo.id then
@@ -333,13 +284,106 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 			if color then
 				self.frame.SpellName:SetTextColor(color.r, color.g, color.b)
 			elseif not disableOnUpdate then
-				private.Debug("Not using  color for text for eventID: " .. eventInfo.id)			
+				private.Debug("Not using  color for text for eventID: " .. eventInfo.id)
 			end
 		elseif not disableOnUpdate then
 			private.Debug("Event coloring disabled for text for eventID: " .. eventInfo.id)
 		end
 	end
-	-- OnUpdate we want to update the position of the icon based on elapsed time
+end
+
+---applies the configured default color to the spell name
+---@param frame Frame
+local applyDefaultTextColor = function(frame)
+	local color = private.db.profile.text_settings and private.db.profile.text_settings.defaultColor
+	if color then
+		frame.SpellName:SetTextColor(color.r, color.g, color.b)
+	else
+		frame.SpellName:SetTextColor(1, 1, 1)
+	end
+end
+
+---hides all merge slices and separators of an icon
+---@param frame Frame
+local hideMergeSlices = function(frame)
+	for _, slice in ipairs(frame.MergeSlices) do
+		slice:Hide()
+	end
+	for _, separator in ipairs(frame.MergeSeparators) do
+		separator:Hide()
+	end
+end
+
+---Shows multiple events with the same timing as one icon split into equal slices
+---@param self AtAbilitySpellIcon
+---@param members table|nil -- widgets of all merged events with this icon first, nil or a single member shows the icon normally
+local SetMergedIcons        = function(self, members)
+	local frame = self.frame
+	local count = members and math.min(#members, variables.MaxMergedIcons) or 1
+	local key
+	if count > 1 then
+		local ids = {}
+		for i = 1, count do
+			ids[i] = members[i].frame.eventInfo.id
+		end
+		key = table.concat(ids, ",")
+	end
+	if frame.mergeKey == key then return end
+	frame.mergeKey = key
+	if not key then
+		hideMergeSlices(frame)
+		frame.SpellIcon:Show()
+		applyDefaultTextColor(frame)
+		ApplySpellName(self, true)
+		return
+	end
+
+	local width, height = frame:GetWidth(), frame:GetHeight()
+	local sliceWidth = width / count
+	-- same crop as the regular icon zoom, split horizontally
+	local zoom = 1 - (private.db.profile.icon_settings.zoom or 0)
+	local minCoord, maxCoord = 0.5 - 0.5 * zoom, 0.5 + 0.5 * zoom
+	local coordWidth = (maxCoord - minCoord) / count
+	for i, slice in ipairs(frame.MergeSlices) do
+		if i <= count then
+			slice:ClearAllPoints()
+			slice:SetPoint("TOPLEFT", frame, "TOPLEFT", (i - 1) * sliceWidth, 0)
+			slice:SetSize(sliceWidth, height)
+			slice:SetTexture(members[i].frame.eventInfo.iconFileID)
+			slice:SetTexCoord(minCoord + (i - 1) * coordWidth, minCoord + i * coordWidth, minCoord, maxCoord)
+			slice:Show()
+		else
+			slice:Hide()
+		end
+	end
+	for i, separator in ipairs(frame.MergeSeparators) do
+		if i < count then
+			separator:ClearAllPoints()
+			separator:SetPoint("TOP", frame, "TOPLEFT", i * sliceWidth, 0)
+			separator:SetSize(1, height)
+			separator:Show()
+		else
+			separator:Hide()
+		end
+	end
+	frame.SpellIcon:Hide()
+	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction ~= private.TIMELINE_DIRECTIONS.HORIZONTAL then
+		applyDefaultTextColor(frame)
+		frame.SpellName:SetText(string.format(private.getLocalisation("MultipleTimers"), count))
+	end
+end
+
+---Sets the event info and all associated handling for an icon
+---@param self AtAbilitySpellIcon
+---@param eventInfo EncounterTimelineEventInfo
+---@param disableOnUpdate boolean -- if true, the event specific textures will not be set (used for previews)
+local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
+	self:ApplySettings()
+	self.frame.eventInfo = eventInfo
+	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
+	private.Debug("============================")
+	ApplySpellName(self, disableOnUpdate)
+	-- the position is updated by the timeline driver (see AbilityTimeline.lua) based on the zone of the icon
 	self.frame.frameIsMoving = false
 	if not disableOnUpdate then
 		private.Debug("Setting event info for eventID: " .. eventInfo.id .. " with spell name: " .. eventInfo.spellName)
@@ -376,40 +420,6 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 		if private.db.profile.icon_settings.dangerIcon then
 			private.manager.SetEventIconTextures(eventInfo.id, 1, self.frame.DangerIcon)
 		end
-		self.frame:SetScript("OnUpdate", function(self)
-			local timeElapsed = private.manager.getEventTimeElapsed(self.eventInfo.id)
-			local timeRemaining = private.manager.getEventRemainingTime(self.eventInfo.id)
-			local state = private.manager.getEventState(self.eventInfo.id)
-			if not state or not timeRemaining then return end
-			local isStopped = isStoppedForPosition(state)
-			if not timeElapsed or timeElapsed < 0 then timeElapsed = self.eventInfo.duration end
-			self.isStopped = isStopped
-			if state ~= self.state then
-				self.state = state
-				handleAnchors(self, isStopped)
-			elseif state == private.ENCOUNTER_STATES.Paused then
-				return
-			end
-
-			HandleCooldown(self, timeRemaining)
-
-			local xPos, yPos, isMoving = calculateIconPosition(self, timeElapsed, private.TIMELINE_FRAME:GetMoveSize(),
-				isStopped)
-			if self.frameIsMoving ~= isMoving then
-				if isMoving then
-					--self.TrailAnimation:Play()
-					--self.HighlightAnimation:Play()
-				else
-					--self.TrailAnimation:Stop()
-				end
-				self.frameIsMoving = isMoving
-			end
-			if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
-				self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "LEFT", xPos, yPos)
-			else
-				self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "BOTTOM", xPos, yPos)
-			end
-		end)
 	end
 	self.frame:Show()
 
@@ -426,7 +436,7 @@ local function ApplySettings(self)
 		self.frame:SetSize(variables.IconSize.width, variables.IconSize.height)
 	end
 	if private.db.profile.icon_settings and private.db.profile.icon_settings.TextOffset then
-		handleAnchors(self.frame, self.isStopped)
+		handleAnchors(self.frame, self.frame.isStopped)
 	end
 	if private.db.profile.text_settings and private.db.profile.text_settings.font and private.db.profile.text_settings.fontSize and private.db.profile.text_settings.fontFlag then
 		local fontFlags = ""
@@ -573,6 +583,14 @@ local function OnRelease(self)
 	self.frame.eventInfo = nil
 	self.frame.SpellIcon:SetTexture(nil)
 	self.frame.SpellName:SetText("")
+	self.frame.state = nil
+	self.frame.isStopped = nil
+	self.frame.zone = nil
+	self.frame.mergeKey = nil
+	self.frame.mergedInto = nil
+	self.frame.displayRemaining = nil
+	hideMergeSlices(self.frame)
+	self.frame.SpellIcon:Show()
 	handleAnchors(self.frame, false)
 	self.frame:SetScript("OnUpdate", nil)
 	self.frame.frameIsMoving = false
@@ -592,6 +610,21 @@ local function Constructor()
 	frame.SpellIcon = frame:CreateTexture(nil, "BACKGROUND")
 	frame.SpellIcon:SetAllPoints(frame)
 	frame.SpellIcon:SetPoint("CENTER", frame, "CENTER")
+
+	-- slices used while multiple events are merged into this icon
+	frame.MergeSlices = {}
+	frame.MergeSeparators = {}
+	for i = 1, variables.MaxMergedIcons do
+		local slice = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+		slice:Hide()
+		table.insert(frame.MergeSlices, slice)
+		if i < variables.MaxMergedIcons then
+			local separator = frame:CreateTexture(nil, "BORDER")
+			separator:SetColorTexture(0, 0, 0, 1)
+			separator:Hide()
+			table.insert(frame.MergeSeparators, separator)
+		end
+	end
 
 	private.Debug(frame, Type .. count)
 	
@@ -718,6 +751,8 @@ local function Constructor()
 		SetEventInfo = SetEventInfo,
 		ApplySettings = ApplySettings,
 		HandleCooldown = HandleCooldown,
+		UpdateTimeline = UpdateTimeline,
+		SetMergedIcons = SetMergedIcons,
 		PlayHighlight = function(self) PlayHighlight(self.frame) end,
 	}
 

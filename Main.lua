@@ -74,17 +74,21 @@ function AbilityTimeline_AddonCompartmentFunction()
     AbilityTimeline:SlashCommand("AddonCompartmentFrame")
 end
 
+-- different icons so merged test events can be told apart
+local TEST_ICONS = { 135127, 136197, 135808, 132090, 136116, 237538 }
+local testEventIDs = {}
+
 local function createTestBars(duration)
     local spellId = 376864
-    local iconId = 135127
+    local index = #testEventIDs + 1
 
     local eventinfo = {
         source = private.manager.SOURCES.Addon,
         duration = duration,
         maxQueueDuration = duration + 5,
-        spellName = "Test Spell",
+        spellName = "Test Spell " .. index,
         spellID = spellId,
-        iconFileID = iconId,
+        iconFileID = TEST_ICONS[(index - 1) % #TEST_ICONS + 1],
         severity = 1,
         paused = false
 
@@ -92,7 +96,100 @@ local function createTestBars(duration)
 
 
     local eventId = private.manager.addEvent(eventinfo)
+    table.insert(testEventIDs, eventId)
     private.Debug("Creating test bar with duration: " .. duration .. " seconds")
+    return eventId
+end
+
+---creates all test events in the same frame, so equal durations end at exactly the same time
+---@param durations number[]
+local function createTestBarList(durations)
+    local eventIDs = {}
+    for _, duration in ipairs(durations) do
+        table.insert(eventIDs, createTestBars(duration))
+    end
+    return eventIDs
+end
+
+-- predefined sets of test events for the timeline layout
+local TEST_SCENARIOS = {
+    -- three identical timers and one inside the default merge window
+    merge = { durations = { 12, 12, 12, 12.1 } },
+    -- timers close enough to overlap but too far apart to merge
+    overlap = { durations = { 12, 12.4, 12.8, 13.2, 13.6 } },
+    -- merged and pushed icons together with waiting icons
+    mixed = { durations = { 11, 11, 11.5, 12, 16, 16, 25 } },
+    -- many icons reaching 0 at once for the queued group and its limit
+    queue = { durations = { 3, 3, 3, 3.5, 4, 4, 4.5, 5 } },
+    -- some timers get paused shortly after starting
+    pause = { durations = { 8, 14, 20, 30 }, pause = { 2, 3 }, pauseDelay = 1.5 },
+    -- a lot of random timers
+    stress = { random = 20, min = 4, max = 40 },
+}
+
+local function printTestUsage()
+    AbilityTimeline:Print("/at test <seconds> [<seconds> ...] - starts one test timer per duration at the same time, e.g. /at test 12 12 12.1")
+    local names = {}
+    for name in pairs(TEST_SCENARIOS) do
+        table.insert(names, name)
+    end
+    table.sort(names)
+    AbilityTimeline:Print("/at test <scenario> - starts a predefined set: " .. table.concat(names, ", "))
+    AbilityTimeline:Print("/at test pause | resume | clear - pauses, resumes or removes all test timers")
+end
+
+---handles everything after "/at test "
+---@param args string
+local function handleTestCommand(args)
+    local command = args:match("^(%a+)")
+    if command == "help" then
+        printTestUsage()
+    elseif command == "clear" then
+        for _, eventID in ipairs(testEventIDs) do
+            private.manager.removeEvent(eventID)
+        end
+        wipe(testEventIDs)
+    elseif command == "pause" or command == "resume" then
+        for _, eventID in ipairs(testEventIDs) do
+            if command == "pause" then
+                private.manager.pauseEvent(eventID)
+            else
+                private.manager.resumeEvent(eventID)
+            end
+        end
+    elseif command and TEST_SCENARIOS[command] then
+        local scenario = TEST_SCENARIOS[command]
+        local durations = scenario.durations
+        if scenario.random then
+            durations = {}
+            for i = 1, scenario.random do
+                durations[i] = scenario.min + math.random() * (scenario.max - scenario.min)
+            end
+        end
+        local eventIDs = createTestBarList(durations)
+        if scenario.pause then
+            C_Timer.After(scenario.pauseDelay, function()
+                for _, index in ipairs(scenario.pause) do
+                    private.manager.pauseEvent(eventIDs[index])
+                end
+            end)
+        end
+    elseif command then
+        printTestUsage()
+    else
+        local durations = {}
+        for value in args:gmatch("%S+") do
+            local duration = tonumber(value)
+            if duration and duration > 0 then
+                table.insert(durations, duration)
+            end
+        end
+        if #durations > 0 then
+            createTestBarList(durations)
+        else
+            printTestUsage()
+        end
+    end
 end
 
 
@@ -109,11 +206,8 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
         C_EncounterTimeline.AddEditModeEvents()
     elseif msg == "test" then
         private.addTestEvents()
-    elseif string.find(string.lower(msg), "test (.-)") then
-        local duration = tonumber(string.match(string.lower(msg), "test (%d+)"))
-        if duration then
-            createTestBars(duration)
-        end
+    elseif string.find(string.lower(msg), "^test ") then
+        handleTestCommand(string.lower(msg):sub(6))
     elseif string.find(string.lower(msg), "rect") then
         private.Debug(private.TIMELINE_FRAME.frame:GetBoundsRect())
     elseif msg == "eventlist" then

@@ -9,68 +9,55 @@ LibEditMode:RegisterCallback('layout', function(layoutName)
 end)
 
 
+-- every saved variable in db.global that is stored per edit mode layout
+local PER_LAYOUT_KEYS = {
+    "timeline_frame",
+    "bigicon_frame",
+    "text_highlight_frame",
+    "bigicon",
+    "bigicon_enabled",
+    "text_highlight",
+    "text_highlight_enabled",
+    "waiting_group",
+    "queued_group",
+    "paused_group",
+}
+
+local copyValue = function(value)
+    if type(value) == "table" then
+        return CopyTable(value)
+    end
+    return value
+end
+
 LibEditMode:RegisterCallback('rename', function(oldLayoutName, newLayoutName)
     -- this will be called every time an Edit Mode layout is renamed
-    if private.db.global.timeline_frame and private.db.global.timeline_frame[oldLayoutName] then
-        local layout = CopyTable(private.db.global.timeline_frame[oldLayoutName])
-        private.db.global.timeline_frame[newLayoutName] = layout
-        private.db.global.timeline_frame[oldLayoutName] = nil
-    end
-
-    if private.db.global.text_highlight_frame and private.db.global.text_highlight_frame[oldLayoutName] then
-        local layout = CopyTable(private.db.global.text_highlight_frame[oldLayoutName])
-        private.db.global.text_highlight_frame[newLayoutName] = layout
-        private.db.global.text_highlight_frame[oldLayoutName] = nil
-    end
-
-    if private.db.global.bigicon_frame and private.db.global.bigicon_frame[oldLayoutName] then
-        local layout = CopyTable(private.db.global.bigicon_frame[oldLayoutName])
-        private.db.global.bigicon_frame[newLayoutName] = layout
-        private.db.global.bigicon_frame[oldLayoutName] = nil
+    for _, key in ipairs(PER_LAYOUT_KEYS) do
+        local layouts = private.db.global[key]
+        if layouts and layouts[oldLayoutName] ~= nil then
+            layouts[newLayoutName] = copyValue(layouts[oldLayoutName])
+            layouts[oldLayoutName] = nil
+        end
     end
 end)
 
 LibEditMode:RegisterCallback('create', function(layoutName, layoutIndex, sourceLayoutName)
-    if not private.db.global.timeline_frame then
-        private.db.global.timeline_frame = {}
-    end
-
-    if not private.db.global.text_highlight_frame then
-        private.db.global.text_highlight_frame = {}
-    end
-    if not private.db.global.bigicon_frame then
-        private.db.global.bigicon_frame = {}
-    end
-
-    if sourceLayoutName then
-        if private.db.global.timeline_frame[sourceLayoutName] then
-            local layout = CopyTable(private.db.global.timeline_frame[sourceLayoutName])
-            private.db.global.timeline_frame[layoutName] = layout
+    for _, key in ipairs(PER_LAYOUT_KEYS) do
+        if not private.db.global[key] then
+            private.db.global[key] = {}
         end
-
-        if private.db.global.text_highlight_frame[sourceLayoutName] then
-            local layout = CopyTable(private.db.global.text_highlight_frame[sourceLayoutName])
-            private.db.global.text_highlight_frame[layoutName] = layout
-        end
-
-        if private.db.global.bigicon_frame[sourceLayoutName] then
-            local layout = CopyTable(private.db.global.bigicon_frame[sourceLayoutName])
-            private.db.global.bigicon_frame[layoutName] = layout
+        local layouts = private.db.global[key]
+        if sourceLayoutName and layouts[sourceLayoutName] ~= nil then
+            layouts[layoutName] = copyValue(layouts[sourceLayoutName])
         end
     end
 end)
 
 LibEditMode:RegisterCallback('delete', function(layoutName)
-    if private.db.global.timeline_frame and private.db.global.timeline_frame[layoutName] then
-        private.db.global.timeline_frame[layoutName] = nil
-    end
-
-    if private.db.global.text_highlight_frame and private.db.global.text_highlight_frame[layoutName] then
-        private.db.global.text_highlight_frame[layoutName] = nil
-    end
-
-    if private.db.global.bigicon_frame and private.db.global.bigicon_frame[layoutName] then
-        private.db.global.bigicon_frame[layoutName] = nil
+    for _, key in ipairs(PER_LAYOUT_KEYS) do
+        if private.db.global[key] then
+            private.db.global[key][layoutName] = nil
+        end
     end
 end)
 
