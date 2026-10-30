@@ -14,9 +14,11 @@ jobs:
       - name: Update TOC Interface version
         uses: p3lim/toc-interface-updater@v4
         with:
-          flavor: |
+          flavor: | 
             retail
+            forever 
             mists
+            wrath
             tbc
             vanilla
           beta: true
