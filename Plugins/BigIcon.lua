@@ -8,8 +8,8 @@ private.BIG_ICONS = {}
 private.evaluateBigIconPositions = function()
    local visibleIcons = 0
    table.sort(private.BIG_ICONS, function(a, b)
-      local aRemaining = C_EncounterTimeline.GetEventTimeRemaining(a.eventInfo.id)
-      local bRemaining = C_EncounterTimeline.GetEventTimeRemaining(b.eventInfo.id)
+      local aRemaining = private.manager.getEventRemainingTime(a.eventInfo.id)
+      local bRemaining = private.manager.getEventRemainingTime(b.eventInfo.id)
       if aRemaining and bRemaining and aRemaining ~= bRemaining then
          return aRemaining < bRemaining
       else
@@ -63,11 +63,39 @@ private.evaluateBigIconPositions = function()
    end
 end
 
-private.createBigIcon = function(eventInfo)
+local bigIcons = {}
+
+private.createBigIcon = function(eventID)
    local frame = AceGUI:Create("AtBigIcon")
-   frame:SetEventInfo(eventInfo)
-   private.HIGHLIGHT_EVENTS.BigIcons[eventInfo.id] = true
+   frame:SetEventInfo(private.manager.getEventInfo(eventID))
+   bigIcons[eventID] = frame
    table.insert(private.BIG_ICONS, frame)
-   private.Debug(frame, "AT_BIGICON_FRAME_" .. eventInfo.id)
+   private.Debug(frame, "AT_BIGICON_FRAME_" .. eventID)
    private.evaluateBigIconPositions()
 end
+
+local removeBigIcon = function(eventID)
+   local frame = bigIcons[eventID]
+   if not frame then return end
+   bigIcons[eventID] = nil
+   for i, f in ipairs(private.BIG_ICONS) do
+      if f == frame then
+         table.remove(private.BIG_ICONS, i)
+         break
+      end
+   end
+   frame:Release()
+   private.evaluateBigIconPositions()
+end
+
+private.manager.RegisterCallback("AtBigIcon", "EVENT_DISPLAY_START", function(_, eventID, display)
+   if display == "bigIcon" and not bigIcons[eventID] then
+      private.createBigIcon(eventID)
+   end
+end)
+
+private.manager.RegisterCallback("AtBigIcon", "EVENT_DISPLAY_STOP", function(_, eventID, display)
+   if display == "bigIcon" then
+      removeBigIcon(eventID)
+   end
+end)

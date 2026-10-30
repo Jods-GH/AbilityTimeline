@@ -12,9 +12,6 @@ function AbilityTimeline:OnInitialize()
     local buildVersion, buildNumber, buildDate, interfaceVersion, localizedVersion, buildInfo = GetBuildInfo() -- Mainline
     assert(interfaceVersion >= 120000, private.getLocalisation("WrongWoWVersionMessage"))
     -- Called when the addon is loaded
-    AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_ADDED")
-    AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_REMOVED")
-    AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED")
     AbilityTimeline:RegisterEvent("ENCOUNTER_START")
     AbilityTimeline:RegisterEvent("ENCOUNTER_END")
     AbilityTimeline:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -26,7 +23,6 @@ function AbilityTimeline:OnInitialize()
     AbilityTimeline:RegisterEvent("ZONE_CHANGED_NEW_AREA")
     AbilityTimeline:RegisterEvent("CHALLENGE_MODE_RESET")
     AbilityTimeline:RegisterEvent("CHALLENGE_MODE_START")
-    AbilityTimeline:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED")
     private.db = LibStub("AceDB-3.0"):New("AbilityTimeline", private.OptionDefaults, true) -- Generates Saved Variables with default Values (if they don't already exist)
     private.Debug(private, "AT_Options")
     local OptionTable = {
@@ -47,12 +43,9 @@ function AbilityTimeline:OnInitialize()
     if not private.TIMELINE_FRAME then
         private.createTimelineFrame()
     end
-    SetCVar("encounterTimelineEnabled", "1")
-    private.Debug(EncounterTimeline, "encounterTimeline")
-
-    EncounterTimeline:UnregisterAllEvents()
-    EncounterTimeline:Hide()
-    EncounterTimeline:HookScript("OnShow", function() EncounterTimeline:Hide() end)
+    if private.initEncounterTimelineSource then
+        private.initEncounterTimelineSource()
+    end
     -- SetCVar("encounterWarningsEnabled", "1")
 
     --init
@@ -79,9 +72,10 @@ local function createTestBars(duration)
     local iconId = 135127
 
     local eventinfo = {
+        source = private.manager.SOURCES.Addon,
         duration = duration,
         maxQueueDuration = duration + 5,
-        overrideName = "Test Spell",
+        spellName = "Test Spell",
         spellID = spellId,
         iconFileID = iconId,
         severity = 1,
@@ -90,21 +84,21 @@ local function createTestBars(duration)
     }
 
 
-    local eventId = C_EncounterTimeline.AddScriptEvent(eventinfo)
+    local eventId = private.manager.addEvent(eventinfo)
     private.Debug("Creating test bar with duration: " .. duration .. " seconds")
 end
 
 
 function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
-    if not C_EncounterTimeline.IsFeatureEnabled() then
+    if C_EncounterTimeline and not C_EncounterTimeline.IsFeatureEnabled() then
         AbilityTimeline:Print(private.getLocalisation("TimelineNotEnabledMessage"))
-    elseif not C_EncounterTimeline.IsFeatureAvailable() then
+    elseif C_EncounterTimeline and not C_EncounterTimeline.IsFeatureAvailable() then
         AbilityTimeline:Print(private.getLocalisation("TimelineNotSupportedMessage"))
     elseif msg == "iconeditor" then
         private.openSpellIconSettings()
     elseif msg == "version" then
         AbilityTimeline:Print("Ability Timeline Version: " ..  C_AddOns.GetAddOnMetadata(appName, "Version"))
-    elseif msg == "test" then
+    elseif msg == "test" and C_EncounterTimeline then
         C_EncounterTimeline.AddEditModeEvents()
     elseif string.find(string.lower(msg), "test (.-)") then
         local duration = tonumber(string.match(string.lower(msg), "test (%d+)"))
@@ -114,49 +108,25 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
     elseif string.find(string.lower(msg), "rect") then
         private.Debug(private.TIMELINE_FRAME.frame:GetBoundsRect())
     elseif msg == "eventlist" then
-        private.Debug(C_EncounterTimeline.GetEventList(), "EventList")
+        private.Debug(private.manager.getEventList(), "EventList")
+    elseif msg == "debugevents" then
+        private.manager.printDebugInfo()
+    elseif msg == "debugtimeline" and private.toggleEncounterTimelineDebug then
+        private.toggleEncounterTimelineDebug()
     elseif string.find(string.lower(msg), "pause (.-)") then
         local eventID = tonumber(string.match(string.lower(msg), "pause (%d+)"))
         if eventID then
-            C_EncounterTimeline.PauseScriptEvent(eventID)
-            private.Debug(C_EncounterTimeline.GetEventInfo(eventID), "EventInfo")
+            private.manager.pauseEvent(eventID)
+            private.Debug(private.manager.getEventInfo(eventID), "EventInfo")
         end
     elseif string.find(string.lower(msg), "resume (.-)") then
         local eventID = tonumber(string.match(string.lower(msg), "resume (%d+)"))
         if eventID then
-            C_EncounterTimeline.ResumeScriptEvent(eventID)
+            private.manager.resumeEvent(eventID)
         end
     else
         AceConfigDialog:Open(appName)
     end
-end
-
-function AbilityTimeline:ENCOUNTER_TIMELINE_EVENT_ADDED(event, eventInfo, initialState)
-    C_Timer.After(0, function()
-        -- we delay by 1 frame so script events have time to save their data
-        private.ENCOUNTER_TIMELINE_EVENT_ADDED(self, eventInfo, initialState)
-    end)
-end
-
-function AbilityTimeline:ENCOUNTER_TIMELINE_EVENT_REMOVED(self, eventID)
-    C_Timer.After(0, function()
-        -- we delay by 1 frame so script events have time to save their data
-        private.ENCOUNTER_TIMELINE_EVENT_REMOVED(self, eventID)
-    end)
-end
-
-function AbilityTimeline:ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED(event, eventID, newState)
-    C_Timer.After(0, function()
-        -- we delay by 1 frame so script events have time to save their data
-        private.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED(self, eventID, newState)
-    end)
-end
-
-function AbilityTimeline:ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED(event, eventID)
-    C_Timer.After(0, function()
-        -- we delay by 1 frame so script events have time to save their data
-        private.ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED(self, eventID)
-    end)
 end
 
 function AbilityTimeline:PLAYER_ENTERING_WORLD()
@@ -199,7 +169,7 @@ function AbilityTimeline:ENCOUNTER_END(event, encounterID, encounterName, diffic
 
     private.cancelSheduledReminders()
     if private.db.profile.disableAllOnEncounterEnd then
-        C_EncounterTimeline.CancelAllScriptEvents()
+        private.manager.removeAllEvents(private.manager.SOURCES.Reminder)
     end
     C_Timer.After(1, function() -- since for some reason encounter end fires before combat lockdown is over we delay
         if not C_ChatInfo.InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
@@ -231,9 +201,11 @@ function AbilityTimeline:READY_CHECK(event, initiator, readyCheckTimeLeft)
         overrideName = private.getLocalisation("ReadyCheckBy") .. " " .. WrapTextInColorCode(initiatorName, argbHex)
     end
     local eventinfo = {
+        source = private.manager.SOURCES.Addon,
+        sourceID = "readycheck",
         duration = timeleft,
         maxQueueDuration = 0,
-        overrideName = overrideName,
+        spellName = overrideName,
         spellID = 0,
         iconFileID = 134400,
         severity = 1,
@@ -242,12 +214,12 @@ function AbilityTimeline:READY_CHECK(event, initiator, readyCheckTimeLeft)
     }
     private.Debug("Ready check started by " ..
     WrapTextInColorCode(initiatorName, argbHex) .. ", time left: " .. tostring(readyCheckTimeLeft) .. " seconds.")
-    private.ReadyCheckEventId = C_EncounterTimeline.AddScriptEvent(eventinfo)
+    private.ReadyCheckEventId = private.manager.addEvent(eventinfo)
 end
 
 function AbilityTimeline:READY_CHECK_FINISHED()
     if private.ReadyCheckEventId then
-        C_EncounterTimeline.CancelScriptEvent(private.ReadyCheckEventId)
+        private.manager.removeEvent(private.ReadyCheckEventId)
         private.ReadyCheckEventId = nil
     end
 end
@@ -296,15 +268,12 @@ function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemainin
         overrideName = private.getLocalisation("PullTimerBy") .. " " .. WrapTextInColorCode(name, color)
     end
 
-    if private.PullTimerEventId and C_EncounterTimeline.GetEventState(private.PullTimerEventId) and C_EncounterTimeline.GetEventState(private.PullTimerEventId) == Enum.EncounterTimelineEventState.Active then
-        C_EncounterTimeline.CancelScriptEvent(private.PullTimerEventId)
-        private.PullTimerEventId = nil
-    end
-
     local eventinfo = {
+        source = private.manager.SOURCES.Addon,
+        sourceID = "pull",
         duration = timeleft,
         maxQueueDuration = 0,
-        overrideName = overrideName,
+        spellName = overrideName,
         spellID = 0,
         iconFileID = 134376,
         severity = 1,
@@ -313,12 +282,12 @@ function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemainin
     }
     private.Debug("Pull timer started by " ..
     WrapTextInColorCode(name, color) .. ", time left: " .. tostring(timeRemaining) .. " seconds.")
-    private.PullTimerEventId = C_EncounterTimeline.AddScriptEvent(eventinfo)
+    private.PullTimerEventId = private.manager.addEvent(eventinfo)
 end
 
 function AbilityTimeline:CANCEL_PLAYER_COUNTDOWN()
     if private.PullTimerEventId then
-        C_EncounterTimeline.CancelScriptEvent(private.PullTimerEventId)
+        private.manager.removeEvent(private.PullTimerEventId)
         private.PullTimerEventId = nil
     end
 end
@@ -358,9 +327,11 @@ function AbilityTimeline:CHALLENGE_MODE_COMPLETED()
             return
         end
         local eventinfo = {
+            source = private.manager.SOURCES.Addon,
+            sourceID = "reroll",
             duration = 300,
             maxQueueDuration = 0,
-            overrideName = private.getLocalisation("RerollKey"),
+            spellName = private.getLocalisation("RerollKey"),
             spellID = 0,
             iconFileID = 525134,
             severity = 1,
@@ -368,7 +339,7 @@ function AbilityTimeline:CHALLENGE_MODE_COMPLETED()
 
         }
         private.Debug("Challenge mode completed Adding timer for key reroll: 5 minutes.")
-        private.RerollKeyEventId = C_EncounterTimeline.AddScriptEvent(eventinfo)
+        private.RerollKeyEventId = private.manager.addEvent(eventinfo)
     end
     if private.db.profile.enableDNDMessage and private.db.global.active then
         C_ChatInfo.SendChatMessage("", "DND")
@@ -379,7 +350,7 @@ end
 -- TODO cancel the event if the player actually rerolls the key before the timer ends
 function AbilityTimeline:ZONE_CHANGED_NEW_AREA()
     if private.RerollKeyEventId then
-        C_EncounterTimeline.CancelScriptEvent(private.RerollKeyEventId)
+        private.manager.removeEvent(private.RerollKeyEventId)
         private.RerollKeyEventId = nil
     end
     if private.db.profile.enableDNDMessage and private.db.global.active and not C_ChatInfo.InChatMessagingLockdown() then

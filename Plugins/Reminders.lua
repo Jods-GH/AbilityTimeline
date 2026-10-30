@@ -18,9 +18,10 @@ private.createReminders = function(encounterID)
         local icon = spellInfo and spellInfo.iconID
         if reminder.StartTimerAfter and reminder.StartTimerAfter > 0 then
             local eventinfo = {
+                source = private.manager.SOURCES.Reminder,
                 duration = duration - reminder.StartTimerAfter,
                 maxQueueDuration = delay,
-                overrideName = reminder.name or reminder.spellName or spellName,
+                spellName = reminder.name or reminder.spellName or spellName,
                 spellID = spellId,
                 iconFileID = reminder.iconId or icon or 134400,
                 severity = reminder.severity or 1,
@@ -28,21 +29,22 @@ private.createReminders = function(encounterID)
                 icons = reminder.effectTypes,
             }
             local timerObject = C_Timer.NewTimer(reminder.StartTimerAfter, function()
-                C_EncounterTimeline.AddScriptEvent(eventinfo)
+                private.manager.addEvent(eventinfo)
             end)
             table.insert(private.sheduledReminders, timerObject)
         else
             local eventinfo = {
+                source = private.manager.SOURCES.Reminder,
                 duration = duration,
                 maxQueueDuration = delay,
-                overrideName = reminder.name or reminder.spellName or spellName,
+                spellName = reminder.name or reminder.spellName or spellName,
                 spellID = spellId,
                 iconFileID = reminder.iconId or icon or 134400,
                 severity = reminder.severity or 1,
                 paused = false,
                 icons = reminder.effectTypes,
             }
-            C_EncounterTimeline.AddScriptEvent(eventinfo)
+            private.manager.addEvent(eventinfo)
         end
     end
 end

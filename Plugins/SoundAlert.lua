@@ -49,13 +49,7 @@ local SOUND_ALERTS = {
 private.REGISTERED_AUDIO_ALERTS = {}
 private.AUDIO_ALERT_FRAME:SetScript("OnUpdate", function(self, elapsed)
     for id, value in pairs(private.REGISTERED_AUDIO_ALERTS) do
-        local remaining = C_EncounterTimeline.GetEventTimeRemaining(id)
-
-        if not remaining or remaining <= 0 then
-            active_voices[value.voice] = nil
-            private.REGISTERED_AUDIO_ALERTS[id] = nil
-            return
-        end
+        local remaining = private.manager.getEventRemainingTime(id)
         for soundTime, soundName in pairs(SOUND_ALERTS) do
             if remaining and remaining <= soundTime and not tContains(value.played, soundTime) then
                 table.insert(value.played, soundTime)
@@ -67,11 +61,25 @@ private.AUDIO_ALERT_FRAME:SetScript("OnUpdate", function(self, elapsed)
         end
     end
 end)
-private.playAudioAlert = function(eventInfo)
-    if private.REGISTERED_AUDIO_ALERTS[eventInfo.id] then
+private.playAudioAlert = function(eventID)
+    if private.REGISTERED_AUDIO_ALERTS[eventID] then
         return
     end
     local voice = getVoice()
     active_voices[voice] = true
-    private.REGISTERED_AUDIO_ALERTS[eventInfo.id] = { voice = voice, played = {} }
+    private.REGISTERED_AUDIO_ALERTS[eventID] = { voice = voice, played = {} }
 end
+
+private.manager.RegisterCallback("AtSoundAlert", "EVENT_DISPLAY_START", function(_, eventID, display)
+    if display == "audio" then
+        private.playAudioAlert(eventID)
+    end
+end)
+
+private.manager.RegisterCallback("AtSoundAlert", "EVENT_DISPLAY_STOP", function(_, eventID, display)
+    local alert = private.REGISTERED_AUDIO_ALERTS[eventID]
+    if display == "audio" and alert then
+        active_voices[alert.voice] = nil
+        private.REGISTERED_AUDIO_ALERTS[eventID] = nil
+    end
+end)

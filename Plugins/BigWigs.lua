@@ -4,10 +4,7 @@ local private = app
 
 if not C_AddOns.IsAddOnLoaded("BigWigs") then return end
 
-private.BWTimers = {}
-private.ActiveBossModTimers = private.ActiveBossModTimers or {}
-private.BossModsSpellIndicators = private.BossModsSpellIndicators or {}
-private.BossModsColors = private.BossModsColors or {}
+local SOURCE = private.manager.SOURCES.BigWigs
 
 local excludedTimers = {
     ["Pull"] = true,
@@ -22,11 +19,9 @@ local excludedTimers = {
 local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, icon, timerIsApprox, timerMaxDuration, eventID, spellIndicators)
     private.Debug("!!!!!!!!!!!!!!!!!!!!!!!!")
     if eventID then
-        local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
-        if eventInfo and eventInfo.source ~= Enum.EncounterTimelineEventSource.Script and eventInfo.source ~= Enum.EncounterTimelineEventSource.EditMode then
+        if private.claimEncounterTimelineEvent then
             private.Debug("Bigwigs timer started for default event, adding to timeline".. eventID)
-            private.addEvent(eventInfo)
-            private.ActiveBossModTimers[eventID] = true
+            private.claimEncounterTimelineEvent(eventID)
         end
         return
     end
@@ -37,29 +32,27 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
         icon = GetFileIDFromPath(iconpath)
     end
 
-    if private.BWTimers[timerMsg] and C_EncounterTimeline.GetEventInfo(private.BWTimers[timerMsg].eventID) then
-        C_EncounterTimeline.CancelScriptEvent(private.BWTimers[timerMsg].eventID)
-    end
-        
     local eventinfo = {
+        source = SOURCE,
+        sourceID = timerMsg,
         duration = timerDuration,
         maxQueueDuration = 0,
-        overrideName = timerMsg,
+        spellName = timerMsg,
         spellID = timerKey and type(timerKey) == "number" and timerKey or 58984,
         iconFileID = icon and type (icon) == "number" and icon or 134400,
         severity = 1,
+        isApproximate = timerIsApprox,
         paused = false,
     }
+    if spellIndicators then
+        eventinfo.iconEventID = private.manager.getEventIDFromSource(private.manager.SOURCES.EncounterTimeline, spellIndicators)
+    end
     private.Debug("BigWigs Timer Started: " .. timerMsg .. " Duration: " .. timerDuration)
-    local eventID = C_EncounterTimeline.AddScriptEvent(eventinfo)
     local color = BigWigs:GetPlugin("Colors"):GetColorTable("barText", module, timerKey)
     if color then
         local r,g,b,a = unpack(color)
         if r ~= 1 or g ~= 1 or b ~= 1 or a ~= 1 then
-            local actualColor = CreateColor(r, g, b, a)
-            local colorTable = private.BossModsColors[eventID] or {}
-            colorTable.textColor = actualColor
-            private.BossModsColors[eventID] = colorTable
+            eventinfo.textColor = CreateColor(r, g, b, a)
             private.Debug("Found color for bar text, saving to timer event")
             private.Debug("Color values - R: " .. r .. " G: " .. g .. " B: " .. b .. " A: " .. a)
         else
@@ -68,18 +61,11 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
     else
         private.Debug("No color found for bar text or spell ID, not saving color for timer event")
     end
-    private.ActiveBossModTimers[eventID] = true
-    if spellIndicators then
-        private.BossModsSpellIndicators[eventID] = spellIndicators
-    end
     local barColor = BigWigs:GetPlugin("Colors"):GetColorTable("barBackground", module, timerKey)
     if barColor then
         local r,g,b,a = unpack(barColor)
         if r ~= 1 or g ~= 1 or b ~= 1 or a ~= 1 then
-            local actualColor = CreateColor(r, g, b, a)
-            local colorTable = private.BossModsColors[eventID] or {}
-            colorTable.borderColor = actualColor
-            private.BossModsColors[eventID] = colorTable
+            eventinfo.borderColor = CreateColor(r, g, b, a)
             private.Debug("Found color for bar background, saving border color for timer event")
         else
             private.Debug("Color for bar background is default, not saving border color for timer event")
@@ -87,44 +73,29 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
     else
         private.Debug("No color found for bar background, not adding border color for timer event")
     end
-    private.BWTimers[timerMsg] = {
-        eventID = eventID,
-        info = {
-            timerMsg = timerMsg,
-            timerDuration = timerDuration,
-            timerIcon = icon,
-        }
-    }
+    private.manager.addEvent(eventinfo)
 end
 
-local function TimerStopped(event, module, text, eventID)
-    if private.BWTimers[text] and C_EncounterTimeline.GetEventInfo(private.BWTimers[text].eventID) then
-        C_EncounterTimeline.CancelScriptEvent(private.BWTimers[text].eventID)
-        private.ActiveBossModTimers[private.BWTimers[text].eventID] = nil
-        private.BWTimers[text] = nil
+local function TimerStopped(event, module, text)
+    local eventID = private.manager.getEventIDFromSource(SOURCE, text)
+    if eventID then
+        private.manager.removeEvent(eventID)
     end
 end
 
-local function TimerUpdated(event, module, text, timerId)
+local function TimerUpdated(event, module, text)
+    local eventID = private.manager.getEventIDFromSource(SOURCE, text)
+    if not eventID then return end
     if event =="BigWigs_PauseBar" then
-        if private.BWTimers[text] and C_EncounterTimeline.GetEventInfo(private.BWTimers[text].eventID) then
-            C_EncounterTimeline.PauseScriptEvent(private.BWTimers[text].eventID)
-        end
+        private.manager.pauseEvent(eventID)
     elseif event =="BigWigs_ResumeBar" then
-        if private.BWTimers[text] and C_EncounterTimeline.GetEventInfo(private.BWTimers[text].eventID) then
-            C_EncounterTimeline.ResumeScriptEvent(private.BWTimers[text].eventID)
-        end
+        private.manager.resumeEvent(eventID)
     end
 end
 
 local function StopAllTimers()
     private.Debug("BigWigs Stop All Timers")
-    C_EncounterTimeline.CancelAllScriptEvents()
-    for timerId, timerData in pairs(private.BWTimers) do
-        private.BWTimers[timerId] = nil
-        private.ActiveBossModTimers[timerData.eventID] = nil
-    end
-    private.removeAllFrames()
+    private.manager.removeAllEvents(SOURCE)
 end
 
 local BWCallbackObj = {}
@@ -159,11 +130,17 @@ BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_BarEmphasized", hideBWEmph
 local function DisableBlizApi(event)
     private.Debug("BigWigs Disable Blizzard Timers")
     private.DisableBlizzTimersBW= true
+    if private.refreshEncounterTimelineVisibility then
+        private.refreshEncounterTimelineVisibility()
+    end
 end
 
 local function EnableBlizApi(event)
     private.Debug("BigWigs Enable Blizzard Timers")
     private.DisableBlizzTimersBW = false
+    if private.refreshEncounterTimelineVisibility then
+        private.refreshEncounterTimelineVisibility()
+    end
 end
 
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_HideBlizzTimers", DisableBlizApi);

@@ -4,10 +4,9 @@ local private = app
 
 if not C_AddOns.IsAddOnLoaded("DBM-Core") then return end
 
-private.DBMTimers = {}
+local SOURCE = private.manager.SOURCES.DBM
+local timerInfos = {}
 private.DisableBlizzTimersDBM = false
-private.ActiveBossModTimers = private.ActiveBossModTimers or {}
-private.BossModsColors = private.BossModsColors or {}
 local excludedTimers = {
     ["pull"] = true,
 }
@@ -47,6 +46,8 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
         spellName = spellInfo.name
     end
     local eventinfo = {
+        source = SOURCE,
+        sourceID = timerId,
         duration = timerDuration,
         maxQueueDuration = timerKeep and 9999 or 0,
         severity = 1,
@@ -54,7 +55,7 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
         spellID = timerSpellId and type(timerSpellId) == "number" and timerSpellId or 1254530, -- 1254530 is a debug test icon
     }
     if spellName then
-        eventinfo.overrideName = spellName
+        eventinfo.spellName = spellName
     end
     if timerIcon and type(timerIcon) == "number" then
         eventinfo.iconFileID = timerIcon
@@ -83,42 +84,22 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
         eventinfo.iconFileID = 134400 -- 134400 is the ? icon
     end
     private.Debug("DBM Timer Started: " .. (spellName or timerId) .. " Duration: " .. timerDuration)
-    if private.DBMTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.DBMTimers[timerId].eventID) then
-        C_EncounterTimeline.CancelScriptEvent(private.DBMTimers[timerId].eventID) -- Cancel the existing event to update it with new info
-        private.ActiveBossModTimers[private.DBMTimers[timerId].eventID] = nil
-        private.DBMTimers[timerId] = nil
-    end
-    local eventID = C_EncounterTimeline.AddScriptEvent(eventinfo)
     if timerColordId then
         local r, g, b = DBT:GetColorForType(timerColordId)
         if r and g and b then
             local color = CreateColor(r, g, b)
-            local colorTable = private.BossModsColors[eventID] or {}
-            colorTable.textColor = color
-            private.BossModsColors[eventID] = colorTable
+            eventinfo.textColor = color
             private.Debug("Found DBM Timer Color ID: " .. timerColordId .. " Color: " .. ("R:"..color.r.." G:"..color.g.." B:"..color.b))
         else
             private.Debug("No color found for DBM Timer Color ID: " .. timerColordId)
         end
     end
-    private.ActiveBossModTimers[eventID] = true
-    private.DBMTimers[timerId] = {
-        eventID = eventID,
-        info = {
-            timerId = timerId,
-            timerMsg = timerMsg,
-            timerDuration = timerDuration,
-            timerType = timerType,
-            timerSpellId = timerSpellId,
-            timerColordId = timerColordId,
-            timerEncouterId = timerEncouterId,
-            timerKeep = timerKeep,
-            timerFade = timerFade,
-            timerSpellName = timerSpellName,
-            timerMobGUID = timerMobGUID,
-        }
+    private.manager.addEvent(eventinfo)
+    timerInfos[timerId] = {
+        eventinfo = eventinfo,
+        timerDuration = timerDuration,
+        timerKeep = timerKeep,
     }
-
 end
 
 local function TimerBegin(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID, timerCount, timerIsPriority, timerType2, timerHasVariance, timerVariance, isEnabled)
@@ -130,51 +111,30 @@ end
 
 local function TimerStopped(event, timerId)
     private.Debug("DBM Timer Stopped: ".. timerId)
-    if private.DBMTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.DBMTimers[timerId].eventID) then
-        C_EncounterTimeline.CancelScriptEvent(private.DBMTimers[timerId].eventID)
-        private.ActiveBossModTimers[private.DBMTimers[timerId].eventID] = nil
-        private.DBMTimers[timerId] = nil
+    local eventID = private.manager.getEventIDFromSource(SOURCE, timerId)
+    if eventID then
+        private.manager.removeEvent(eventID)
     end
+    timerInfos[timerId] = nil
 end
 
 local function TimerUpdated(event, timerId, timerElapsed, timerModified)
     private.Debug("DBM Timer Updated: ".. event.."|"..timerId)
+    local eventID = private.manager.getEventIDFromSource(SOURCE, timerId)
     if event =="DBM_TimerPause" then
-        if private.DBMTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.DBMTimers[timerId].eventID) then
-            C_EncounterTimeline.PauseScriptEvent(private.DBMTimers[timerId].eventID)
+        if eventID then
+            private.manager.pauseEvent(eventID)
         end
     elseif event =="DBM_TimerResume" then
-        if private.DBMTimers[timerId] and C_EncounterTimeline.GetEventInfo(private.DBMTimers[timerId].eventID) then
-            C_EncounterTimeline.ResumeScriptEvent(private.DBMTimers[timerId].eventID)
+        if eventID then
+            private.manager.resumeEvent(eventID)
         end
-    elseif private.DBMTimers[timerId] then
-        local oldEventID = private.DBMTimers[timerId].eventID
-        if C_EncounterTimeline.GetEventInfo(oldEventID) then
-            C_EncounterTimeline.CancelScriptEvent(oldEventID)
-            private.ActiveBossModTimers[oldEventID] = nil
-        end
-        local timerInfo = private.DBMTimers[timerId].info
+    elseif timerInfos[timerId] then
+        local timerInfo = timerInfos[timerId]
         timerInfo.timerDuration = timerInfo.timerDuration + timerModified
-        local eventinfo = {
-            duration = timerInfo.timerDuration - timerElapsed,
-            maxQueueDuration = timerInfo.timerKeep and timerInfo.timerDuration or 0,
-            overrideName = timerInfo.timerMsg and timerInfo.timerMsg ~= "" and timerInfo.timerMsg or timerInfo.timerSpellName,
-            spellID = timerInfo.timerSpellId,
-            iconFileID = timerInfo.icon,
-            severity = 1,
-            paused = false,
-            icons = {},
-        }
-        local eventID = C_EncounterTimeline.AddScriptEvent(eventinfo)
-        -- Preserve color from old event
-        if private.BossModsColors[oldEventID] then
-            private.BossModsColors[eventID] = private.BossModsColors[oldEventID]
-            private.BossModsColors[oldEventID] = nil
-        end
-        private.DBMTimers[timerId] = {
-            eventID = eventID,
-            info = timerInfo
-        }
+        timerInfo.eventinfo.duration = timerInfo.timerDuration - timerElapsed
+        timerInfo.eventinfo.maxQueueDuration = timerInfo.timerKeep and timerInfo.timerDuration or 0
+        private.manager.addEvent(timerInfo.eventinfo)
     end
 end
 
@@ -184,10 +144,16 @@ local function DisableBlizApi(event)
         DBM.Options.HideDBMBars = false
     end
     private.DisableBlizzTimersDBM = true
+    if private.refreshEncounterTimelineVisibility then
+        private.refreshEncounterTimelineVisibility()
+    end
 end
 
 local function EnableBlizApi(event)
     private.DisableBlizzTimersDBM = false
+    if private.refreshEncounterTimelineVisibility then
+        private.refreshEncounterTimelineVisibility()
+    end
 end
 
 DBM:RegisterCallback("DBM_TimerStart", TimerStarted)

@@ -253,50 +253,29 @@ end
 local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 	widget.eventInfo = eventInfo
 	if not disableOnUpdate then
-		widget.frame.Cooldown:SetCooldown(GetTime(),
-			eventInfo.duration - C_EncounterTimeline.GetEventTimeElapsed(eventInfo.id))
+		widget.frame.Cooldown:SetCooldown(GetTime(), private.manager.getEventRemainingTime(eventInfo.id))
 		widget.frame:SetScript("OnUpdate", function(self)
-			local remaining = C_EncounterTimeline.GetEventTimeRemaining(eventInfo.id)
-			local state = C_EncounterTimeline.GetEventState(eventInfo.id)
-			if state ~= private.ENCOUNTER_STATES.Active then -- this should be handled better but for now we just hide non active states from the ui
-				remaining = 0
-			end
-			if remaining > 0 then
+			local remaining = private.manager.getEventRemainingTime(eventInfo.id)
+			if remaining and remaining > 0 then
 				HandleCooldown(self, remaining)
-			else
-				private.HIGHLIGHT_EVENTS.BigIcons[eventInfo.id] = nil
-				for i, f in ipairs(private.BIG_ICONS) do
-					if f == widget then
-						table.remove(private.BIG_ICONS, i)
-						break
-					end
-				end
-				widget:Release()
-				private.evaluateBigIconPositions()
 			end
 		end)
-		local EventIconTextureID = eventInfo.id
-		if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators and private.BossModsSpellIndicators[eventID] then
-			EventIconTextureID = private.BossModsSpellIndicators[eventID]	
-		end
 		if private.db.profile.big_icon_settings.dispellIcons then
-			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 126, widget.frame.DispellTypeIcons)
+			private.manager.SetEventIconTextures(eventInfo.id, 126, widget.frame.DispellTypeIcons)
 		end
+		local borderColor = private.manager.getEventBorderColor(eventInfo.id)
 		if private.db.profile.big_icon_settings.border == private.IconBorderSettings.dispell then
 			for i, dispellValue in ipairs(private.dispellTypeList) do
 				for _, edgeTexture in ipairs(widget.frame.DispellTypeBorderEdges[i]) do
-					local textureArray = {}
-					table.insert(textureArray, edgeTexture)
-					C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, dispellValue.mask, textureArray)
+					private.manager.SetEventIconTextures(eventInfo.id, dispellValue.mask, { edgeTexture })
 					edgeTexture:SetTexture(nil)
 					edgeTexture:SetColorTexture(dispellValue.color.r, dispellValue.color.g, dispellValue.color.b,
 						dispellValue.color.a)
 				end
 			end
-		elseif private.db.profile.big_icon_settings.border == private.IconBorderSettings.bossmods and private.BossModsColors[eventInfo.id] and private.BossModsColors[eventInfo.id].borderColor then
-			local color = private.BossModsColors[eventInfo.id].borderColor
+		elseif private.db.profile.big_icon_settings.border == private.IconBorderSettings.bossmods and borderColor then
 			for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
-				edgeTexture:SetColorTexture(color.r, color.g, color.b, color.a)
+				edgeTexture:SetColorTexture(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
 				edgeTexture:Show()
 			end
 		else
@@ -305,10 +284,10 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 			end
 		end
 		if private.db.profile.big_icon_settings.dangerIcon then
-			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 1, widget.frame.DangerIcon)
+			private.manager.SetEventIconTextures(eventInfo.id, 1, widget.frame.DangerIcon)
 		end
 		if private.db.profile.big_icon_settings.roleIcons then
-			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 896, widget.frame.RoleIcons)
+			private.manager.SetEventIconTextures(eventInfo.id, 896, widget.frame.RoleIcons)
 		end
 	end
 
@@ -321,18 +300,11 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 	widget.frame.SpellName:SetText(eventInfo.spellName)
 
 	if private.db.profile.text_settings.useEventColor then
-			if issecretvalue(eventInfo.icons) then
-				local color = C_EncounterTimeline.GetEventColor(eventInfo.id, Enum.EncounterEventColorTrigger.TimelineEvent)
-				widget.frame.SpellName:SetTextColor(color.r,color.g, color.b)
-			elseif private.db.profile.dispellTextColor and eventInfo.icons and eventInfo.icons ~= 0 then
-				for _, value in pairs(private.dispellTypeList) do
-					if bit.band(eventInfo.icons, value.mask) ~= 0 then
-						widget.frame.SpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
-						break -- Only set the first matching color
-					end
-				end
-			end
+		local color = private.manager.getEventColor(eventInfo.id)
+		if color then
+			widget.frame.SpellName:SetTextColor(color.r, color.g, color.b)
 		end
+	end
 	widget.frame:Show()
 	if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.useTooltip and private.db.profile.big_icon_settings.useTooltip ~= Enum.EncounterEventsTooltipAnchor.Hidden then
 		private.AddEventTooltip(widget.frame, eventInfo, private.db.profile.big_icon_settings.useTooltip)

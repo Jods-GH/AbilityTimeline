@@ -170,47 +170,25 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 end
 
 
----set state to blocked for blocked events
----@param eventID EncounterTimelineEventID
----@param duration number
----@param timeElapsed number
----@param timeRemaining number
----@return EncounterTimelineEventState state
-local fixStateForBlocked = function(eventID, duration, timeElapsed, timeRemaining)
-	local state = C_EncounterTimeline.GetEventState(eventID)
-	local isBlocked = C_EncounterTimeline.IsEventBlocked(eventID)
-	if C_CVar.GetCVar("encounterTimelineHideQueuedCountdowns") == "1" then
-		return state
-	elseif state == private.ENCOUNTER_STATES.Active and isBlocked then
-		return private.ENCOUNTER_STATES.Blocked
-	elseif not timeElapsed or not timeRemaining or timeRemaining == 0 or timeElapsed >= duration then
-		return private.ENCOUNTER_STATES.Blocked
-	else
-		return state
-	end
-end
 ---Returns if an icon is currently in a non moving state
----@param state EncounterTimelineEventState
+---@param state number
 ---@return boolean
 local function isStoppedForPosition(state)
-	return state == private.ENCOUNTER_STATES.Paused or state == private.ENCOUNTER_STATES.Blocked
+	return state == private.ENCOUNTER_STATES.Paused or state == private.ENCOUNTER_STATES.Queued
 end
 
 -- TODO FIX THIS We should use something similar to the "dynamic group" idea of WeakAuras
 -- Currently the offset is ignored when calculating if a conflict is happening. The official timeline also does no conflict resolving and just overlaps icons so maybe we should do the same?
-local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, sourceTimeElapsed, rawSourcePosX,
-									   rawSourcePosY)
+local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, rawSourcePosX, rawSourcePosY)
 	local margin = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin or 5
-	local eventList = C_EncounterTimeline.GetEventList()
+	local eventList = private.manager.getEventList()
 	local totalEvents = 0
 	local conflictingYEvents = 0
 	local shorterYConflictingEvents = 0
 	local conflictingXEvents = 0
 	local shorterXConflictingEvents = 0
-	local sourceEventInfo = C_EncounterTimeline.GetEventInfo(sourceEventID)
-	local sourceRemainingTime = C_EncounterTimeline.GetEventTimeRemaining(sourceEventID)
-	local sourceState = fixStateForBlocked(sourceEventID, sourceEventInfo.duration, sourceTimeElapsed,
-		sourceRemainingTime)
+	local sourceRemainingTime = private.manager.getEventRemainingTime(sourceEventID)
+	local sourceState = private.manager.getEventState(sourceEventID)
 	local sourceUpperXBound = rawSourcePosX + (iconSize / 2) +
 		margin
 	local sourceLowerXBound = rawSourcePosX - (iconSize / 2) -
@@ -221,10 +199,8 @@ local calculateOffset       = function(iconSize, timelineHeight, sourceEventID, 
 		margin
 	for _, eventID in pairs(eventList) do
 		if eventID ~= sourceEventID and private.activeFrames[eventID] then
-			local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(eventID)
-			local eventInfo = C_EncounterTimeline.GetEventInfo(eventID)
-			local remainingTime = C_EncounterTimeline.GetEventTimeRemaining(eventID)
-			local state = fixStateForBlocked(eventID, eventInfo.duration, timeElapsed, remainingTime)
+			local remainingTime = private.manager.getEventRemainingTime(eventID)
+			local state = private.manager.getEventState(eventID)
 			if sourceState == state then
 				totalEvents = totalEvents + 1
 				local x, y = getRawIconPosition(iconSize, timelineHeight, remainingTime,
@@ -280,8 +256,7 @@ local calculateIconPosition = function(self, timeElapsed, moveHeight, isStopped)
 		self.eventInfo.duration - timeElapsed, isStopped)
 	if self.eventInfo.duration - timeElapsed > private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].threshold_time or isStopped then
 		-- only add offset for waiting icons
-		local xOffset, yOffset = calculateOffset(iconSize, moveHeight, self.eventInfo.id, timeElapsed, x,
-			y)
+		local xOffset, yOffset = calculateOffset(iconSize, moveHeight, self.eventInfo.id, x, y)
 		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
 			return x - xOffset, y - yOffset, isMoving
 		end
@@ -354,35 +329,9 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	else
 		self.frame.SpellName:SetText(eventInfo.spellName)
 		if private.db.profile.text_settings.useEventColor then
-			if issecretvalue(eventInfo.icons) then
-				local color = C_EncounterTimeline.GetEventColor(eventInfo.id, Enum.EncounterEventColorTrigger.TimelineEvent)
+			local color = private.manager.getEventColor(eventInfo.id)
+			if color then
 				self.frame.SpellName:SetTextColor(color.r, color.g, color.b)
-				local r,g,b = color:GetRGB()
-				private.Debug("Using event color for text for eventID: " .. eventInfo.id.. " with RGB values R: " .. r .. " G: " .. g .. " B: " .. b	)
-			elseif eventInfo.id and private.BossModsColors and private.BossModsColors[eventInfo.id] and private.BossModsColors[eventInfo.id].textColor then
-				local color = private.BossModsColors[eventInfo.id].textColor
-				self.frame.SpellName:SetTextColor(color.r, color.g, color.b)
-				private.Debug("Found text color for bossmods event, applying to text for timer event")
-				private.Debug("Color values - R: " .. color.r .. " G: " .. color.g .. " B: " .. color.b)
-			elseif private.db.profile.dispellTextColor and eventInfo.icons and eventInfo.icons ~= 0 then
-				local colorHasBeenSet = false
-				for _, value in pairs(private.dispellTypeList) do
-					if bit.band(eventInfo.icons, value.mask) ~= 0 then
-						self.frame.SpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
-						colorHasBeenSet = true
-						private.Debug("Found dispell type for event, applying its color to the text for eventID: " .. eventInfo.id.. " with RGB values R: " .. value.color.r .. " G: " .. value.color.g .. " B: " .. value.color.b	)
-						break -- Only set the first matching color
-					end
-				end
-				if not colorHasBeenSet then
-					private.Debug(eventInfo, "color")
-					local color = C_EncounterTimeline.GetEventColor(eventInfo.id, Enum.EncounterEventColorTrigger.TimelineEvent)
-					local r,g,b = color:GetRGB()
-					private.Debug("No dispell type found for event, using event text color for eventID: " .. eventInfo.id.. " with RGB values R: " .. r .. " G: " .. g .. " B: " .. b	)				
-					self.frame.SpellName:SetTextColor(color.r, color.g, color.b)
-				else
-					private.Debug("color was set")
-				end
 			elseif not disableOnUpdate then
 				private.Debug("Not using  color for text for eventID: " .. eventInfo.id)			
 			end
@@ -394,32 +343,23 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	self.frame.frameIsMoving = false
 	if not disableOnUpdate then
 		private.Debug("Setting event info for eventID: " .. eventInfo.id .. " with spell name: " .. eventInfo.spellName)
-		local EventIconTextureID = eventInfo.id
-		if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators and private.BossModsSpellIndicators[eventInfo.id] then
-			private.Debug("Found spell indicator for bossmods event, using its icons for the Textures")
-			EventIconTextureID = private.BossModsSpellIndicators[eventInfo.id]	
-		elseif eventInfo.source == Enum.EncounterTimelineEventSource.Script then
-			private.Debug("No spell indicator for bossmods event, using event icon for the Textures")
-		end
 		if private.db.profile.icon_settings.dispellIcons then
-			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 126, self.frame.dispellTypeIcons)
+			private.manager.SetEventIconTextures(eventInfo.id, 126, self.frame.dispellTypeIcons)
 		end
+		local borderColor = private.manager.getEventBorderColor(eventInfo.id)
 		if private.db.profile.icon_settings.border == private.IconBorderSettings.dispell then
 			for i, dispellValue in ipairs(private.dispellTypeList) do
 				for _, edgeTexture in ipairs(self.frame.DispellTypeBorderEdges[i]) do
-					local textureArray = {}
-					table.insert(textureArray, edgeTexture)
-					C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, dispellValue.mask, textureArray)
+					private.manager.SetEventIconTextures(eventInfo.id, dispellValue.mask, { edgeTexture })
 					edgeTexture:SetTexture(nil)
 					edgeTexture:SetColorTexture(dispellValue.color.r, dispellValue.color.g, dispellValue.color.b,
 						dispellValue.color.a)
 				end
 			end
-		elseif private.db.profile.icon_settings.border == private.IconBorderSettings.bossmods and private.BossModsColors[eventInfo.id] and private.BossModsColors[eventInfo.id].borderColor then
+		elseif private.db.profile.icon_settings.border == private.IconBorderSettings.bossmods and borderColor then
 			private.Debug("Found border color for bossmods event, applying to border for timer event")
-			local color = private.BossModsColors[eventInfo.id].borderColor
 			for _, edgeTexture in pairs(self.frame.BossModsBorderEdges) do
-                edgeTexture:SetColorTexture(color.r, color.g, color.b, color.a)
+                edgeTexture:SetColorTexture(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
 				edgeTexture:Show()
             end
 		else
@@ -430,22 +370,19 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 		end
 
 		if private.db.profile.icon_settings.roleIcons then
-			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 896, self.frame.RoleIcons)
+			private.manager.SetEventIconTextures(eventInfo.id, 896, self.frame.RoleIcons)
 		end
 
 		if private.db.profile.icon_settings.dangerIcon then
-			C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 1, self.frame.DangerIcon)
+			private.manager.SetEventIconTextures(eventInfo.id, 1, self.frame.DangerIcon)
 		end
 		self.frame:SetScript("OnUpdate", function(self)
-			local timeElapsed = C_EncounterTimeline.GetEventTimeElapsed(self.eventInfo.id)
-			local timeRemaining = C_EncounterTimeline.GetEventTimeRemaining(self.eventInfo.id)
-			local state = fixStateForBlocked(self.eventInfo.id, self.eventInfo.duration, timeElapsed, timeRemaining)
+			local timeElapsed = private.manager.getEventTimeElapsed(self.eventInfo.id)
+			local timeRemaining = private.manager.getEventRemainingTime(self.eventInfo.id)
+			local state = private.manager.getEventState(self.eventInfo.id)
+			if not state or not timeRemaining then return end
 			local isStopped = isStoppedForPosition(state)
 			if not timeElapsed or timeElapsed < 0 then timeElapsed = self.eventInfo.duration end
-			if not timeRemaining or timeRemaining < 0 or state == private.ENCOUNTER_STATES.Active and timeRemaining == 0 then
-				private.removeAtIconFrame(self.eventInfo.id, 'PlayFinishAnimation')
-				return
-			end
 			self.isStopped = isStopped
 			if state ~= self.state then
 				self.state = state
@@ -471,18 +408,6 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 				self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "LEFT", xPos, yPos)
 			else
 				self:SetPoint("CENTER", private.TIMELINE_FRAME.frame, "BOTTOM", xPos, yPos)
-			end
-			for tick, time in ipairs(private.TIMELINE_TICKS) do
-				local inRange = (eventInfo.duration - timeElapsed - time)
-				if inRange < 0.01 and inRange > -0.01 then -- this is not gonna work if fps are to low
-					-- self.IconContainer.HighlightAnimation:Play()
-					PlayHighlight(self)
-				end
-			end
-
-			local inBigIconRange = (eventInfo.duration - timeElapsed - private.BIGICON_THRESHHOLD_TIME)
-			if inBigIconRange < 0.01 and inBigIconRange > -0.01 then -- this is not gonna work if fps are to low
-				private.TRIGGER_HIGHLIGHT(self.eventInfo)
 			end
 		end)
 	end
@@ -793,6 +718,7 @@ local function Constructor()
 		SetEventInfo = SetEventInfo,
 		ApplySettings = ApplySettings,
 		HandleCooldown = HandleCooldown,
+		PlayHighlight = function(self) PlayHighlight(self.frame) end,
 	}
 
 	return AceGUI:RegisterAsWidget(widget)

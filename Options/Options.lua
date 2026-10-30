@@ -106,7 +106,12 @@ private.options = {
       order = 32,
       width = "full",
       type = "toggle",
-      set = function(info, val) private.db.profile.disableAllBlizzTimers = val end, --Sets value of SavedVariables depending on toggles
+      set = function(info, val) --Sets value of SavedVariables depending on toggles
+        private.db.profile.disableAllBlizzTimers = val
+        if private.refreshEncounterTimelineVisibility then
+          private.refreshEncounterTimelineVisibility()
+        end
+      end,
       get = function(info)
         return private.db.profile.disableAllBlizzTimers                             --Sets value of toggles depending on SavedVariables
       end,

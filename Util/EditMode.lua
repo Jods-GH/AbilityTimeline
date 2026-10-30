@@ -75,8 +75,10 @@ LibEditMode:RegisterCallback('delete', function(layoutName)
 end)
 
 LibEditMode:RegisterCallback('exit', function()
-    C_EncounterTimeline.CancelEditModeEvents()
-    if not C_EncounterTimeline.HasActiveEvents() then
+    if C_EncounterTimeline then
+        C_EncounterTimeline.CancelEditModeEvents()
+    end
+    if not private.manager.hasEvents() then
         private.handleFrame(false)
     end
 end)

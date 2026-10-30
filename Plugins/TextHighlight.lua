@@ -17,8 +17,8 @@ local RELATIVE_GROW_POSITION = {
 private.evaluateTextPositions = function()
    local visibleIcons = 0
    table.sort(private.HIGHLIGHT_TEXTS, function(a, b)
-      local aRemaining = C_EncounterTimeline.GetEventTimeRemaining(a.eventInfo.id)
-      local bRemaining = C_EncounterTimeline.GetEventTimeRemaining(b.eventInfo.id)
+      local aRemaining = private.manager.getEventRemainingTime(a.eventInfo.id)
+      local bRemaining = private.manager.getEventRemainingTime(b.eventInfo.id)
       if aRemaining and bRemaining and aRemaining ~= bRemaining then
          return aRemaining < bRemaining
       else
@@ -63,10 +63,25 @@ private.evaluateTextPositions = function()
    end
 end
 
-private.createTextHighlight = function(eventInfo)
+local textHighlights = {}
+
+private.createTextHighlight = function(eventID)
    local frame = AceGUI:Create("AtTextHighlight")
-   frame:SetEventInfo(eventInfo)
+   frame:SetEventInfo(private.manager.getEventInfo(eventID))
    table.insert(private.HIGHLIGHT_TEXTS, frame)
-   private.HIGHLIGHT_EVENTS.HighlightTexts[eventInfo.id] = true
+   textHighlights[eventID] = frame
    private.evaluateTextPositions()
 end
+
+private.manager.RegisterCallback("AtTextHighlight", "EVENT_DISPLAY_START", function(_, eventID, display)
+   if display == "textHighlight" and not textHighlights[eventID] then
+      private.createTextHighlight(eventID)
+   end
+end)
+
+private.manager.RegisterCallback("AtTextHighlight", "EVENT_DISPLAY_STOP", function(_, eventID, display)
+   if display == "textHighlight" and textHighlights[eventID] then
+      textHighlights[eventID]:Release()
+      textHighlights[eventID] = nil
+   end
+end)

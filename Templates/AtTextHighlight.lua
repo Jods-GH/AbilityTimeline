@@ -63,7 +63,6 @@ end
 ---@param self AtTextHighlight
 local function OnRelease(self)
     self.frame:SetScript("OnUpdate", nil)
-    private.HIGHLIGHT_EVENTS.HighlightTexts[self.eventInfo.id] = nil
     for i, f in ipairs(private.HIGHLIGHT_TEXTS) do
         if f == self then
             table.remove(private.HIGHLIGHT_TEXTS, i)
@@ -101,33 +100,19 @@ end
 ---@param remainingDuration any
 local HandleTexts = function(widget, eventInfo, remainingDuration)
     local textColor = GetTextColor(widget, remainingDuration)
-    local EventIconTextureID = eventInfo.id
-    if eventInfo.source == Enum.EncounterTimelineEventSource.Script and private.BossModsSpellIndicators and private.BossModsSpellIndicators[eventID] then
-        EventIconTextureID = private.BossModsSpellIndicators[eventInfo.id]	
-    end
-    C_EncounterTimeline.SetEventIconTextures(EventIconTextureID, 126, widget.frame.dispellTypeIcons)
+    private.manager.SetEventIconTextures(eventInfo.id, 126, widget.frame.dispellTypeIcons)
     local atlas = widget.frame.dispellTypeIcons[1]:GetAtlas()
     local formatedText = string.format("%s in |c%s%i|r", eventInfo.spellName, textColor,
         math.ceil(remainingDuration))
-    if private.db.profile.highlight_text_settings.dispellIcons then
+    if private.db.profile.highlight_text_settings.dispellIcons and atlas then
         formatedText = string.format("|A:%s:20:20|a %s in |c%s%i|r", atlas, eventInfo.spellName, textColor,
             math.ceil(remainingDuration))
     end
     widget.frame.SpellName:SetText(formatedText)
     if private.db.profile.text_settings.useEventColor then
-        if issecretvalue(eventInfo.icons) then
-            local color = C_EncounterTimeline.GetEventColor(eventInfo.id, Enum.EncounterEventColorTrigger.TimelineEvent)
+        local color = private.manager.getEventColor(eventInfo.id)
+        if color then
             widget.frame.SpellName:SetTextColor(color.r, color.g, color.b)
-        elseif eventInfo.id and private.BossModsColors and private.BossModsColors[eventInfo.id] and private.BossModsColors[eventInfo.id].textColor then
-				local color = private.BossModsColors[eventInfo.id].textColor
-				widget.frame.SpellName:SetTextColor(color.r, color.g, color.b)
-        elseif private.db.profile.dispellTextColor and eventInfo.icons and eventInfo.icons ~= 0 then
-            for _, value in pairs(private.dispellTypeList) do
-                if bit.band(eventInfo.icons, value.mask) ~= 0 then
-                    widget.frame.SpellName:SetTextColor(value.color.r, value.color.g, value.color.b)
-                    break -- Only set the first matching color
-                end
-            end
         end
     end
 end
@@ -140,11 +125,8 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
     if not disableOnUpdate then
         HandleTexts(widget, eventInfo, eventInfo.duration)
         widget.frame:SetScript("OnUpdate", function(self)
-            local remainingDuration = C_EncounterTimeline.GetEventTimeRemaining(widget.eventInfo.id)
-            local state = C_EncounterTimeline.GetEventState(widget.eventInfo.id)
-            if not remainingDuration or remainingDuration <= 0 or state ~= private.ENCOUNTER_STATES.Active then
-                widget:Release()
-            else
+            local remainingDuration = private.manager.getEventRemainingTime(widget.eventInfo.id)
+            if remainingDuration and remainingDuration > 0 then
                 HandleTexts(widget, eventInfo, remainingDuration)
             end
         end)
