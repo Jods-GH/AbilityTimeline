@@ -2,11 +2,12 @@ local appName, app = ...
 ---@class AbilityTimeline
 local private = app
 private.RegisterThemeTextures("Papercraft", { "confetti", "confetti_dot", "deckle", "doodle_heart", "doodle_plane",
-    "doodle_sun", "hatch", "highlight", "paper_grain", "paper_strip", "tape" }, { "scribble", "tear" })
+    "doodle_sun", "hatch", "hatch_dense", "highlight", "paper_grain", "paper_strip", "sketch_box", "tape" },
+    { "outline", "scribble", "tear", "wash" })
 
 -- cream paper, ink, red and blue pencil, washi tape and a highlighter, after BetterBags' Papercraft (Sonata, Cidan):
--- a strip of torn paper with a stroke of highlighter where icons arrive, icons drawn in pencil before they show and
--- torn off when they leave. Picked in tools/sim/scenarios/papercraft.js
+-- a strip of torn paper with a stroke of highlighter where icons arrive, icons drawn and shaded in pencil, then
+-- painted in, and torn off when they leave. Picked in tools/sim/scenarios/papercraft.js
 local FONTS = "Interface\\AddOns\\AbilityTimeline\\Media\\Fonts\\"
 local CAVEAT, PATRICK = "Caveat", "Patrick Hand"
 -- the locales the fonts draw, the others keep the client's font
@@ -94,13 +95,25 @@ local window = function(decor)
     }
 end
 
----the style of spell and big icons: drawn in pencil before they show, torn off as they leave, a few bits of paper
+---the style of spell and big icons: a pencil square drawn round them, shaded in their own greys through close hatching,
+---then colour soaking in like watercolour, torn off as they leave, a few bits of paper
 ---hopping off as they pass a tick (timeline icons only, big icons are already in sight)
 local iconStyle = function(pulse, size)
     return {
         Enter = {
-            Ghost = { Source = "Icon", Time = 0.8,
-                Sketch = { Back = "PaperLight", Color = "Muted", Hatch = "hatch", Frames = "scribble", Count = 12, Draw = 0.55 } },
+            Ghost = { Source = "Icon", Time = 0.9,
+                Sketch = {
+                    Back = "PaperLight",
+                    Color = "Graphite",
+                    Hatch = "hatch_dense",
+                    Frames = "scribble",
+                    Count = 12,
+                    From = 0.12,
+                    Draw = 0.5,
+                    Outline = { File = "sketch_box", Color = "Ink", Frames = "outline", Until = 0.25 },
+                    Fill = { Frames = "wash", Count = 12 },
+                },
+            },
         },
         Exit = {
             Ghost = { Source = "Icon", Dissolve = TEARING, Time = 0.4 },
@@ -150,6 +163,7 @@ private.RegisterTheme({
         TapeBlue = { 0.56, 0.71, 0.86, 1 },
         TapePink = { 0.9, 0.63, 0.6, 1 },
         Heart = { 0.85, 0.42, 0.47, 1 },
+        Graphite = { 0.82, 0.79, 0.75, 1 },
     },
     Fonts = {
         Title = script(24, "Text"),

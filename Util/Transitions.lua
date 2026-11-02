@@ -15,9 +15,11 @@ local ThemeApply = private.ThemeApply
 -- Rise (pixels it moves up, or { from, to } to come down into place), Fade = { from, to } (it fades out unless it
 -- dissolves), Flash (a texture spec flaring up
 -- over it and fading), Dissolve = { Frames, Count, Edge } eats it away along the masks <Frames>1..<Count> while Edge
--- (a texture spec) glows along <Frames>_edge1..<Count>, Sketch = { Back, Color, Hatch, Frames, Count, Draw } draws
--- it in pencil instead: over a sheet of Back (a color), the icon desaturated in Color (or the spec's texture) masked by
--- Hatch is drawn in along the masks <Frames><Count>..1 over the first Draw of Time, then fades with its sheet
+-- (a texture spec) glows along <Frames>_edge1..<Count>, Sketch = { Back, Color, Hatch, Frames, Count, From, Draw,
+-- Outline, Fill } draws it in pencil instead: over a sheet of Back (a color), Outline (a texture spec) is drawn in along
+-- the masks <Outline.Frames><Count>..1 until Outline.Until of Time, the icon desaturated in Color (or the spec's
+-- texture) masked by Hatch is drawn in along <Frames><Count>..1 from From to Draw, then it all fades with its sheet,
+-- or with a Fill = { Frames, Count } goes along <Fill.Frames>1..<Count> so the frame below comes in patch by patch
 -- Flare: a texture spec over the middle growing from Size[1] to Size[2] times the frame's smaller side, turning by
 -- Spin per second, flaring up and fading over Time
 -- Beam: a texture spec coming straight down onto the frame from Height times its height above it (2.4), Width times
@@ -165,6 +167,19 @@ local lerp = function(range, progress, default)
     return range[1] + (range[2] - range[1]) * progress
 end
 
+---shows the mask <frames><index> in mask, unless it shows it already (shown)
+---@param mask MaskTexture
+---@param frames string
+---@param index number
+---@param shown number|nil
+---@return number
+local stepMask = function(mask, frames, index, shown)
+    if index ~= shown then
+        mask:SetTexture(ThemeApply.File(frames .. index), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    end
+    return index
+end
+
 ---@param host Frame
 ---@param ghost table
 ---@param progress number
@@ -177,18 +192,30 @@ local stepGhost = function(host, ghost, progress)
     host.GhostFlash:SetAlpha(math.sin(math.pi * progress))
     local sketch = ghost.Sketch
     if sketch then
-        -- drawn in stroke by stroke, the dissolve's masks backwards, then the drawing and its sheet fade together
-        local draw = sketch.Draw or 0.6
+        -- drawn in stroke by stroke, the dissolve's masks backwards, then the drawing and its sheet fade together or
+        -- go along the fill's masks
+        local draw, from = sketch.Draw or 0.6, sketch.From or 0
         local count = sketch.Count or 12
-        local index = count - math.min(math.floor(progress / draw * count), count - 1)
-        if index ~= host.dissolveFrame then
-            host.dissolveFrame = index
-            host.GhostDissolve:SetTexture(ThemeApply.File(sketch.Frames .. index), "CLAMPTOBLACKADDITIVE",
-                "CLAMPTOBLACKADDITIVE")
+        host.dissolveFrame = stepMask(host.GhostDissolve, sketch.Frames,
+            count - math.min(math.floor(math.max(progress - from, 0) / (draw - from) * count), count - 1), host.dissolveFrame)
+        local outline = sketch.Outline
+        if outline then
+            host.outlineFrame = stepMask(host.GhostOutlineMask, outline.Frames,
+                count - math.min(math.floor(progress / outline.Until * count), count - 1), host.outlineFrame)
         end
-        local alpha = progress < draw and 1 or 1 - (progress - draw) / (1 - draw)
-        host.Ghost:SetAlpha(alpha)
-        host.GhostBack:SetAlpha(alpha)
+        local fill = sketch.Fill
+        local alpha = 1
+        if fill then
+            local fillCount = fill.Count or count
+            local filled = math.max(progress - draw, 0) / (1 - draw)
+            host.fillFrame = stepMask(host.GhostFill, fill.Frames, math.min(math.floor(filled * fillCount) + 1, fillCount),
+                host.fillFrame)
+        elseif progress > draw then
+            alpha = 1 - (progress - draw) / (1 - draw)
+        end
+        for _, layer in ipairs({ host.Ghost, host.GhostBack, host.GhostOutline }) do
+            layer:SetAlpha(alpha)
+        end
     end
     local dissolve = ghost.Dissolve
     if dissolve then
@@ -323,6 +350,13 @@ local acquireHost = function(frame, attach)
         host.GhostBack:SetAllPoints(host.Ghost)
         host.GhostHatch = host:CreateMaskTexture()
         host.GhostHatch:SetAllPoints(host.Ghost)
+        host.GhostOutline = host:CreateTexture(nil, "ARTWORK", nil, 1)
+        host.GhostOutline:SetAllPoints(host.Ghost)
+        host.GhostOutlineMask = host:CreateMaskTexture()
+        host.GhostOutlineMask:SetAllPoints(host.Ghost)
+        host.GhostOutline:AddMaskTexture(host.GhostOutlineMask)
+        host.GhostFill = host:CreateMaskTexture()
+        host.GhostFill:SetAllPoints(host.Ghost)
         host.GhostFlash = host:CreateTexture(nil, "OVERLAY", nil, 1)
         host.GhostFlash:SetAllPoints(host.Ghost)
         host.GhostEdge = host:CreateTexture(nil, "OVERLAY", nil, 2)
@@ -438,15 +472,20 @@ local setupGhost = function(host, ghost, icon, iconFile)
         host.GhostHatch:SetTexture(ThemeApply.File(sketch.Hatch), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
     end
     setMask(texture, host.GhostHatch, sketch ~= nil and sketch.Hatch ~= nil)
+    host.GhostOutline:SetShown(sketch and sketch.Outline and ThemeApply.Texture(host.GhostOutline, sketch.Outline) or false)
+    host.dissolveFrame, host.outlineFrame, host.fillFrame = nil, nil, nil
+    local fill = sketch and sketch.Fill ~= nil
+    for _, layer in ipairs({ texture, host.GhostBack, host.GhostOutline }) do
+        setMask(layer, host.GhostFill, fill)
+    end
     texture:ClearAllPoints()
     host.GhostFlash:SetShown(ghost.Flash and ThemeApply.Texture(host.GhostFlash, ghost.Flash) or false)
     if ghost.Mask then
         host.GhostShape:SetTexture(ThemeApply.File(ghost.Mask), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
     end
     local dissolve = ghost.Dissolve
-    host.dissolveFrame = nil
     host.GhostEdge:SetShown(dissolve and dissolve.Edge and ThemeApply.Texture(host.GhostEdge, dissolve.Edge) or false)
-    for _, layer in ipairs({ texture, host.GhostFlash, host.GhostEdge, host.GhostBack }) do
+    for _, layer in ipairs({ texture, host.GhostFlash, host.GhostEdge, host.GhostBack, host.GhostOutline }) do
         setMask(layer, host.GhostShape, ghost.Mask ~= nil)
     end
     setMask(texture, host.GhostDissolve, dissolve ~= nil or sketch ~= nil)
@@ -512,6 +551,7 @@ ThemeApply.PlayExit = function(frame, exit, icon, iconFile, attach)
         host.GhostFlash:Hide()
         host.GhostEdge:Hide()
         host.GhostBack:Hide()
+        host.GhostOutline:Hide()
     end
     host.Flare:SetShown(exit.Flare and ThemeApply.Texture(host.Flare, exit.Flare) or false)
     if exit.Flare then
