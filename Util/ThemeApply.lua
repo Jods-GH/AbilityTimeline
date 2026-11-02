@@ -69,12 +69,14 @@ end
 ---@param spec table|nil
 ThemeApply.Font = function(fontString, spec)
     if not spec then return end
-    if spec.Object and _G[spec.Object] then
-        fontString:SetFontObject(spec.Object)
+    local base = spec.Object and _G[spec.Object]
+    if base then
+        fontString:SetFontObject(base)
     end
     local ownFont = (spec.Media or spec.Path) and hasLocale(spec)
-    if ownFont or spec.Size or spec.Flags then
-        local path, size, flags = fontString:GetFont()
+    -- a font set before (another theme's) stays over the font object, so the object's own font is set again
+    if ownFont or spec.Size or spec.Flags or base then
+        local path, size, flags = (base or fontString):GetFont()
         if ownFont then
             path = spec.Media and SharedMedia:Fetch("font", spec.Media) or spec.Path
         end
