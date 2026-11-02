@@ -12,7 +12,8 @@ local ThemeApply = private.ThemeApply
 -- drawn over every shard, Speed, Gravity, Time), Burst (flung once the crack breaks, or after BurstDelay seconds), Ghost
 -- and Flare. Exits draw on their own frame so the frame they leave can be hidden right away
 -- Ghost: an image of the leaving frame (Source = "Icon" or a texture spec) playing over Time: Scale = { from, to },
--- Rise (pixels it moves up), Fade = { from, to } (it fades out unless it dissolves), Flash (a texture spec flaring up
+-- Rise (pixels it moves up, or { from, to } to come down into place), Fade = { from, to } (it fades out unless it
+-- dissolves), Flash (a texture spec flaring up
 -- over it and fading), Dissolve = { Frames, Count, Edge } eats it away along the masks <Frames>1..<Count> while Edge
 -- (a texture spec) glows along <Frames>_edge1..<Count>
 -- Flare: a texture spec over the middle growing from Size[1] to Size[2] times the frame's smaller side, turning by
@@ -31,10 +32,17 @@ local SHARD_SEEDS = {
     { 0.3, 0.92 }, { 0.08, 0.6 }, { 0.4, 0.08 },
 }
 
+---places burst particles anywhere over host, or with Spot = { left, right, bottom, top } (fractions of it) only there,
+---e.g. a splash bursting out of the middle
 local spawnInside = function(host)
-    return function(particle)
-        particle.x = math.random() * host:GetWidth()
-        particle.y = math.random() * host:GetHeight()
+    return function(particle, spec)
+        local spot = spec.Spot
+        local x, y = math.random(), math.random()
+        if spot then
+            x, y = spot[1] + (spot[2] - spot[1]) * x, spot[3] + (spot[4] - spot[3]) * y
+        end
+        particle.x = x * host:GetWidth()
+        particle.y = y * host:GetHeight()
     end
 end
 
@@ -67,11 +75,13 @@ end
 ---plays Cover and Burst of an Enter spec on frame
 ---@param frame Frame
 ---@param enter table|nil
-ThemeApply.PlayEnterEffects = function(frame, enter)
+---@param icon Texture|nil -- the texture a Ghost with Source "Icon" shows
+---@param iconFile any -- the file icon shows
+ThemeApply.PlayEnterEffects = function(frame, enter, icon, iconFile)
     if not enter or not private.AmbientEffectsEnabled() then return end
     if enter.Ghost or enter.Flare or enter.Vortex or enter.Beam then
         ThemeApply.PlayExit(frame, { Ghost = enter.Ghost, Flare = enter.Flare, Vortex = enter.Vortex, Beam = enter.Beam },
-            nil, nil, true)
+            icon, iconFile, true)
     end
     if not (enter.Cover or enter.Burst) then return end
     local layer = frame.AtEnterLayer
@@ -159,7 +169,8 @@ end
 local stepGhost = function(host, ghost, progress)
     local scale = lerp(ghost.Scale, progress * progress, 1)
     host.Ghost:SetSize(math.max(host:GetWidth() * scale, 0.01), math.max(host:GetHeight() * scale, 0.01))
-    host.Ghost:SetPoint("CENTER", host, "CENTER", 0, (ghost.Rise or 0) * progress)
+    local rise = ghost.Rise
+    host.Ghost:SetPoint("CENTER", host, "CENTER", 0, type(rise) == "table" and lerp(rise, progress) or (rise or 0) * progress)
     host.Ghost:SetAlpha(lerp(ghost.Fade, progress, ghost.Dissolve and 1 or 1 - progress))
     host.GhostFlash:SetAlpha(math.sin(math.pi * progress))
     local dissolve = ghost.Dissolve

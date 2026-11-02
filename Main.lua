@@ -25,6 +25,10 @@ function AbilityTimeline:OnInitialize()
     AbilityTimeline:RegisterEvent("ZONE_CHANGED_NEW_AREA")
     AbilityTimeline:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
     AbilityTimeline:RegisterEvent("PLAYER_TALENT_UPDATE")
+    -- clients before C_Weather don't know the event
+    if C_Weather then
+        AbilityTimeline:RegisterEvent("WEATHER_CHANGED")
+    end
     if private.isRetail then
         AbilityTimeline:RegisterEvent("CHALLENGE_MODE_COMPLETED")
         AbilityTimeline:RegisterEvent("CHALLENGE_MODE_RESET")
@@ -38,6 +42,8 @@ function AbilityTimeline:OnInitialize()
     private.db.RegisterCallback(private, "OnProfileChanged", onProfileChanged)
     private.db.RegisterCallback(private, "OnProfileCopied", onProfileChanged)
     private.db.RegisterCallback(private, "OnProfileReset", onProfileChanged)
+    -- the time of day has no event, nor has every change of the weather's intensity
+    C_Timer.NewTicker(30, private.CheckThemeConditions)
     private.Debug(private, "AT_Options")
     local OptionTable = {
         type = "group",
@@ -88,14 +94,16 @@ end
 local TEST_ICONS = { 135127, 136197, 135808, 132090, 136116, 237538 }
 local testEventIDs = {}
 
-local function createTestBars(duration)
+---@param duration number
+---@param queue number|nil seconds it stays queued after reaching 0, as long as its duration plus 5 without
+local function createTestBars(duration, queue)
     local spellId = 376864
     local index = #testEventIDs + 1
 
     local eventinfo = {
         source = private.manager.SOURCES.Addon,
         duration = duration,
-        maxQueueDuration = duration + 5,
+        maxQueueDuration = queue or duration + 5,
         spellName = "Test Spell " .. index,
         spellID = spellId,
         iconFileID = TEST_ICONS[(index - 1) % #TEST_ICONS + 1],
@@ -137,6 +145,58 @@ local TEST_SCENARIOS = {
     stress = { random = 20, min = 4, max = 40 },
 }
 
+-- /at test weather and /at test time: every weather or period of the day in turn, each faded in and held, while a test
+-- timer starts every few seconds and crosses the timeline without being queued, then the real one again
+local TOUR_TIMER_EVERY = 3
+local TOUR_TIMER_DURATIONS = { 10, 13, 16 }
+local tour
+
+local function stopTour()
+    if tour then
+        tour.steps:Cancel()
+        tour.timers:Cancel()
+        tour.apply(nil)
+        tour = nil
+    end
+end
+
+---@param name string what the tour shows, for the chat
+---@param values string[] shown one after the other
+---@param step number seconds each is shown
+---@param apply fun(value: string|nil): string shows value, nil the real one again, returns the theme key shown
+local function startTour(name, values, step, apply)
+    if tour then
+        tour.steps:Cancel()
+        tour.timers:Cancel()
+    end
+    local spawned = 0
+    local spawn = function()
+        spawned = spawned + 1
+        createTestBars(TOUR_TIMER_DURATIONS[(spawned - 1) % #TOUR_TIMER_DURATIONS + 1], 0)
+    end
+    spawn()
+    local index = 0
+    local show = function()
+        index = index + 1
+        local value = values[index]
+        local key = apply(value)
+        local themeName = private.Themes[key].DisplayName or key
+        if value then
+            AbilityTimeline:Print(string.format("Test %s %d/%d: %s (%s)", name, index, #values, value, themeName))
+        else
+            tour = nil
+            AbilityTimeline:Print(string.format("Test %s done, the real one again (%s)", name, themeName))
+        end
+    end
+    tour = {
+        apply = apply,
+        -- timers until the last one shown is gone
+        timers = C_Timer.NewTicker(TOUR_TIMER_EVERY, spawn, math.floor(#values * step / TOUR_TIMER_EVERY) - 1),
+        steps = C_Timer.NewTicker(step, show, #values),
+    }
+    show()
+end
+
 local function printTestUsage()
     AbilityTimeline:Print("/at test <seconds> [<seconds> ...] - starts one test timer per duration at the same time, e.g. /at test 12 12 12.1")
     local names = {}
@@ -146,6 +206,8 @@ local function printTestUsage()
     table.sort(names)
     AbilityTimeline:Print("/at test <scenario> - starts a predefined set: " .. table.concat(names, ", "))
     AbilityTimeline:Print("/at test pause | resume | clear - pauses, resumes or removes all test timers")
+    AbilityTimeline:Print("/at test weather - shows every weather in turn (Clear, Rain, Snow, Sandstorm, Miscellaneous) with its transitions while test timers run, then the real weather again; /at test clear stops it")
+    AbilityTimeline:Print("/at test time - the same for the time of day (Morning, Midday, Evening, Night), with the real 20 second fades")
 end
 
 ---handles everything after "/at test "
@@ -154,7 +216,16 @@ local function handleTestCommand(args)
     local command = args:match("^(%a+)")
     if command == "help" then
         printTestUsage()
+    elseif command == "weather" then
+        startTour("weather", private.WEATHER_TYPES, 9, private.SetTestWeather)
+    elseif command == "time" then
+        local periods = {}
+        for _, period in ipairs(private.TIME_PERIODS) do
+            table.insert(periods, period.Name)
+        end
+        startTour("time of day", periods, private.PERIOD_FADE + 6, private.SetTestPeriod)
     elseif command == "clear" then
+        stopTour()
         for _, eventID in ipairs(testEventIDs) do
             private.manager.removeEvent(eventID)
         end
@@ -253,6 +324,8 @@ function AbilityTimeline:PLAYER_ENTERING_WORLD(event, isInitialLogin, isReloadin
         -- themes can read other addons (ElvUI) which are only set up by now
         private.RestoreSavedTheme()
         C_Timer.After(3, private.checkThemePrompt)
+        -- since 12.1 the weather can be unknown for a moment after login
+        C_Timer.NewTicker(1, private.CheckThemeConditions, 10)
     end
     if not C_AddOns.IsAddOnLoaded("Blizzard_EncounterJournal") then
         C_AddOns.LoadAddOn("Blizzard_EncounterJournal")
@@ -320,6 +393,10 @@ end
 
 function AbilityTimeline:PLAYER_TALENT_UPDATE()
     private.RefreshAutoTheme()
+end
+
+function AbilityTimeline:WEATHER_CHANGED()
+    private.CheckThemeConditions()
 end
 
 function AbilityTimeline:READY_CHECK(event, initiator, readyCheckTimeLeft)

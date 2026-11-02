@@ -454,10 +454,13 @@ ThemeApply.HideButtonTextures = function(button)
 end
 
 ---plays an Enter animation when an icon or text appears: a fade in, growing from Scale when it has one (texts
----shimmer while scaled, so they leave it out)
+---shimmer while scaled, so they leave it out); icons pass keepSize, their borders and badges don't grow with them
 ---@param frame Frame
 ---@param enter table|nil
-ThemeApply.PlayEnter = function(frame, enter)
+---@param keepSize boolean|nil
+---@param icon Texture|nil -- the texture a Ghost with Source "Icon" shows
+---@param iconFile any -- the file icon shows
+ThemeApply.PlayEnter = function(frame, enter, keepSize, icon, iconFile)
     if not enter or private.GetAnimationLevel() == private.ANIMATION_LEVELS.OFF then return end
     if not frame.AtEnterAnimation then
         local group = frame:CreateAnimationGroup()
@@ -469,7 +472,7 @@ ThemeApply.PlayEnter = function(frame, enter)
     local group = frame.AtEnterAnimation
     local time = private.GetMotion("Enter")
     group:Stop()
-    if enter.Scale then
+    if enter.Scale and not keepSize then
         group.Grow:SetDuration(time)
         group.Grow:SetScaleFrom(enter.Scale, enter.Scale)
         group.Grow:SetSmoothing("OUT")
@@ -480,11 +483,12 @@ ThemeApply.PlayEnter = function(frame, enter)
     private.Tween(group, 0, 1, time, "outCubic", function(alpha)
         frame:SetAlpha(alpha)
     end)
-    ThemeApply.PlayEnterEffects(frame, enter)
+    ThemeApply.PlayEnterEffects(frame, enter, icon, iconFile)
 end
 
----plays an icon style's Pulse once, when the icon passes a tick of the timeline: Glow flares up behind it, it jumps
----to Scale and settles back, and Ghost, Flare, Beam, Vortex and Burst play over it as in an Exit
+---plays an icon style's Pulse once, when the icon passes a tick of the timeline: Glow flares up behind it, and Ghost,
+---Flare, Beam, Vortex and Burst play over it as in an Exit; the icon keeps its size, its borders and badges wouldn't
+---grow with it
 ---@param frame Frame
 ---@param pulse table|nil
 ---@param icon Texture|nil -- the texture a Ghost with Source "Icon" shows
@@ -510,12 +514,6 @@ ThemeApply.PlayPulse = function(frame, pulse, icon, iconFile)
         glow.Fade:SetOrder(2)
         glow:SetScript("OnFinished", function() frame.AtPulse:Hide() end)
         frame.AtPulseGlow = glow
-        local beat = frame:CreateAnimationGroup()
-        beat.Settle = beat:CreateAnimation("Scale")
-        beat.Settle:SetOrigin("CENTER", 0, 0)
-        beat.Settle:SetScaleTo(1, 1)
-        beat.Settle:SetSmoothing("OUT")
-        frame.AtPulseBeat = beat
     end
     local time = pulse.Time or 0.5
     local glow = pulse.Glow
@@ -533,12 +531,6 @@ ThemeApply.PlayPulse = function(frame, pulse, icon, iconFile)
     else
         frame.AtPulse:Hide()
     end
-    frame.AtPulseBeat:Stop()
-    if pulse.Scale then
-        frame.AtPulseBeat.Settle:SetScaleFrom(pulse.Scale, pulse.Scale)
-        frame.AtPulseBeat.Settle:SetDuration(time * 0.6)
-        frame.AtPulseBeat:Play()
-    end
     if pulse.Ghost or pulse.Flare or pulse.Beam or pulse.Vortex or pulse.Burst then
         ThemeApply.PlayExit(frame, { Ghost = pulse.Ghost, Flare = pulse.Flare, Beam = pulse.Beam, Vortex = pulse.Vortex,
             Burst = pulse.Burst }, icon, iconFile, true)
@@ -551,7 +543,6 @@ ThemeApply.StopPulse = function(frame)
     if not frame.AtPulse then return end
     frame.AtPulseGlow:Stop()
     frame.AtPulse:Hide()
-    frame.AtPulseBeat:Stop()
 end
 
 ---gives a UIPanelCloseButton the theme's close glyph

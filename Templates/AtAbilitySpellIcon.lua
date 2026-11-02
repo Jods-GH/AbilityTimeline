@@ -344,7 +344,8 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	-- the position is updated by the timeline driver (see AbilityTimeline.lua) based on the zone of the icon
 	self.frame.frameIsMoving = false
 	if not disableOnUpdate then
-		private.ThemeApply.PlayEnter(self.frame, private.GetElementStyle("SpellIcon").Enter)
+		private.ThemeApply.PlayEnter(self.frame, private.GetElementStyle("SpellIcon").Enter, true, self.frame.SpellIcon,
+			eventInfo.iconFileID)
 		private.Debug("Setting event info for eventID: " .. eventInfo.id .. " with spell name: " .. eventInfo.spellName)
 		if private.db.profile.icon_settings.dispellIcons then
 			private.manager.SetEventIconTextures(eventInfo.id, 126, self.frame.dispellTypeIcons)

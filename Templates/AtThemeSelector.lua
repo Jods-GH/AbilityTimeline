@@ -206,7 +206,7 @@ private.openThemeSelector = function()
     selector:AddChild(createLabel(private.getLocalisation("ThemeSelectorDescription"), "Muted"))
 
     -- the automatic selections first, shown with the palette of the theme they currently pick, then the themes made
-    -- for no class, then a group per class
+    -- for no class, the weather themes, then a group per class
     local groups = { { Name = private.getLocalisation("ThemeGroupAutomatic"), Themes = {} } }
     for _, key in ipairs(private.AUTO_THEMES) do
         local theme = private.Themes[private.ResolveThemeKey(key)]
@@ -220,12 +220,15 @@ private.openThemeSelector = function()
     end
     for _, theme in ipairs(private.GetSelectableThemes()) do
         local group = groups[#groups]
-        if #groups == 1 or group.Class ~= theme.Class then
-            group = {
-                Name = theme.Class and private.GetClassName(theme.Class) or private.getLocalisation("ThemeGroupGeneral"),
-                Class = theme.Class,
-                Themes = {},
-            }
+        local weather = theme.Weather ~= nil
+        if #groups == 1 or group.Class ~= theme.Class or group.Weather ~= weather then
+            local name = private.getLocalisation("ThemeGroupGeneral")
+            if theme.Class then
+                name = private.GetClassName(theme.Class)
+            elseif weather then
+                name = private.getLocalisation("ThemeGroupWeather")
+            end
+            group = { Name = name, Class = theme.Class, Weather = weather, Themes = {} }
             table.insert(groups, group)
         end
         table.insert(group.Themes, theme)
@@ -262,7 +265,7 @@ private.openThemeSelector = function()
             local heading
             for _, theme in ipairs(group.Themes) do
                 if query == "" or matches(theme.DisplayName or theme.Name) or matches(theme.Description) or
-                    (group.Class and matches(group.Name)) then
+                    ((group.Class or group.Weather) and matches(group.Name)) then
                     if not heading then
                         heading = createLabel(group.Name, "Heading")
                         local color = group.Class and RAID_CLASS_COLORS[group.Class]

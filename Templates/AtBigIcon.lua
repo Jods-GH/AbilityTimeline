@@ -166,7 +166,8 @@ end
 local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 	widget.eventInfo = eventInfo
 	if not disableOnUpdate then
-		private.ThemeApply.PlayEnter(widget.frame, private.GetElementStyle("BigIcon").Enter)
+		private.ThemeApply.PlayEnter(widget.frame, private.GetElementStyle("BigIcon").Enter, true, widget.frame.SpellIcon,
+			eventInfo.iconFileID)
 		widget.frame.Cooldown:SetCooldown(GetTime(), private.manager.getEventRemainingTime(eventInfo.id))
 		widget.frame:SetScript("OnUpdate", function(self)
 			local remaining = private.manager.getEventRemainingTime(eventInfo.id)

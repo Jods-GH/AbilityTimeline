@@ -1,6 +1,11 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\..\FrameXML\UI.xsd">
   <Script file="Classic.lua"/>
+  <Script file="WeatherClear.lua"/>
+  <Script file="WeatherRain.lua"/>
+  <Script file="WeatherSnow.lua"/>
+  <Script file="WeatherSandstorm.lua"/>
+  <Script file="WeatherMiscellaneous.lua"/>
   <Script file="MageArcane.lua"/>
   <Script file="MageFire.lua"/>
   <Script file="MageFrost.lua"/>

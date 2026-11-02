@@ -8,7 +8,7 @@ local SharedMedia = LibStub("LibSharedMedia-3.0")
 -- registers its own folder with RegisterThemeTextures
 local TEXTURES = "Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\Theme\\"
 local SHARED_TEXTURES = {
-    "check", "chevron", "circle", "close", "cracks", "dust", "fel_ember", "flake", "frost", "glow", "gradient", "ice",
+    "check", "chevron", "circle", "close", "cracks", "dust", "fel_ember", "flake", "frost", "glint", "glow", "gradient", "ice",
     "leaf", "minus", "mote", "panel", "panel_edge", "pill", "plus", "ring", "shadow", "thumb",
 }
 -- the pieces ice shatters into, Util/Transitions.lua cuts shards with them
