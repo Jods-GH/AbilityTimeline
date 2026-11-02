@@ -2,7 +2,6 @@ local appName, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
-local SharedMedia = LibStub("LibSharedMedia-3.0")
 local Type = "AtTextHighlight"
 local Version = 1
 local variables = {
@@ -12,43 +11,20 @@ local variables = {
 
 
 local function ApplySettings(self)
-    -- Apply settings to the icon
-    if private.db.profile.highlight_text_settings and private.db.profile.highlight_text_settings.font and private.db.profile.highlight_text_settings.fontSize then
-        self.frame.SpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.highlight_text_settings.font),
-            private.db.profile.highlight_text_settings.fontSize, "OUTLINE")
-    elseif private.db.profile.highlight_text_settings and private.db.profile.highlight_text_settings.fontSize then
-        self.frame.SpellName:SetFontHeight(private.db.profile.highlight_text_settings.fontSize)
-    end
+    local text = private.GetElementStyle("TextHighlight").Text
+    private.ThemeApply.Font(self.frame.SpellName, text.Font)
 
-    if private.db.profile.highlight_text_settings and private.db.profile.highlight_text_settings.defaultColor then
-        self.frame.SpellName:SetTextColor(
-            private.db.profile.highlight_text_settings.defaultColor.r,
-            private.db.profile.highlight_text_settings.defaultColor.g,
-            private.db.profile.highlight_text_settings.defaultColor.b
-        )
-    end
-
-    if private.db.profile.highlight_text_settings and private.db.profile.highlight_text_settings.enableShadow then
-        self.frame.SpellName:SetShadowColor(0, 0, 0, 1)
-    else
-        self.frame.SpellName:SetShadowColor(0, 0, 0, 0)
-    end
-
-    if private.db.profile.highlight_text_settings and private.db.profile.highlight_text_settings.strata then
+    if private.db.profile.highlight_text_settings.strata then
 		self.frame:SetFrameStrata(private.db.profile.highlight_text_settings.strata)
 	end
 
-    if private.db.profile.highlight_text_settings.useBackground then
-        local texture = SharedMedia:Fetch("background", private.db.profile.highlight_text_settings.backgroundTexture)
-        self.frame.SpellNameBackground:SetPoint("LEFT", self.frame.SpellName, "LEFT",
-            -private.db.profile.highlight_text_settings.backgroundTextureOffset.x, 0)
-        self.frame.SpellNameBackground:SetPoint("RIGHT", self.frame.SpellName, "RIGHT",
-            private.db.profile.highlight_text_settings.backgroundTextureOffset.x, 0)
-        self.frame.SpellNameBackground:SetPoint("TOP", self.frame.SpellName, "TOP", 0,
-            private.db.profile.highlight_text_settings.backgroundTextureOffset.y)
-        self.frame.SpellNameBackground:SetPoint("BOTTOM", self.frame.SpellName, "BOTTOM", 0,
-            -private.db.profile.highlight_text_settings.backgroundTextureOffset.y)
-        self.frame.SpellNameBackground:SetTexture(texture)
+    local background = text.Background
+    if background.Show then
+        self.frame.SpellNameBackground:SetPoint("LEFT", self.frame.SpellName, "LEFT", -background.Offset.x, 0)
+        self.frame.SpellNameBackground:SetPoint("RIGHT", self.frame.SpellName, "RIGHT", background.Offset.x, 0)
+        self.frame.SpellNameBackground:SetPoint("TOP", self.frame.SpellName, "TOP", 0, background.Offset.y)
+        self.frame.SpellNameBackground:SetPoint("BOTTOM", self.frame.SpellName, "BOTTOM", 0, -background.Offset.y)
+        private.ThemeApply.Texture(self.frame.SpellNameBackground, background)
         self.frame.SpellNameBackground:Show()
     else
         self.frame.SpellNameBackground:Hide()
@@ -80,12 +56,8 @@ local GetTextColor = function(self, remainingTime)
             end
         end
     end
-    if private.db.profile.cooldown_settings.cooldown_color then
-        local color = private.db.profile.cooldown_settings.cooldown_color
-        local createdColor = CreateColor(color.r, color.g, color.b)
-        return createdColor:GenerateHexColor()
-    end
-    return "ffffff"
+    local r, g, b = private.ThemeApply.Color(private.GetElementStyle("Cooldown").Font.Color)
+    return CreateColor(r, g, b):GenerateHexColor()
 end
 ---hides and shows texts to create colored texts (illegal btw)
 ---@param widget any
@@ -113,6 +85,7 @@ end
 local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
     widget.eventInfo = eventInfo
     if not disableOnUpdate then
+        private.ThemeApply.PlayEnter(widget.frame, private.GetElementStyle("TextHighlight").Enter)
         HandleTexts(widget, eventInfo, eventInfo.duration)
         widget.frame:SetScript("OnUpdate", function(self)
             local remainingDuration = private.manager.getEventRemainingTime(widget.eventInfo.id)
@@ -133,15 +106,6 @@ local function Constructor()
     frame:SetFrameStrata(private.FrameStrata.FULLSCREEN)
 
     frame.SpellNameBackground = frame:CreateTexture(nil, "BACKGROUND")
-    frame.SpellNameBackground:SetPoint("LEFT", frame.SpellName, "LEFT",
-        -private.db.profile.highlight_text_settings.backgroundTextureOffset.x, 0)
-    frame.SpellNameBackground:SetPoint("RIGHT", frame.SpellName, "RIGHT",
-        private.db.profile.highlight_text_settings.backgroundTextureOffset.x, 0)
-    frame.SpellNameBackground:SetPoint("TOP", frame.SpellName, "TOP", 0,
-        private.db.profile.highlight_text_settings.backgroundTextureOffset.y)
-    frame.SpellNameBackground:SetPoint("BOTTOM", frame.SpellName, "BOTTOM", 0,
-        -private.db.profile.highlight_text_settings.backgroundTextureOffset.y)
-    frame.SpellNameBackground:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
     frame.SpellNameBackground:Hide()
     frame:SetWidth(variables.text_width)
     frame:SetHeight(variables.text_height)
@@ -162,6 +126,7 @@ local function Constructor()
         GetTextColor = GetTextColor,
         ApplySettings = ApplySettings,
     }
+    private.RegisterThemed(widget)
 
     return AceGUI:RegisterAsWidget(widget)
 end

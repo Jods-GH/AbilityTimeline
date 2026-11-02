@@ -87,26 +87,48 @@ local removeTestEvents = function()
     end
 end
 
-LibEditMode:RegisterCallback('enter', function()
+local startTestTicker = function()
+    private.addTestEvents()
+    testEventTicker = testEventTicker or
+        C_Timer.NewTicker(TEST_EVENT_DURATIONS[#TEST_EVENT_DURATIONS], private.addTestEvents)
+end
+
+---shows the timeline with repeating test events, e.g. to preview a theme
+private.startTestEvents = function()
     if private.db.profile.useTimelineModule then
         private.handleFrame(true)
     end
-    -- on retail the blizzard edit mode events are used instead
-    if not private.isRetail then
-        private.addTestEvents()
-        testEventTicker = C_Timer.NewTicker(TEST_EVENT_DURATIONS[#TEST_EVENT_DURATIONS], private.addTestEvents)
-    end
-end)
+    startTestTicker()
+end
 
-LibEditMode:RegisterCallback('exit', function()
+private.stopTestEvents = function()
     if private.isRetail then
         C_EncounterTimeline.CancelEditModeEvents()
-    elseif testEventTicker then
+    end
+    if testEventTicker then
         testEventTicker:Cancel()
         testEventTicker = nil
         removeTestEvents()
     end
     if not private.manager.hasVisibleEvents() then
         private.handleFrame(false)
+    end
+end
+
+LibEditMode:RegisterCallback('enter', function()
+    if private.db.profile.useTimelineModule then
+        private.handleFrame(true)
+    end
+    -- on retail the blizzard edit mode events are used instead
+    if not private.isRetail then
+        startTestTicker()
+    end
+end)
+
+LibEditMode:RegisterCallback('exit', function()
+    private.stopTestEvents()
+    -- the theme selection keeps previewing on the timeline
+    if private.isThemeSelectorOpen and private.isThemeSelectorOpen() then
+        private.startTestEvents()
     end
 end)

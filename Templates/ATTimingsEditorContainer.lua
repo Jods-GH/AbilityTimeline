@@ -38,6 +38,11 @@ local function SetTitle(self, title)
     self.frame:SetTitle(title)
 end
 
+---@param self ATTimingsEditorContainer
+local function ApplySettings(self)
+    private.ThemeApply.Window(self.frame, private.GetWindowStyle("Window"), self.closeButton)
+end
+
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
 
@@ -144,11 +149,15 @@ local function Constructor()
         OnAcquire = OnAcquire,
         OnRelease = OnRelease,
         SetTitle = SetTitle,
+        ApplySettings = ApplySettings,
+        closeButton = closeButton,
         content = contentFrame,
         frame = frame,
         type = Type,
         count = count,
     }
+    ApplySettings(widget)
+    private.RegisterThemed(widget)
 
     return AceGUI:RegisterAsContainer(widget)
 end

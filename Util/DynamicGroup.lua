@@ -128,6 +128,44 @@ function groupMixin:Remove(id)
    self.dirty = true
 end
 
+local placeholders = {}
+
+---keeps the place of an item free for time seconds, e.g. while it plays a hide animation, then removes it.
+---an invisible frame takes the item's place so the frame itself can be released right away
+---@param id number
+---@param time number
+function groupMixin:Hold(id, time)
+   local item = self.index[id]
+   if not item or time <= 0 or item.hiddenByLimit then
+      self:Remove(id)
+      return
+   end
+   local frame = item.frame
+   local placeholder = table.remove(placeholders) or CreateFrame("Frame", nil, UIParent)
+   placeholder:SetSize(frame:GetSize())
+   placeholder:ClearAllPoints()
+   for _, key in ipairs({ "groupAnchor", "groupPoint", "groupRelativePoint", "groupX", "groupY" }) do
+      placeholder[key] = frame[key]
+   end
+   if frame.groupAnchor then
+      placeholder:SetPoint(frame.groupPoint, frame.groupAnchor, frame.groupRelativePoint, frame.groupX, frame.groupY)
+   end
+   clearCachedPosition(frame)
+   item.frame = placeholder
+   item.held = true
+   -- its event just ended, so it stays at the end of the order where events end
+   item.sortValue = 0
+   item.animation = nil
+   C_Timer.After(time, function()
+      if self.index[id] == item then
+         self:Remove(id)
+         self:Layout()
+      end
+      placeholder:ClearAllPoints()
+      table.insert(placeholders, placeholder)
+   end)
+end
+
 ---@param id number
 ---@return boolean
 function groupMixin:Contains(id)
@@ -223,7 +261,10 @@ function groupMixin:Layout()
    local limit = settings.limit or 0
 
    for _, item in ipairs(self.items) do
-      item.sortValue = private.manager.getEventRemainingTime(item.id) or 0
+      -- a held item's event is gone, it keeps its place in the order
+      if not item.held then
+         item.sortValue = private.manager.getEventRemainingTime(item.id) or 0
+      end
    end
    table.sort(self.items, settings.sort == SORT.DESCENDING and compareDescending or compareAscending)
 

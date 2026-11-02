@@ -103,26 +103,6 @@ private.ModernizeTimelineFrame = function(layoutName)
     if not private.db.global.timeline_frame[layoutName].horizontal then
         private.db.global.timeline_frame[layoutName].horizontal = false
     end
-    if not private.db.global.timeline_frame[layoutName].timeline_texture then
-        private.db.global.timeline_frame[layoutName].timeline_texture = variables.timelineTexture
-    end
-
-    if not private.db.global.timeline_frame[layoutName].timeline_texture_color then
-        private.db.global.timeline_frame[layoutName].timeline_texture_color = variables.timelineTextureColor
-    end
-
-    if not private.db.global.timeline_frame[layoutName].timeline_border then
-        private.db.global.timeline_frame[layoutName].timeline_border = variables.timelineBorder
-    end
-
-    if not private.db.global.timeline_frame[layoutName].timeline_border_color then
-        private.db.global.timeline_frame[layoutName].timeline_border_color = variables.timelineBorderColor
-    end
-
-    if not private.db.global.timeline_frame[layoutName].timeline_border_size then
-        private.db.global.timeline_frame[layoutName].timeline_border_size = variables.timelineBorderSize
-    end
-
     if not private.db.global.timeline_frame[layoutName].iconMargin then
         private.db.global.timeline_frame[layoutName].iconMargin = variables.IconMargin
     end
@@ -165,7 +145,7 @@ private.TimelineFrame.applyLayout = function(layoutName)
         SetFrameSize(private.TIMELINE_FRAME, width, height)
         private.TIMELINE_FRAME:HandleTicks()
         HandleTickVisibility(layoutName)
-        private.TIMELINE_FRAME.SetBackDrop(private.TIMELINE_FRAME.frame)
+        private.TIMELINE_FRAME:ApplySettings()
         if private.refreshTimelineGroups then
             private.refreshTimelineGroups()
         end
@@ -211,24 +191,134 @@ local function HandleSizeChanges(self)
     SetFrameSize(self, width, height)
 end
 
-local function SetBackDrop(frame)
-    local texture = SharedMedia:Fetch("background",
-        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].timeline_texture)
-    local color = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].timeline_texture_color
-    local border = SharedMedia:Fetch("border",
-        private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].timeline_border)
-    local borderColor = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].timeline_border_color
-    local borderSize = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].timeline_border_size
-    frame:SetBackdrop({
-        bgFile = texture,
-        edgeFile = border,
-        tile = true,
-        tileSize = 32,
-        edgeSize = borderSize,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 }
-    })
-    frame:SetBackdropColor(color.r, color.g, color.b, color.a)
-    frame:SetBackdropBorderColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
+---@param self AtTimelineFrame
+---the end of the timeline icons arrive at
+---@return string point
+---@return boolean isHorizontal
+local function GetArrivalPoint()
+    local layout = private.ACTIVE_EDITMODE_LAYOUT and private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT]
+    local isHorizontal = layout and layout.travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL or false
+    local inverse = layout and layout.inverse_travel_direction
+    if isHorizontal then
+        return inverse and "RIGHT" or "LEFT", true
+    end
+    return inverse and "TOP" or "BOTTOM", false
+end
+
+---a wash of color that fades from the arrival point to the far end
+---@param frame Frame
+---@param wash table|nil
+---@param arrival string
+---@param isHorizontal boolean
+local function ApplyWash(frame, wash, arrival, isHorizontal)
+    if not wash then
+        frame.Wash:Hide()
+        return
+    end
+    local r, g, b, a = private.ThemeApply.Color(wash.Color, wash.Alpha)
+    local strong, faint = CreateColor(r, g, b, a), CreateColor(r, g, b, 0)
+    -- the gradient's minimum is the bottom or left end
+    local atMinimum = arrival == "BOTTOM" or arrival == "LEFT"
+    frame.Wash:SetGradient(isHorizontal and "HORIZONTAL" or "VERTICAL", atMinimum and strong or faint,
+        atMinimum and faint or strong)
+    frame.Wash:Show()
+end
+
+---lays the flow's texture along the timeline, tiled once per its width and shifted by its offset, the texture's
+---downwards pointing at the end icons arrive at
+---@param frame Frame
+local function UpdateFlowCoords(frame)
+    if not frame.flow then return end
+    local along, across = frame:GetHeight(), frame:GetWidth()
+    if frame.isHorizontal then
+        along, across = across, along
+    end
+    local near = frame.flowOffset
+    local far = near + along / math.max(across, 1)
+    local arrival = frame.arrival
+    if arrival == "BOTTOM" then
+        frame.Flow:SetTexCoord(0, near, 0, far, 1, near, 1, far)
+    elseif arrival == "TOP" then
+        frame.Flow:SetTexCoord(0, far, 0, near, 1, far, 1, near)
+    elseif arrival == "LEFT" then
+        frame.Flow:SetTexCoord(0, far, 1, far, 0, near, 1, near)
+    else
+        frame.Flow:SetTexCoord(0, near, 1, near, 0, far, 1, far)
+    end
+end
+
+---moves the flow Speed pixels a second towards the end icons arrive at, away from it while Speed is negative
+---@param driver Frame
+---@param elapsed number
+local function StepFlow(driver, elapsed)
+    local frame = driver:GetParent()
+    local across = frame.isHorizontal and frame:GetHeight() or frame:GetWidth()
+    frame.flowOffset = (frame.flowOffset - frame.flow.Speed * elapsed / math.max(across, 1)) % 1
+    UpdateFlowCoords(frame)
+end
+
+---a texture streaming along the timeline, brightest at the end icons arrive at
+---@param frame Frame
+---@param flow table|nil
+---@param arrival string
+---@param isHorizontal boolean
+local function ApplyFlow(frame, flow, arrival, isHorizontal)
+    frame.flow = flow
+    frame.FlowDriver:SetScript("OnUpdate", nil)
+    if not flow then
+        frame.Flow:Hide()
+        return
+    end
+    frame.Flow:SetTexture(private.ThemeApply.File(flow.File), "REPEAT", "REPEAT")
+    frame.Flow:SetBlendMode(flow.BlendMode or "BLEND")
+    local r, g, b, a = private.ThemeApply.Color(flow.Color, flow.Alpha)
+    local strong, faint = CreateColor(r, g, b, a), CreateColor(r, g, b, a * (flow.Far or 1))
+    local atMinimum = arrival == "BOTTOM" or arrival == "LEFT"
+    frame.Flow:SetGradient(isHorizontal and "HORIZONTAL" or "VERTICAL", atMinimum and strong or faint,
+        atMinimum and faint or strong)
+    frame.flowOffset = frame.flowOffset or 0
+    frame.Flow:Show()
+    UpdateFlowCoords(frame)
+    if flow.Speed and private.AmbientEffectsEnabled() then
+        frame.FlowDriver:SetScript("OnUpdate", StepFlow)
+    end
+end
+
+---@param self AtTimelineFrame
+local function ApplySettings(self)
+    local frame = self.frame
+    local style = private.GetElementStyle("Timeline")
+    private.ThemeApply.Backdrop(frame, style.Backdrop)
+    frame.Background:SetShown(private.ThemeApply.Texture(frame.Background, style.Background))
+    frame.Edge:SetShown(private.ThemeApply.Texture(frame.Edge, style.Edge))
+    local arrival, isHorizontal = GetArrivalPoint()
+    ApplyWash(frame, style.Wash, arrival, isHorizontal)
+    frame.NowPulse:Stop()
+    frame.Now:SetShown(private.ThemeApply.Texture(frame.Now, style.Now))
+    if style.Now then
+        frame.Now:ClearAllPoints()
+        frame.Now:SetPoint("CENTER", frame, arrival)
+        frame.Now:SetSize(style.Now.Size, style.Now.Size)
+        -- the glow breathes slowly, a looping animation the client runs without any Lua
+        if style.Now.Pulse and private.AmbientEffectsEnabled() then
+            frame.NowPulse:Play()
+        end
+    end
+    frame.arrival, frame.isHorizontal = arrival, isHorizontal
+    ApplyFlow(frame, style.Flow, arrival, isHorizontal)
+    frame.Sparkles:Start(style.Sparkles)
+end
+
+---@param path string
+---@return colorRGBA
+local function getStyleColor(path)
+    return CreateColor(private.ThemeApply.Color(private.GetThemeValue(path)))
+end
+
+---@param path string
+---@param color colorRGBA
+local function setStyleColor(path, color)
+    private.SetThemeModification(path, { r = color.r, g = color.g, b = color.b, a = color.a })
 end
 
 
@@ -284,6 +374,7 @@ local function SetupEditModeSettings(frame)
                 private.db.global.timeline_frame[layoutName].inverse_travel_direction = value
                 HandleTickVisibility(layoutName)
                 private.refreshTimelineGroups()
+                private.TIMELINE_FRAME:ApplySettings()
             end,
             hidden = function()
                 return not areTravelSettingsExpanded
@@ -302,6 +393,7 @@ local function SetupEditModeSettings(frame)
                 HandleSizeChanges(private.TIMELINE_FRAME)
                 HandleTickVisibility(layoutName)
                 private.refreshTimelineGroups()
+                private.TIMELINE_FRAME:ApplySettings()
             end,
             default = private.TIMELINE_DIRECTIONS.VERTICAL,
             height = 100,
@@ -427,12 +519,11 @@ local function SetupEditModeSettings(frame)
             desc = private.getLocalisation("TimelineTextureDescription"),
             kind = LibEditMode.SettingType.Dropdown,
 
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].timeline_texture
+            get = function()
+                return private.GetThemeValue("Elements.Timeline.Backdrop.Background")
             end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].timeline_texture = value
-                SetBackDrop(private.TIMELINE_FRAME.frame)
+            set = function(_, value)
+                private.SetThemeModification("Elements.Timeline.Backdrop.Background", value)
             end,
             default = variables.timelineTexture,
             height = 300,
@@ -458,13 +549,11 @@ local function SetupEditModeSettings(frame)
             desc = private.getLocalisation("TimelineTextureColorDescription"),
             kind = LibEditMode.SettingType.ColorPicker,
             hasOpacity = true,
-            get = function(layoutName)
-                local color = private.db.global.timeline_frame[layoutName].timeline_texture_color
-                return CreateColor(color.r, color.g, color.b, color.a)
+            get = function()
+                return getStyleColor("Elements.Timeline.Backdrop.Color")
             end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].timeline_texture_color = value
-                SetBackDrop(private.TIMELINE_FRAME.frame)
+            set = function(_, value)
+                setStyleColor("Elements.Timeline.Backdrop.Color", value)
             end,
             default = variables.timelineTextureColor,
             hidden = function()
@@ -476,12 +565,11 @@ local function SetupEditModeSettings(frame)
             desc = private.getLocalisation("TimelineBorderDescription"),
             kind = LibEditMode.SettingType.Dropdown,
 
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].timeline_border
+            get = function()
+                return private.GetThemeValue("Elements.Timeline.Backdrop.Border")
             end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].timeline_border = value
-                SetBackDrop(private.TIMELINE_FRAME.frame)
+            set = function(_, value)
+                private.SetThemeModification("Elements.Timeline.Backdrop.Border", value)
             end,
             default = variables.timelineBorder,
             height = 300,
@@ -507,13 +595,11 @@ local function SetupEditModeSettings(frame)
             desc = private.getLocalisation("TimelineBorderColorDescription"),
             kind = LibEditMode.SettingType.ColorPicker,
             hasOpacity = true,
-            get = function(layoutName)
-                local color = private.db.global.timeline_frame[layoutName].timeline_border_color
-                return CreateColor(color.r, color.g, color.b, color.a)
+            get = function()
+                return getStyleColor("Elements.Timeline.Backdrop.BorderColor")
             end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].timeline_border_color = value
-                SetBackDrop(private.TIMELINE_FRAME.frame)
+            set = function(_, value)
+                setStyleColor("Elements.Timeline.Backdrop.BorderColor", value)
             end,
             default = variables.timelineBorderColor,
             hidden = function()
@@ -525,12 +611,11 @@ local function SetupEditModeSettings(frame)
             desc = private.getLocalisation("TimelineBorderSizeDescription"),
             kind = LibEditMode.SettingType.Slider,
             default = variables.timelineBorderSize,
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].timeline_border_size
+            get = function()
+                return private.GetThemeValue("Elements.Timeline.Backdrop.EdgeSize")
             end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].timeline_border_size = value
-                SetBackDrop(private.TIMELINE_FRAME.frame)
+            set = function(_, value)
+                private.SetThemeModification("Elements.Timeline.Backdrop.EdgeSize", value)
             end,
             minValue = 1,
             maxValue = 32,
@@ -661,8 +746,48 @@ local function Constructor()
     frame:SetHeight(variables.travelSize)
 
     frame:SetFrameStrata("BACKGROUND")
+    frame.Background = frame:CreateTexture(nil, "BACKGROUND")
+    frame.Background:SetAllPoints(frame)
+    frame.Edge = frame:CreateTexture(nil, "BORDER")
+    frame.Edge:SetAllPoints(frame)
+    frame.Wash = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+    frame.Wash:SetTexture("Interface\\Buttons\\WHITE8X8")
+    frame.Wash:SetPoint("TOPLEFT", 1, -1)
+    frame.Wash:SetPoint("BOTTOMRIGHT", -1, 1)
+    frame.Flow = frame:CreateTexture(nil, "BACKGROUND", nil, 2)
+    frame.Flow:SetPoint("TOPLEFT", 2, -2)
+    frame.Flow:SetPoint("BOTTOMRIGHT", -2, 2)
+    frame.Flow:Hide()
+    frame.FlowDriver = CreateFrame("Frame", nil, frame)
+    frame:HookScript("OnSizeChanged", UpdateFlowCoords)
+    frame.Now = frame:CreateTexture(nil, "BORDER", nil, 1)
+    frame.NowPulse = frame.Now:CreateAnimationGroup()
+    frame.NowPulse:SetLooping("BOUNCE")
+    local breathe = frame.NowPulse:CreateAnimation("Alpha")
+    breathe:SetFromAlpha(1)
+    breathe:SetToAlpha(0.45)
+    breathe:SetDuration(1.8)
+    breathe:SetSmoothing("IN_OUT")
+
+    -- sparkles drift off the end icons arrive at, or with Area "All" anywhere over the timeline
+    frame.Sparkles = private.CreateParticles(frame, function(particle, spec)
+        if spec.Area == "All" then
+            particle.x = math.random() * frame:GetWidth()
+            particle.y = math.random() * frame:GetHeight()
+            return
+        end
+        local along = math.random() * 40
+        if frame.isHorizontal then
+            particle.x = frame.arrival == "LEFT" and along or frame:GetWidth() - along
+            particle.y = math.random() * frame:GetHeight()
+            particle.vx, particle.vy = frame.arrival == "LEFT" and particle.vy or -particle.vy, particle.vx
+        else
+            particle.x = math.random() * frame:GetWidth()
+            particle.y = frame.arrival == "BOTTOM" and along or frame:GetHeight() - along
+            particle.vy = frame.arrival == "BOTTOM" and particle.vy or -particle.vy
+        end
+    end)
     SetupEditModeSettings(frame)
-    SetBackDrop(frame)
     frame.Ticks = {}
     frame:Hide()
 
@@ -675,9 +800,11 @@ local function Constructor()
         frame = frame,
         HandleTicks = HandleTicks,
         GetMoveSize = GetMoveSize,
-        SetBackDrop = SetBackDrop,
+        ApplySettings = ApplySettings,
         HandleSizeChanges = HandleSizeChanges,
     }
+    ApplySettings(widget)
+    private.RegisterThemed(widget)
 
     return AceGUI:RegisterAsWidget(widget)
 end

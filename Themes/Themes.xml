@@ -1,0 +1,14 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\FrameXML\UI.xsd">
+  <Script file="Classic.lua"/>
+  <Script file="MageArcane.lua"/>
+  <Script file="MageFire.lua"/>
+  <Script file="MageFrost.lua"/>
+  <Script file="DemonHunterHavoc.lua"/>
+  <Script file="DemonHunterVengeance.lua"/>
+  <Script file="DemonHunterDevourer.lua"/>
+  <Script file="DruidBalance.lua"/>
+  <Script file="DruidFeral.lua"/>
+  <Script file="DruidGuardian.lua"/>
+  <Script file="DruidRestoration.lua"/>
+</Ui>

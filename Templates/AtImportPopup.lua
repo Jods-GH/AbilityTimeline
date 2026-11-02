@@ -27,6 +27,19 @@ local variables = {
 }
 
 ---@param self AtImportPopup
+local function ApplySettings(self)
+    local frame = self.frame
+    private.ThemeApply.Window(frame, private.GetWindowStyle("Dialog"), nil, frame.titleBar)
+    private.ThemeApply.FontRole(frame.messageText, "Control")
+    private.ThemeApply.FontRole(frame.progressText, "Muted")
+    frame.progressBarBg:SetColorTexture(private.ThemeApply.Color("Track"))
+    frame.progressBarBorder:SetColorTexture(private.ThemeApply.Color("Edge"))
+    frame.progressBar:SetStatusBarColor(private.ThemeApply.Color("Accent"))
+    private.ThemedWidgets.DrawButton(frame.buttonHolder.supportButton)
+    private.ThemedWidgets.DrawButton(frame.buttonHolder.cancelButton)
+end
+
+---@param self AtImportPopup
 local function OnAcquire(self)
     self.frame:SetPoint("CENTER", UIParent, "CENTER")
     self.frame:SetFrameStrata("FULLSCREEN_DIALOG")
@@ -100,15 +113,6 @@ local function Constructor()
     local frame = CreateFrame("Frame", Type .. count, UIParent, "BackdropTemplate")
     frame:SetFrameStrata("FULLSCREEN_DIALOG")
     frame:SetSize(variables.x, variables.y)
-    frame:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        edgeFile = "",
-        tile = true,
-        tileSize = 32,
-        edgeSize = 32,
-        insets = { left = 11, right = 12, top = 12, bottom = 11 }
-    })
-    frame:SetBackdropColor(0, 0, 0, 0.8)
 
     frame:EnableMouse(true)
     frame:SetMovable(false)
@@ -139,6 +143,8 @@ local function Constructor()
     frame.buttonHolder.supportButton:SetSize(120, 30)
     frame.buttonHolder.supportButton:SetPoint("CENTER", frame.buttonHolder, "CENTER", -65, 0)
     frame.buttonHolder.supportButton:SetText(private.getLocalisation("SupportButton"))
+    private.ThemedWidgets.SkinButton(frame.buttonHolder.supportButton)
+    frame.buttonHolder.supportButton.atStyle = "Primary"
 
     frame.buttonHolder.supportButton:SetScript("OnClick", function()
         if not private.TextCopyFrame then
@@ -158,6 +164,7 @@ local function Constructor()
     frame.buttonHolder.cancelButton:SetSize(120, 30)
     frame.buttonHolder.cancelButton:SetPoint("CENTER", frame.buttonHolder, "CENTER", 65, 0)
     frame.buttonHolder.cancelButton:SetText(private.getLocalisation("ReminderCancelButton"))
+    private.ThemedWidgets.SkinButton(frame.buttonHolder.cancelButton)
 
     frame.progressBarBg = frame:CreateTexture(nil, "BACKGROUND")
     frame.progressBarBg:SetSize(variables.progressBar.width, variables.progressBar.height)
@@ -167,7 +174,7 @@ local function Constructor()
     frame.progressBar = CreateFrame("StatusBar", nil, frame)
     frame.progressBar:SetSize(variables.progressBar.width, variables.progressBar.height)
     frame.progressBar:SetPoint("CENTER", frame.progressBarBg, "CENTER", 0, 0)
-    frame.progressBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+    frame.progressBar:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
     frame.progressBar:GetStatusBarTexture():SetHorizTile(false)
     frame.progressBar:GetStatusBarTexture():SetVertTile(false)
     frame.progressBar:SetMinMaxValues(0, 100)
@@ -194,10 +201,13 @@ local function Constructor()
         OnRelease = OnRelease,
         StartImport = StartImport,
         CancelImport = CancelImport,
+        ApplySettings = ApplySettings,
         type = Type,
         count = count,
         frame = frame,
     }
+    ApplySettings(widget)
+    private.RegisterThemed(widget)
 
     return AceGUI:RegisterAsWidget(widget)
 end

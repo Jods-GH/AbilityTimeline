@@ -2,7 +2,6 @@ local appName, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI             = LibStub("AceGUI-3.0")
-local SharedMedia        = LibStub("LibSharedMedia-3.0")
 local Type               = "AtBigIcon"
 local Version            = 1
 local variables          = {
@@ -17,41 +16,19 @@ local variables          = {
 ---@param isStopped boolean
 local handleAnchors      = function(self)
 	self.SpellName:ClearAllPoints()
+	local text = private.GetElementStyle("BigIcon").Text
 	local relPos, anchorPos, xOffset, yOffset
-	relPos = private.RELATIVE_POSITIONS[private.db.profile.big_icon_text_settings.text_anchor]
-	anchorPos = private.db.profile.big_icon_text_settings.text_anchor
+	relPos = private.RELATIVE_POSITIONS[text.Anchor]
+	anchorPos = text.Anchor
+	local offset = text.Offset
 	if relPos == 'LEFT' then
-		if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.TextOffset then
-			xOffset = private.db.profile.big_icon_settings.TextOffset.x
-			yOffset = private.db.profile.big_icon_settings.TextOffset.y
-		else
-			xOffset = variables.TextOffset.x
-			yOffset = variables.TextOffset.y
-		end
+		xOffset, yOffset = offset.x, offset.y
 	elseif relPos == 'RIGHT' then
-		if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.TextOffset then
-			xOffset = -private.db.profile.big_icon_settings.TextOffset.x
-			yOffset = -private.db.profile.big_icon_settings.TextOffset.y
-		else
-			xOffset = -variables.TextOffset.x
-			yOffset = -variables.TextOffset.y
-		end
+		xOffset, yOffset = -offset.x, -offset.y
 	elseif relPos == 'TOP' then
-		if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.TextOffset then
-			xOffset = private.db.profile.big_icon_settings.TextOffset.x
-			yOffset = -private.db.profile.big_icon_settings.TextOffset.y
-		else
-			xOffset = variables.TextOffset.x
-			yOffset = -variables.TextOffset.y
-		end
+		xOffset, yOffset = offset.x, -offset.y
 	else -- BOTTOM
-		if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.TextOffset then
-			xOffset = -private.db.profile.big_icon_settings.TextOffset.x
-			yOffset = private.db.profile.big_icon_settings.TextOffset.y
-		else
-			xOffset = -variables.TextOffset.x
-			yOffset = variables.TextOffset.y
-		end
+		xOffset, yOffset = -offset.x, offset.y
 	end
 	self.SpellName:SetPoint(relPos, self, anchorPos, xOffset, yOffset)
 	for _, texture in pairs(self.DangerIcon) do
@@ -78,157 +55,94 @@ local HandleCooldown     = function(self, remainingTime)
 			end
 		end
 	end
-	if private.db.profile.cooldown_settings.cooldown_color then
-		self.CooldownText:SetTextColor(
-			private.db.profile.cooldown_settings.cooldown_color.r,
-			private.db.profile.cooldown_settings.cooldown_color.g,
-			private.db.profile.cooldown_settings.cooldown_color.b
-		)
-	else
-		self.CooldownText:SetTextColor(1, 1, 1)
+	self.CooldownText:SetTextColor(private.ThemeApply.Color(private.GetElementStyle("Cooldown").Font.Color))
+end
+
+---applies the event color to the spell name when enabled
+---@param frame Frame
+local applyEventColor = function(frame)
+	if frame.eventID and private.db.profile.text_settings.useEventColor then
+		local color = private.manager.getEventColor(frame.eventID)
+		if color then
+			frame.SpellName:SetTextColor(color.r, color.g, color.b)
+		end
 	end
 end
 
 local function ApplySettings(self)
-	-- Apply settings to the icon
-	if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.size then
-		self.frame:SetSize(private.db.profile.big_icon_settings.size, private.db.profile.big_icon_settings.size)
-	else
-		self.frame:SetSize(variables.IconSize.width, variables.IconSize.height)
+	local frame = self.frame
+	local style = private.GetElementStyle("BigIcon")
+	local iconSettings = private.db.profile.big_icon_settings
+	local size = private.GetBigIconSize()
+	frame:SetSize(size, size)
+	handleAnchors(frame)
+	private.ThemeApply.Font(frame.SpellName, style.Text.Font)
+	applyEventColor(frame)
+	private.ThemeApply.Font(frame.CooldownText, private.GetElementStyle("Cooldown").Font)
+	local skinned = private.SyncMasque(frame)
+	private.ThemeApply.IconArt(frame, frame.SpellIcon, style, frame.TextureHolder, skinned)
+	if not skinned then
+		frame.Cooldown:ClearAllPoints()
+		frame.Cooldown:SetAllPoints(frame)
 	end
-	if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.TextOffset then
-		handleAnchors(self.frame, self.isStopped)
-	end
-	if private.db.profile.big_icon_text_settings and private.db.profile.big_icon_text_settings.font and private.db.profile.big_icon_text_settings.fontSize then
-		self.frame.SpellName:SetFont(SharedMedia:Fetch("font", private.db.profile.big_icon_text_settings.font),
-			private.db.profile.big_icon_text_settings.fontSize, "OUTLINE")
-	elseif private.db.profile.big_icon_text_settings and private.db.profile.big_icon_text_settings.fontSize then
-		self.frame.SpellName:SetFontHeight(private.db.profile.big_icon_text_settings.fontSize)
-	end
+	-- the swipe takes the shape of the icon's mask
+	local mask = frame.iconMasked and style.Mask
+	frame.Cooldown:SetSwipeTexture(mask and mask.File and private.ThemeApply.File(mask.File) or
+		"Interface\\Buttons\\WHITE8X8", 0, 0, 0, 0.64)
 
-	if private.db.profile.cooldown_settings and private.db.profile.cooldown_settings.font and private.db.profile.cooldown_settings.fontSize then
-		self.frame.CooldownText:SetFont(SharedMedia:Fetch("font", private.db.profile.cooldown_settings.font),
-			private.db.profile.cooldown_settings.fontSize, "OUTLINE")
-	elseif private.db.profile.cooldown_settings and private.db.profile.cooldown_settings.fontSize then
-		self.frame.CooldownText:SetFontHeight(private.db.profile.cooldown_settings.fontSize)
-	end
-
-	if private.db.profile.big_icon_text_settings and private.db.profile.big_icon_text_settings.defaultColor then
-		self.frame.SpellName:SetTextColor(
-			private.db.profile.big_icon_text_settings.defaultColor.r,
-			private.db.profile.big_icon_text_settings.defaultColor.g,
-			private.db.profile.big_icon_text_settings.defaultColor.b
-		)
-	end
-
-	if private.db.profile.big_icon_text_settings and private.db.profile.big_icon_text_settings.enableShadow then
-		self.frame.SpellName:SetShadowColor(0, 0, 0, 1)
-	else
-		self.frame.SpellName:SetShadowColor(0, 0, 0, 0)
-	end
-
-	if not self.frame.SpellIcon.zoomApplied or self.frame.SpellIcon.zoomApplied ~= (1 - private.db.profile.big_icon_settings.zoom) then
-		if self.frame.SpellIcon.zoomApplied then
-			private.ResetZoom(self.frame.SpellIcon)
-		end
-		private.SetZoom(self.frame.SpellIcon, 1 - private.db.profile.big_icon_settings.zoom)
-		self.frame.SpellIcon.zoomApplied = 1 - private.db.profile.big_icon_settings.zoom
-	end
-
-	if private.db.profile.big_icon_settings.borderWidth then
-		self.frame.BossModsBorderEdges[1]:SetHeight(private.db.profile.big_icon_settings.borderWidth)
-		self.frame.BossModsBorderEdges[2]:SetHeight(private.db.profile.big_icon_settings.borderWidth)
-		self.frame.BossModsBorderEdges[3]:SetWidth(private.db.profile.big_icon_settings.borderWidth)
-		self.frame.BossModsBorderEdges[4]:SetWidth(private.db.profile.big_icon_settings.borderWidth)
-	end
-	for i, edges in ipairs(self.frame.DispellTypeBorderEdges) do
-		if private.db.profile.big_icon_settings.borderWidth then
-			edges[1]:SetHeight(private.db.profile.big_icon_settings.borderWidth)
-			edges[2]:SetHeight(private.db.profile.big_icon_settings.borderWidth)
-			edges[3]:SetWidth(private.db.profile.big_icon_settings.borderWidth)
-			edges[4]:SetWidth(private.db.profile.big_icon_settings.borderWidth)
-		end
+	local borderWidth = style.BorderWidth
+	frame.BossModsBorderEdges[1]:SetHeight(borderWidth)
+	frame.BossModsBorderEdges[2]:SetHeight(borderWidth)
+	frame.BossModsBorderEdges[3]:SetWidth(borderWidth)
+	frame.BossModsBorderEdges[4]:SetWidth(borderWidth)
+	for _, edges in ipairs(frame.DispellTypeBorderEdges) do
+		edges[1]:SetHeight(borderWidth)
+		edges[2]:SetHeight(borderWidth)
+		edges[3]:SetWidth(borderWidth)
+		edges[4]:SetWidth(borderWidth)
 		for _, edgeTexture in ipairs(edges) do
-			if private.db.profile.big_icon_settings.border == private.IconBorderSettings.dispell then
-				edgeTexture:Show()
-			else
-				edgeTexture:Hide()
-			end
+			edgeTexture:SetShown(iconSettings.border == private.IconBorderSettings.dispell)
 		end
 	end
-
-	if private.db.profile.big_icon_settings.border ~= private.IconBorderSettings.bossmods then
-		for _, edgeTexture in pairs(self.frame.BossModsBorderEdges) do
-			edgeTexture:Hide()
-		end
+	for i = 2, #frame.BorderGlows do
+		frame.BorderGlows[i]:SetShown(iconSettings.border == private.IconBorderSettings.dispell and style.Border.Glow and true or false)
 	end
 
-	for i, texture in ipairs(self.frame.DispellTypeIcons) do
-		if private.db.profile.big_icon_settings.dispellIconSize then
-			texture:SetSize(private.db.profile.big_icon_settings.dispellIconSize,
-				private.db.profile.big_icon_settings.dispellIconSize)
-		end
+	if iconSettings.border ~= private.IconBorderSettings.bossmods then
+		private.ThemeApply.BossModsBorder(frame, style.Border, nil)
+	end
+
+	local dispelIcon = style.DispelIcon
+	for _, texture in ipairs(frame.DispellTypeIcons) do
+		texture:SetSize(dispelIcon.Size, dispelIcon.Size)
 		texture:ClearAllPoints()
-		if private.db.profile.big_icon_settings.dispellIconAnchor and private.db.profile.big_icon_settings.dispellIconOffset then
-			texture:SetPoint(private.db.profile.big_icon_settings.dispellIconAnchor, self.frame.TextureHolder,
-				private.db.profile.big_icon_settings.dispellIconAnchor,
-				private.db.profile.big_icon_settings.dispellIconOffset.x,
-				private.db.profile.big_icon_settings.dispellIconOffset.y)
-		elseif private.db.profile.big_icon_settings.dispellIconAnchor then
-			texture:SetPoint(private.db.profile.big_icon_settings.dispellIconAnchor, self.frame.TextureHolder,
-				private.db.profile.big_icon_settings.dispellIconAnchor)
-		end
-		if private.db.profile.big_icon_settings.dispellIcons then
-			texture:Show()
-		else
-			texture:Hide()
-		end
+		texture:SetPoint(dispelIcon.Anchor, frame.TextureHolder, dispelIcon.Anchor, dispelIcon.Offset.x,
+			dispelIcon.Offset.y)
+		texture:SetShown(iconSettings.dispellIcons)
 	end
-	for i, texture in ipairs(self.frame.DangerIcon) do
-		if private.db.profile.big_icon_settings.dangerIcon then
-			texture:Show()
-		else
-			texture:Hide()
-		end
+	for _, texture in ipairs(frame.DangerIcon) do
+		texture:SetShown(iconSettings.dangerIcon)
 	end
 
-	for i, texture in ipairs(self.frame.RoleIcons) do
-		if private.db.profile.big_icon_settings.roleIconSize then
-			texture:SetSize(private.db.profile.big_icon_settings.roleIconSize,
-				private.db.profile.big_icon_settings.roleIconSize)
-		end
-
+	local roleIcons = style.RoleIcons
+	for i, texture in ipairs(frame.RoleIcons) do
+		texture:SetSize(roleIcons.Size, roleIcons.Size)
 		texture:ClearAllPoints()
-
-		if private.db.profile.big_icon_settings.roleIconAnchor and private.db.profile.big_icon_settings.roleIconOffset then
-			texture:SetPoint(private.db.profile.big_icon_settings.roleIconAnchor, self.frame.TextureHolder,
-				private.db.profile.big_icon_settings.roleIconAnchor,
-				private.db.profile.big_icon_settings.roleIconOffset.x + (i - 1) * self.frame.RoleIcons[1]:GetSize(),
-				private.db.profile.big_icon_settings.roleIconOffset.y)
-		elseif private.db.profile.big_icon_settings.roleIconAnchor then
-			texture:SetPoint(private.db.profile.big_icon_settings.roleIconAnchor, self.frame.TextureHolder,
-				private.db.profile.big_icon_settings.roleIconAnchor, (i - 1) * self.frame.RoleIcons[1]:GetSize(), 0)
-		end
-		if private.db.profile.big_icon_settings.roleIcons then
-			texture:Show()
-		else
-			texture:Hide()
-		end
+		texture:SetPoint(roleIcons.Anchor, frame.TextureHolder, roleIcons.Anchor,
+			roleIcons.Offset.x + (i - 1) * roleIcons.Size, roleIcons.Offset.y)
+		texture:SetShown(iconSettings.roleIcons)
 	end
-	if private.db.profile.big_icon_text_settings.useBackground then
-		local texture = SharedMedia:Fetch("background", private.db.profile.big_icon_text_settings.backgroundTexture)
-		self.frame.SpellNameBackground:SetPoint("LEFT", self.frame.SpellName, "LEFT",
-			-private.db.profile.big_icon_text_settings.backgroundTextureOffset.x, 0)
-		self.frame.SpellNameBackground:SetPoint("RIGHT", self.frame.SpellName, "RIGHT",
-			private.db.profile.big_icon_text_settings.backgroundTextureOffset.x, 0)
-		self.frame.SpellNameBackground:SetPoint("TOP", self.frame.SpellName, "TOP", 0,
-			private.db.profile.big_icon_text_settings.backgroundTextureOffset.y)
-		self.frame.SpellNameBackground:SetPoint("BOTTOM", self.frame.SpellName, "BOTTOM", 0,
-			-private.db.profile.big_icon_text_settings.backgroundTextureOffset.y)
-		self.frame.SpellNameBackground:SetTexture(texture)
-		self.frame.SpellNameBackground:Show()
+
+	local background = style.Text.Background
+	if background.Show then
+		frame.SpellNameBackground:SetPoint("LEFT", frame.SpellName, "LEFT", -background.Offset.x, 0)
+		frame.SpellNameBackground:SetPoint("RIGHT", frame.SpellName, "RIGHT", background.Offset.x, 0)
+		frame.SpellNameBackground:SetPoint("TOP", frame.SpellName, "TOP", 0, background.Offset.y)
+		frame.SpellNameBackground:SetPoint("BOTTOM", frame.SpellName, "BOTTOM", 0, -background.Offset.y)
+		private.ThemeApply.Texture(frame.SpellNameBackground, background)
+		frame.SpellNameBackground:Show()
 	else
-		self.frame.SpellNameBackground:Hide()
+		frame.SpellNameBackground:Hide()
 	end
 end
 
@@ -242,17 +156,17 @@ local function OnRelease(self)
 	self.frame.SpellIcon:SetTexture(nil)
 	self.frame.SpellName:SetText("")
 	self.frame.eventInfo = nil
+	self.frame.eventID = nil
 	self.frame:SetScript("OnUpdate", nil)
 	private.ClearEventTooltip(self.frame)
-	for _, edgeTexture in pairs(self.frame.BossModsBorderEdges) do
-		edgeTexture:Hide()
-	end
+	private.ThemeApply.BossModsBorder(self.frame, private.GetElementStyle("BigIcon").Border, nil)
 	private.StopGlow(self.frame)
 end
 
 local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 	widget.eventInfo = eventInfo
 	if not disableOnUpdate then
+		private.ThemeApply.PlayEnter(widget.frame, private.GetElementStyle("BigIcon").Enter)
 		widget.frame.Cooldown:SetCooldown(GetTime(), private.manager.getEventRemainingTime(eventInfo.id))
 		widget.frame:SetScript("OnUpdate", function(self)
 			local remaining = private.manager.getEventRemainingTime(eventInfo.id)
@@ -264,24 +178,15 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 			private.manager.SetEventIconTextures(eventInfo.id, 126, widget.frame.DispellTypeIcons)
 		end
 		local borderColor = private.manager.getEventBorderColor(eventInfo.id)
+		local border = private.GetElementStyle("BigIcon").Border
 		if private.db.profile.big_icon_settings.border == private.IconBorderSettings.dispell then
-			for i, dispellValue in ipairs(private.dispellTypeList) do
-				for _, edgeTexture in ipairs(widget.frame.DispellTypeBorderEdges[i]) do
-					private.manager.SetEventIconTextures(eventInfo.id, dispellValue.mask, { edgeTexture })
-					edgeTexture:SetTexture(nil)
-					edgeTexture:SetColorTexture(dispellValue.color.r, dispellValue.color.g, dispellValue.color.b,
-						dispellValue.color.a)
-				end
+			for i in ipairs(private.dispellTypeList) do
+				private.ThemeApply.DispelBorder(widget.frame, i, border, eventInfo.id)
 			end
 		elseif private.db.profile.big_icon_settings.border == private.IconBorderSettings.bossmods and borderColor then
-			for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
-				edgeTexture:SetColorTexture(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
-				edgeTexture:Show()
-			end
+			private.ThemeApply.BossModsBorder(widget.frame, border, borderColor)
 		else
-			for _, edgeTexture in pairs(widget.frame.BossModsBorderEdges) do
-				edgeTexture:Hide()
-			end
+			private.ThemeApply.BossModsBorder(widget.frame, border, nil)
 		end
 		if private.db.profile.big_icon_settings.dangerIcon then
 			private.manager.SetEventIconTextures(eventInfo.id, 1, widget.frame.DangerIcon)
@@ -291,16 +196,10 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 		end
 	end
 
-	widget.frame.SpellIcon:SetAllPoints(widget.frame)
 	widget.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
 	widget.frame.SpellName:SetText(eventInfo.spellName)
-
-	if private.db.profile.text_settings.useEventColor then
-		local color = private.manager.getEventColor(eventInfo.id)
-		if color then
-			widget.frame.SpellName:SetTextColor(color.r, color.g, color.b)
-		end
-	end
+	widget.frame.eventID = eventInfo.id
+	applyEventColor(widget.frame)
 	widget.frame:Show()
 	if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.useTooltip and private.db.profile.big_icon_settings.useTooltip ~= Enum.EncounterEventsTooltipAnchor.Hidden then
 		private.AddEventTooltip(widget.frame, eventInfo, private.db.profile.big_icon_settings.useTooltip)
@@ -310,7 +209,11 @@ end
 local function Constructor()
 	local count = AceGUI:GetNextWidgetNum(Type)
 	local frame = CreateFrame("Frame", "BIGICON" .. count, private.BIGICON_FRAME.frame)
-	frame.Cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
+	-- the scaled swipe rounds a pixel past the icon, clipped here so it can cover the icon to its edge
+	frame.CooldownClip = CreateFrame("Frame", nil, frame)
+	frame.CooldownClip:SetAllPoints(frame)
+	frame.CooldownClip:SetClipsChildren(true)
+	frame.Cooldown = CreateFrame("Cooldown", nil, frame.CooldownClip, "CooldownFrameTemplate")
 	frame.Cooldown:SetDrawSwipe(true)
 	frame.Cooldown:SetDrawEdge(true)
 	frame.Cooldown:SetAllPoints(frame)
@@ -320,13 +223,12 @@ local function Constructor()
 	frame.CooldownText = frame.Cooldown:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
 	frame.CooldownText:SetPoint("CENTER", frame.Cooldown, "CENTER", 0, 0)
 
-	frame:SetSize(private.db.profile.big_icon_settings.size, private.db.profile.big_icon_settings.size)
-
 	frame.TextureHolder = CreateFrame("Frame", nil, frame)
 	frame.TextureHolder:SetAllPoints(frame)
 	frame.TextureHolder:SetFrameStrata("HIGH")
 
 	frame.SpellIcon = frame:CreateTexture(nil, "BACKGROUND")
+	frame.SpellIcon:SetAllPoints(frame)
 	frame.SpellName = frame.TextureHolder:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
 	frame.SpellName:SetWidth(variables.icon_text_width)
 	frame.SpellName:SetWordWrap(true)
@@ -335,21 +237,12 @@ local function Constructor()
 
 	-- spell name background
 	frame.SpellNameBackground = frame:CreateTexture(nil, "BACKGROUND")
-	frame.SpellNameBackground:SetPoint("LEFT", frame.SpellName, "LEFT",
-		-private.db.profile.text_settings.backgroundTextureOffset.x, 0)
-	frame.SpellNameBackground:SetPoint("RIGHT", frame.SpellName, "RIGHT",
-		private.db.profile.text_settings.backgroundTextureOffset.x, 0)
-	frame.SpellNameBackground:SetPoint("TOP", frame.SpellName, "TOP", 0,
-		private.db.profile.text_settings.backgroundTextureOffset.y)
-	frame.SpellNameBackground:SetPoint("BOTTOM", frame.SpellName, "BOTTOM", 0,
-		-private.db.profile.text_settings.backgroundTextureOffset.y)
-	frame.SpellNameBackground:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
 	frame.SpellNameBackground:Hide()
 
 	frame.RoleIcons = {}
 
 	for i = 1, 4 do
-		local texture = frame.TextureHolder:CreateTexture(nil, "ARTWORK")
+		local texture = frame.TextureHolder:CreateTexture(nil, "OVERLAY", nil, 7)
 		texture:SetPoint("LEFT", frame.TextureHolder, "RIGHT", 18 * (i - 1), 0)
 		texture:SetSize(16, 16)
 		texture:Show()
@@ -358,7 +251,7 @@ local function Constructor()
 
 	frame.DangerIcon = {}
 
-	local dangerTexture = frame.TextureHolder:CreateTexture(nil, "ARTWORK")
+	local dangerTexture = frame.TextureHolder:CreateTexture(nil, "OVERLAY", nil, 7)
 	dangerTexture:SetSize(16, 16)
 	dangerTexture:SetPoint("CENTER", frame.TextureHolder, "TOPLEFT", 0, 0)
 	dangerTexture:Show()
@@ -366,14 +259,14 @@ local function Constructor()
 
 	frame.DispellTypeIcons = {}
 
-	local dispellTypeTexture = frame.TextureHolder:CreateTexture(nil, "ARTWORK")
+	local dispellTypeTexture = frame.TextureHolder:CreateTexture(nil, "OVERLAY", nil, 7)
 	dispellTypeTexture:SetPoint("BOTTOMRIGHT", frame.TextureHolder, "BOTTOMRIGHT", -3, 3)
 	dispellTypeTexture:SetSize(16, 16)
 	dispellTypeTexture:Show()
 	table.insert(frame.DispellTypeIcons, dispellTypeTexture)
 
 	frame.BossModsBorderEdges = {}
-	local bossBorderWidth = private.db.profile.big_icon_settings.borderWidth or 3
+	local bossBorderWidth = 3
 
 	-- Top edge
 	local bossTopEdge = frame.TextureHolder:CreateTexture(nil, "BORDER")
@@ -449,6 +342,8 @@ local function Constructor()
 		HandleCooldown = HandleCooldown,
 		ApplySettings = ApplySettings,
 	}
+	private.AddToMasque("BigIcons", frame, { Icon = frame.SpellIcon, Cooldown = frame.Cooldown })
+	private.RegisterThemed(widget)
 
 	return AceGUI:RegisterAsWidget(widget)
 end

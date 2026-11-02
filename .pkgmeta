@@ -19,3 +19,7 @@ externals:
     Libs/LibCustomGlow-1.0:      https://github.com/Stanzilla/LibCustomGlow
     Libs/AceComm-3.0:            https://repos.wowace.com/wow/ace3/trunk/AceComm-3.0
     
+
+ignore:
+    - tools
+    - docs

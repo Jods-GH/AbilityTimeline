@@ -1,0 +1,161 @@
+local appName, app = ...
+---@class AbilityTimeline
+local private = app
+local AceGUI = LibStub("AceGUI-3.0")
+local ThemeApply = private.ThemeApply
+
+-- a theme in the theme selection: its name, description, palette and whether it animates
+local Type = "AtThemeCard"
+local Version = 1
+local variables = {
+    height = 76,
+    gap = 3,
+    padding = 15,
+    swatch = 14,
+    swatchGap = 4,
+    swatchColors = { "Body", "Field", "Accent2", "Accent", "Text" },
+}
+
+---a color of a theme's palette, Classic's where the theme leaves it out
+---@param theme table
+---@param name string
+---@return table
+local getPaletteColor = function(theme, name)
+    return theme.Palette and theme.Palette[name] or private.Themes[private.DEFAULT_THEME].Palette[name]
+end
+
+---@param frame Button
+local draw = function(frame)
+    local hover, selected = frame.atHover or 0, frame.atSelected or 0
+    frame.AtFill:SetVertexColor(ThemeApply.MixColor("Field", "FieldHover", hover))
+    frame.AtEdge:SetVertexColor(ThemeApply.MixColor("Edge", "Accent", math.max(selected, hover * 0.4), nil, 1))
+    frame.Glow:SetAlpha(selected * 0.35)
+end
+
+---@param self AtThemeCard
+local function ApplySettings(self)
+    local frame = self.frame
+    ThemeApply.FontRole(frame.Title, "CardTitle")
+    ThemeApply.FontRole(frame.Description, "CardText")
+    ThemeApply.FontRole(frame.Badge, "CardText")
+    frame.Glow:SetVertexColor(ThemeApply.Color("Accent"))
+    draw(frame)
+    frame:SetAlpha(self.disabled and 0.5 or 1)
+end
+
+---@param self AtThemeCard
+local function OnAcquire(self)
+    self:SetHeight(variables.height)
+    self:SetFullWidth(true)
+    self:SetDisabled(false)
+    self.frame.atSelected = 0
+    ApplySettings(self)
+end
+
+---@param self AtThemeCard
+local function OnRelease(self)
+    self.frame:ClearAllPoints()
+    self.frame:Hide()
+end
+
+---@param self AtThemeCard
+---@param theme table
+local function SetTheme(self, theme)
+    local frame = self.frame
+    frame.Title:SetText(theme.DisplayName or theme.Name)
+    frame.Description:SetText(private.IsThemeAvailable(theme.Name) and theme.Description or
+        private.getLocalisation("ThemeUnavailable"))
+    frame.Badge:SetText(private.getLocalisation(theme.Effects and "ThemeAnimated" or "ThemeStatic"))
+    for i, swatch in ipairs(frame.Swatches) do
+        swatch:SetVertexColor(ThemeApply.Color(getPaletteColor(theme, variables.swatchColors[i]), 1))
+    end
+end
+
+---@param self AtThemeCard
+---@param selected boolean
+local function SetSelected(self, selected)
+    local frame = self.frame
+    private.TweenMotion(frame.Glow, "Select", frame.atSelected or 0, selected and 1 or 0, function(progress)
+        frame.atSelected = progress
+        draw(frame)
+    end)
+end
+
+---@param self AtThemeCard
+---@param disabled boolean
+local function SetDisabled(self, disabled)
+    self.disabled = disabled
+    self.frame:EnableMouse(not disabled)
+    self.frame:SetAlpha(disabled and 0.5 or 1)
+end
+
+local function Constructor()
+    local count = AceGUI:GetNextWidgetNum(Type)
+    local frame = CreateFrame("Button", Type .. count, UIParent)
+    frame:Hide()
+    -- the art is inset so cards stacked by the List layout get a gap between them
+    ThemeApply.CreatePanel(frame)
+    for _, texture in ipairs({ frame.AtFill, frame.AtEdge }) do
+        texture:ClearAllPoints()
+        texture:SetPoint("TOPLEFT", 0, -variables.gap)
+        texture:SetPoint("BOTTOMRIGHT", 0, variables.gap)
+    end
+    frame.Glow = ThemeApply.CreateSliced(frame, "shadow", "BACKGROUND", 0, 24)
+    frame.Glow:SetPoint("TOPLEFT", -14, 14 - variables.gap)
+    frame.Glow:SetPoint("BOTTOMRIGHT", 14, -14 + variables.gap)
+    frame.Glow:SetBlendMode("ADD")
+
+    frame.Swatches = {}
+    for i = #variables.swatchColors, 1, -1 do
+        local swatch = frame:CreateTexture(nil, "ARTWORK")
+        swatch:SetTexture(ThemeApply.File("circle"))
+        swatch:SetSize(variables.swatch, variables.swatch)
+        local offset = -variables.padding - (#variables.swatchColors - i) * (variables.swatch + variables.swatchGap)
+        swatch:SetPoint("TOPRIGHT", frame, "TOPRIGHT", offset, -variables.padding)
+        frame.Swatches[i] = swatch
+    end
+
+    frame.Title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    frame.Title:SetPoint("TOPLEFT", variables.padding, -variables.padding)
+    frame.Title:SetJustifyH("LEFT")
+    frame.Badge = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    frame.Badge:SetPoint("BOTTOMRIGHT", -variables.padding, variables.padding)
+    frame.Description = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    frame.Description:SetPoint("TOPLEFT", frame.Title, "BOTTOMLEFT", 0, -4)
+    frame.Description:SetPoint("RIGHT", frame.Badge, "LEFT", -8, 0)
+    frame.Description:SetJustifyH("LEFT")
+    frame.Description:SetWordWrap(true)
+
+    ---@class AtThemeCard : AceGUIWidget
+    local widget = {
+        OnAcquire = OnAcquire,
+        OnRelease = OnRelease,
+        ApplySettings = ApplySettings,
+        SetTheme = SetTheme,
+        SetSelected = SetSelected,
+        SetDisabled = SetDisabled,
+        type = Type,
+        count = count,
+        frame = frame,
+    }
+    frame:SetScript("OnClick", function()
+        widget:Fire("OnClick")
+    end)
+    frame:SetScript("OnEnter", function()
+        private.TweenMotion(frame, "Hover", frame.atHover or 0, 1, function(progress)
+            frame.atHover = progress
+            draw(frame)
+        end)
+    end)
+    frame:SetScript("OnLeave", function()
+        private.TweenMotion(frame, "Hover", frame.atHover or 1, 0, function(progress)
+            frame.atHover = progress
+            draw(frame)
+        end)
+    end)
+    private.RegisterThemed(widget)
+
+    return AceGUI:RegisterAsWidget(widget)
+end
+
+AceGUI:RegisterWidgetType(Type, Constructor, Version)

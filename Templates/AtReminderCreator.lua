@@ -20,8 +20,12 @@ local variables = {
             y = -40,
         }
     },
-
 }
+
+---@param self AtReminderCreator
+local function ApplySettings(self)
+    private.ThemeApply.Window(self.frame, private.GetWindowStyle("Dialog"), self.closeButton, self.frame.titleBar)
+end
 
 
 ---@param self AtReminderCreator
@@ -43,23 +47,11 @@ local function Constructor()
     local frame = CreateFrame("Frame", Type .. count, private.TIMINGS_EDITOR_WINDOW.frame, "BackdropTemplate")
     frame:SetFrameStrata("DIALOG")
     frame:SetSize(variables.x, variables.y)
-    frame:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        tile = true,
-        tileSize = 32,
-        edgeSize = 32,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 }
-    })
-    frame:SetBackdropColor(0, 0, 0, 0.95)
-    frame:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
     frame:SetAlpha(1)
 
-    -- Add an explicit dark overlay to guarantee opacity
-    local overlay = frame:CreateTexture(nil, "BACKGROUND")
-    overlay:SetAllPoints()
-    overlay:SetColorTexture(0, 0, 0, 0.95)
     frame:SetPoint("CENTER", private.TIMINGS_EDITOR_WINDOW.frame, "CENTER")
     local titleBar = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    frame.titleBar = titleBar
     titleBar:SetPoint("TOP", frame, "TOP", variables.titleBar.padding.x, variables.titleBar.padding.y)
     titleBar:SetText(private.getLocalisation("ReminderAddTitle"))
     titleBar:SetHeight(variables.titleBar.height)
@@ -98,7 +90,10 @@ local function Constructor()
         closeButton = closeButton,
         content = contentFrame,
         SetTitle = SetTitle,
+        ApplySettings = ApplySettings,
     }
+    ApplySettings(widget)
+    private.RegisterThemed(widget)
 
     return AceGUI:RegisterAsContainer(widget)
 end

@@ -42,19 +42,17 @@ local function SetTitle(self, title)
     self.frame.titleBar:SetText(title)
 end
 
+---@param self AtImportDialog
+local function ApplySettings(self)
+    private.ThemeApply.Window(self.frame, private.GetWindowStyle("Dialog"), self.closeButton, self.frame.titleBar)
+    private.ThemeApply.FontRole(self.frame.subtitleBar, "Heading")
+end
+
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
     local frame = CreateFrame("Frame", Type .. count, UIParent, "BackdropTemplate")
     frame:SetFrameStrata("DIALOG")
     frame:SetSize(variables.x, variables.y)
-    frame:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        tile = true,
-        tileSize = 32,
-        edgeSize = 32,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 }
-    })
-    frame:SetBackdropColor(1, 1, 1, 1)
 
     frame:EnableMouse(true)
     frame:SetMovable(true)
@@ -111,7 +109,10 @@ local function Constructor()
         closeButton = closeButton,
         content = contentFrame,
         SetTitle = SetTitle,
+        ApplySettings = ApplySettings,
     }
+    ApplySettings(widget)
+    private.RegisterThemed(widget)
 
     return AceGUI:RegisterAsContainer(widget)
 end

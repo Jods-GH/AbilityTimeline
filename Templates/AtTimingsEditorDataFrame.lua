@@ -26,6 +26,15 @@ local variables = {
     RowPadding = 8,
 }
 
+---@param self AtTimingsEditorDataFrame
+local function ApplySettings(self)
+    for _, panel in ipairs({ self.left, self.rightContent, self.timeline }) do
+        local fill, edge = private.ThemeApply.CreatePanel(panel)
+        fill:SetVertexColor(private.ThemeApply.Color(panel == self.timeline and "Field" or "Card"))
+        edge:SetVertexColor(private.ThemeApply.Color("Edge"))
+    end
+end
+
 local function formatTime(seconds)
     seconds = tonumber(seconds) or 0
     local minutes = math.floor(seconds / 60)
@@ -306,7 +315,7 @@ local function createRow(self, reminder, index)
     end)
     row:AddChild(label)
 
-    local editBtn = AceGUI:Create("Button")
+    local editBtn = AceGUI:Create("AtButton")
     editBtn:SetText(private.getLocalisation("ReminderEditButton"))
     editBtn:SetWidth(60)
     editBtn:SetCallback("OnClick", function()
@@ -314,7 +323,7 @@ local function createRow(self, reminder, index)
     end)
     row:AddChild(editBtn)
 
-    local deleteBtn = AceGUI:Create("Button")
+    local deleteBtn = AceGUI:Create("AtButton")
     deleteBtn:SetText(private.getLocalisation("ReminderDeleteButton"))
     deleteBtn:SetWidth(60)
     deleteBtn:SetCallback("OnClick", function()
@@ -340,7 +349,7 @@ local function RefreshReminders(self)
     -- Defensive: ensure reminderList AceGUI widget exists (may be lost after many create/release cycles)
     if not self.reminderList or type(self.reminderList.AddChild) ~= "function" then
         private.Debug("recreating missing reminderList AceGUI widget")
-        local rl = AceGUI:Create("ScrollFrame")
+        local rl = AceGUI:Create("AtScrollFrame")
         rl:SetLayout("List")
         if self.left then
             rl:SetParent(self.left)
@@ -464,14 +473,14 @@ local function OpenReminderDialog(self, reminderIndex)
     end
     dialog:SetLayout("Flow")
 
-    local nameBox = AceGUI:Create("EditBox")
+    local nameBox = AceGUI:Create("AtEditBox")
     nameBox:SetLabel(private.getLocalisation("ReminderNameLabel"))
     nameBox:SetText(current.name or current.spellName or "")
     nameBox:SetRelativeWidth(0.55)
     nameBox:DisableButton(true)
     dialog:AddChild(nameBox)
 
-    local spellIdBox = AceGUI:Create("EditBox")
+    local spellIdBox = AceGUI:Create("AtEditBox")
     spellIdBox:SetLabel(private.getLocalisation("ReminderSpellIdLabel"))
     spellIdBox:SetText(current.spellId and tostring(current.spellId) or "")
     spellIdBox:SetRelativeWidth(0.30)
@@ -484,14 +493,14 @@ local function OpenReminderDialog(self, reminderIndex)
     iconPreview:SetRelativeWidth(0.15)
     dialog:AddChild(iconPreview)
 
-    local timingBox = AceGUI:Create("EditBox")
+    local timingBox = AceGUI:Create("AtEditBox")
     timingBox:SetLabel(private.getLocalisation("ReminderCreatorTimingLabel"))
     timingBox:SetText(tostring(current.CombatTime or 0))
     timingBox:SetRelativeWidth(0.5)
     timingBox:DisableButton(true)
     dialog:AddChild(timingBox)
 
-    local delayBox = AceGUI:Create("EditBox")
+    local delayBox = AceGUI:Create("AtEditBox")
     delayBox:SetLabel(private.getLocalisation("ReminderDelayLabel"))
     private.AddFrameTooltip(delayBox.frame, "ReminderDelayDescription")
     delayBox:SetText(tostring(current.CombatTimeDelay or 0))
@@ -499,7 +508,7 @@ local function OpenReminderDialog(self, reminderIndex)
     delayBox:DisableButton(true)
     dialog:AddChild(delayBox)
 
-    local startTimerAfterBox = AceGUI:Create("EditBox")
+    local startTimerAfterBox = AceGUI:Create("AtEditBox")
     startTimerAfterBox:SetLabel(private.getLocalisation("StartTimerAfterLabel"))
     private.AddFrameTooltip(startTimerAfterBox.frame, "StartTimerAfterDescription")
     startTimerAfterBox:SetText(tostring(current.StartTimerAfter or 0))
@@ -507,7 +516,7 @@ local function OpenReminderDialog(self, reminderIndex)
     startTimerAfterBox:DisableButton(true)
     dialog:AddChild(startTimerAfterBox)
 
-    local severity = AceGUI:Create("Dropdown")
+    local severity = AceGUI:Create("AtDropdown")
     severity:SetLabel(private.getLocalisation("ReminderSeverityLabel"))
     severity:SetList({
         [0] = "Info",
@@ -518,7 +527,7 @@ local function OpenReminderDialog(self, reminderIndex)
     severity:SetValue(current.severity or 0)
     dialog:AddChild(severity)
 
-    local effects = AceGUI:Create("Dropdown")
+    local effects = AceGUI:Create("AtDropdown")
     effects:SetLabel(private.getLocalisation("ReminderEffectTypesLabel"))
     effects:SetList({
         [1] = private.getLocalisation("DeadlyEffect"),
@@ -574,7 +583,7 @@ local function OpenReminderDialog(self, reminderIndex)
     -- initialize preview when dialog opens
     refreshSpellInfo()
 
-    local saveButton = AceGUI:Create("Button")
+    local saveButton = AceGUI:Create("AtButton")
     saveButton:SetText(private.getLocalisation("ReminderSaveButton"))
     saveButton:SetRelativeWidth(0.5)
     saveButton:SetCallback("OnClick", function()
@@ -611,7 +620,7 @@ local function OpenReminderDialog(self, reminderIndex)
     dialog:AddChild(saveButton)
 
     if isEditing then
-        local deleteButton = AceGUI:Create("Button")
+        local deleteButton = AceGUI:Create("AtButton")
         deleteButton:SetText(private.getLocalisation("ReminderDeleteButton"))
         deleteButton:SetRelativeWidth(0.5)
         deleteButton:SetCallback("OnClick", function()
@@ -621,7 +630,7 @@ local function OpenReminderDialog(self, reminderIndex)
         end)
         dialog:AddChild(deleteButton)
     else
-        local cancelButton = AceGUI:Create("Button")
+        local cancelButton = AceGUI:Create("AtButton")
         cancelButton:SetText(private.getLocalisation("ReminderCancelButton"))
         cancelButton:SetRelativeWidth(0.5)
         cancelButton:SetCallback("OnClick", function()
@@ -694,15 +703,6 @@ local function Constructor()
     left:SetPoint("TOPLEFT", main, "TOPLEFT", 10, -10)
     left:SetPoint("BOTTOMLEFT", main, "BOTTOMLEFT", 10, 40)
     left:SetWidth(variables.FrameLeftSize)
-    left:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        tile = true,
-        tileSize = 32,
-        edgeSize = 32,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 }
-    })
-    left:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
-    left:SetBackdropBorderColor(0.25, 0.25, 0.25, 0.9)
 
     -- Create a container for controls at top (label, duration, button)
     local controlsContainer = AceGUI:Create("SimpleGroup")
@@ -712,25 +712,25 @@ local function Constructor()
     controlsContainer.frame:SetPoint("TOPRIGHT", left, "TOPRIGHT", 0, 0)
     controlsContainer.frame:SetFrameLevel(left:GetFrameLevel() + 50)
 
-    local durationBox = AceGUI:Create("EditBox")
+    local durationBox = AceGUI:Create("AtEditBox")
     durationBox:SetLabel(private.getLocalisation("ReminderDurationLabel"))
     durationBox:SetText(tostring(private.db.profile.editor.defaultEncounterDuration or 300))
     durationBox:SetFullWidth(true)
     controlsContainer:AddChild(durationBox)
 
-    local addEntryButton = AceGUI:Create("Button")
+    local addEntryButton = AceGUI:Create("AtButton")
     addEntryButton:SetText(private.getLocalisation("TimingsEditorAddEntryButton"))
     addEntryButton:SetRelativeWidth(1)
     addEntryButton:SetHeight(20)
     controlsContainer:AddChild(addEntryButton)
 
-    local importButton = AceGUI:Create("Button")
+    local importButton = AceGUI:Create("AtButton")
     importButton:SetText(private.getLocalisation("ReminderImportButton"))
     importButton:SetRelativeWidth(1)
     importButton:SetHeight(20)
     controlsContainer:AddChild(importButton)
 
-    local exportButton = AceGUI:Create("Button")
+    local exportButton = AceGUI:Create("AtButton")
     exportButton:SetText(private.getLocalisation("ReminderExportButton"))
     exportButton:SetRelativeWidth(1)
     exportButton:SetHeight(20)
@@ -739,7 +739,7 @@ local function Constructor()
     -- encounter picker removed; use Options -> Encounter Browser to add encounters or the EJ button.
 
     -- Reminder list below controls, filling remaining space
-    local reminderList = AceGUI:Create("ScrollFrame")
+    local reminderList = AceGUI:Create("AtScrollFrame")
     reminderList:SetLayout("List")
     reminderList:SetParent(left)
     reminderList.frame:SetPoint("TOPLEFT", left, "TOPLEFT", 0, -125)
@@ -761,33 +761,14 @@ local function Constructor()
     rightContent:SetSize(2000, rightViewport:GetHeight())
     hscroll:SetScrollChild(rightContent)
 
-    rightContent:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        tile = true,
-        tileSize = 32,
-        edgeSize = 32,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 }
-    })
-    rightContent:SetBackdropColor(0.08, 0.08, 0.08, 0.9)
-    rightContent:SetBackdropBorderColor(0.2, 0.2, 0.2, 0.9)
-
     local timeline = CreateFrame("Frame", Type .. "_Timeline", rightContent, "BackdropTemplate")
     timeline:SetPoint("TOPLEFT", rightContent, "TOPLEFT", 10, -25)
     timeline:SetPoint("BOTTOMRIGHT", rightContent, "BOTTOMRIGHT", -10, 10)
-    timeline:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        tile = true,
-        tileSize = 32,
-        edgeSize = 32,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 }
-    })
-    timeline:SetBackdropColor(0.05, 0.05, 0.06, 0.95)
-    timeline:SetBackdropBorderColor(0.3, 0.3, 0.3, 0.9)
     timeline:SetFrameLevel(rightContent:GetFrameLevel() + 50)
     timeline.Ticks = {}
 
     -- add a horizontal slider under rightViewport to control horizontal scroll
-    local hslider = AceGUI:Create("Slider")
+    local hslider = AceGUI:Create("AtSlider")
     hslider.frame:SetSize(rightViewport:GetWidth() - 20, 20)
     hslider:SetPoint("TOPLEFT", rightViewport, "BOTTOMLEFT", 0, 8)
     hslider:SetPoint("BOTTOMRIGHT", main, "BOTTOMRIGHT", -10, 8)
@@ -834,7 +815,10 @@ local function Constructor()
         OpenReminderDialog = OpenReminderDialog,
         SaveReminders = SaveReminders,
         SortReminders = SortReminders,
+        ApplySettings = ApplySettings,
     }
+    ApplySettings(widget)
+    private.RegisterThemed(widget)
 
     -- no inline encounter picker
 

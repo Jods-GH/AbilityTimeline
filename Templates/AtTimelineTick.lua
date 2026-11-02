@@ -6,18 +6,7 @@ local AceGUI = LibStub("AceGUI-3.0")
 local Type = "AtTimelineTicks"
 local Version = 1
 local variables = {
-    color = {
-        r = 1,
-        g = 1,
-        b = 1,
-        a = 1,
-    },
-    height = 1,
     width = 10,
-    textOffset = {
-        x = 5,
-        y = 0,
-    }
 }
 
 ---@param self AtTimelineTicks
@@ -28,9 +17,13 @@ end
 local function OnRelease(self)
     self.frame.tickText:SetText("")
     self.frame:ClearAllPoints()
+    self.relativeTo = nil
 end
 
 local function SetTick(self, relativeTo, tick, totalSize, threshhold, isHorizontal)
+    self.relativeTo, self.totalSize, self.threshhold, self.isHorizontal = relativeTo, totalSize, threshhold, isHorizontal
+    local style = private.GetElementStyle("Tick")
+    local textOffset = style.Text.Offset
     self.frame.tickText:SetText(tick .. "s")
     local tickPosition = (tick / threshhold) * totalSize
     self.frame:ClearAllPoints()
@@ -42,17 +35,26 @@ local function SetTick(self, relativeTo, tick, totalSize, threshhold, isHorizont
         self.frame:SetPoint("BOTTOMLEFT", relativeTo, "BOTTOMLEFT", tickPosition, 0)
         self.frame.tickLine:SetPoint("TOP", self.frame, "TOP", 0, 0)
         self.frame.tickLine:SetPoint("BOTTOM", self.frame, "BOTTOM", 0, 0)
-        self.frame.tickText:SetPoint("BOTTOM", self.frame.tickLine, "TOP", variables.textOffset.y, variables.textOffset
-            .x)
+        self.frame.tickText:SetPoint("BOTTOM", self.frame.tickLine, "TOP", textOffset.y, textOffset.x)
     else
         self.frame:SetPoint("LEFT", relativeTo, "BOTTOMLEFT", 0, tickPosition)
         self.frame:SetPoint("RIGHT", relativeTo, "BOTTOMRIGHT", 0, tickPosition)
         self.frame.tickLine:SetPoint("LEFT", self.frame, "LEFT", 0, 0)
         self.frame.tickLine:SetPoint("RIGHT", self.frame, "RIGHT", 0, 0)
-        self.frame.tickText:SetPoint("LEFT", self.frame.tickLine, "RIGHT", variables.textOffset.x, variables.textOffset
-            .y)
+        self.frame.tickText:SetPoint("LEFT", self.frame.tickLine, "RIGHT", textOffset.x, textOffset.y)
     end
     self.frame:SetParent(relativeTo)
+end
+
+---@param self AtTimelineTicks
+local function ApplySettings(self)
+    local style = private.GetElementStyle("Tick")
+    private.ThemeApply.Texture(self.frame.tickLine, style.Line)
+    self.frame:SetHeight(style.Line.Thickness)
+    private.ThemeApply.Font(self.frame.tickText, style.Text.Font)
+    if self.relativeTo then
+        SetTick(self, self.relativeTo, self.tick, self.totalSize, self.threshhold, self.isHorizontal)
+    end
 end
 
 
@@ -61,14 +63,11 @@ local function Constructor()
 
     local frame = CreateFrame("Frame", Type .. count, UIParent)
 
-    frame:SetHeight(variables.height)
     frame:SetWidth(variables.width)
     frame.tickLine = frame:CreateTexture(nil, "ARTWORK")
-    frame.tickLine:SetColorTexture(variables.color.r, variables.color.g, variables.color.b, variables.color.a)
     frame.tickLine:SetPoint("LEFT", frame, "LEFT", 0, 0)
     frame.tickLine:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
     frame.tickText = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-    frame.tickText:SetPoint("LEFT", frame.tickLine, "RIGHT", variables.textOffset.x, variables.textOffset.y)
     frame.tickText:SetJustifyH("CENTER")
     frame:Hide()
 
@@ -80,8 +79,11 @@ local function Constructor()
         type = Type,
         count = count,
         SetTick = SetTick,
+        ApplySettings = ApplySettings,
         tick = 0,
     }
+    ApplySettings(widget)
+    private.RegisterThemed(widget)
 
     return AceGUI:RegisterAsWidget(widget)
 end

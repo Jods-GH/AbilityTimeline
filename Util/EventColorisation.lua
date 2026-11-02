@@ -40,7 +40,7 @@ local RemoveEventColorisation = function()
         if color then
             C_EncounterEvents.SetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent, color)
         else
-            local color = CreateColor(private.db.profile.text_settings.defaultColor.r, private.db.profile.text_settings.defaultColor.g, private.db.profile.text_settings.defaultColor.b)
+            local color = CreateColor(private.ThemeApply.Color(private.GetElementStyle("SpellIcon").Text.Font.Color))
             C_EncounterEvents.SetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent, color)
         end
     end

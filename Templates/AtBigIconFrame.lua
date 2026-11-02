@@ -21,6 +21,20 @@ private.BigIcon.defaultPosition = {
     x = 410,
 }
 
+---the size of big icons, stored per edit mode layout, the theme's while the layout has none
+---@return number
+private.GetBigIconSize = function()
+    local layouts = private.db.global.bigicon
+    local layout = layouts and private.ACTIVE_EDITMODE_LAYOUT and layouts[private.ACTIVE_EDITMODE_LAYOUT]
+    return layout and layout.size or private.GetElementStyle("BigIcon").Size
+end
+
+---@param size number
+private.SetBigIconSize = function(size)
+    private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].size = size
+    private.RefreshTheme()
+end
+
 ---@param self AtBigIconFrame
 local function OnAcquire(self)
 end
@@ -91,8 +105,12 @@ private.BigIcon.applyLayout = function(layoutName)
         private.db.global.bigicon[layoutName].sort = private.DynamicGroup.SORT.ASCENDING
     end
 
-    if private.evaluateBigIconPositions and layoutName == private.ACTIVE_EDITMODE_LAYOUT then
-        private.evaluateBigIconPositions()
+    if layoutName == private.ACTIVE_EDITMODE_LAYOUT then
+        -- the layout can have another big icon size
+        private.RefreshTheme()
+        if private.evaluateBigIconPositions then
+            private.evaluateBigIconPositions()
+        end
     end
 end
 
@@ -101,8 +119,7 @@ LibEditMode:RegisterCallback('layout', private.BigIcon.applyLayout)
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
     local frame = CreateFrame("Frame", "AbilityTimelineBigIconFrame", UIParent)
-    local size = private.db and private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.size or
-    variables.size
+    local size = private.db and private.GetBigIconSize() or variables.size
     frame:SetWidth(size)
     frame:SetHeight(size)
     frame:Show()
@@ -136,6 +153,24 @@ local function Constructor()
             end,
             minValue = 1,
             maxValue = 30,
+            valueStep = 1,
+        },
+        {
+            name = private.getLocalisation("IconSize"),
+            desc = private.getLocalisation("IconSizeDescription"),
+            kind = LibEditMode.SettingType.Slider,
+            default = variables.size,
+            get = function(layoutName)
+                return private.db.global.bigicon[layoutName].size or private.GetElementStyle("BigIcon").Size
+            end,
+            set = function(layoutName, value)
+                private.db.global.bigicon[layoutName].size = value
+                if layoutName == private.ACTIVE_EDITMODE_LAYOUT then
+                    private.RefreshTheme()
+                end
+            end,
+            minValue = 1,
+            maxValue = 150,
             valueStep = 1,
         },
     }

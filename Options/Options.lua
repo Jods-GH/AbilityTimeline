@@ -77,6 +77,83 @@ private.options = {
         },
       },
     },
+    theme = {
+      name = private.getLocalisation("Theme"),
+      desc = private.getLocalisation("ThemeDescription"),
+      order = 25,
+      type = "select",
+      values = function()
+        local values = {}
+        for _, key in ipairs(private.AUTO_THEMES) do
+          values[key] = private.GetThemeSelectionName(key)
+        end
+        for _, theme in ipairs(private.GetSelectableThemes()) do
+          if private.IsThemeAvailable(theme.Name) then
+            values[theme.Name] = theme.DisplayName or theme.Name
+          end
+        end
+        return values
+      end,
+      sorting = function()
+        local sorting = {}
+        for _, key in ipairs(private.AUTO_THEMES) do
+          table.insert(sorting, key)
+        end
+        for _, theme in ipairs(private.GetSelectableThemes()) do
+          if private.IsThemeAvailable(theme.Name) then
+            table.insert(sorting, theme.Name)
+          end
+        end
+        return sorting
+      end,
+      set = function(info, val)
+        private.SelectTheme(val)
+      end,
+      get = function(info)
+        local selection = private.GetThemeSelection()
+        return private.IsAutoTheme(selection) and selection or private.GetSavedThemeKey()
+      end,
+    },
+    animations = {
+      name = private.getLocalisation("ThemeAnimations"),
+      desc = private.getLocalisation("ThemeAnimationsDescription"),
+      order = 25.5,
+      type = "select",
+      values = {
+        [private.ANIMATION_LEVELS.FULL] = private.getLocalisation("ThemeAnimationsFull"),
+        [private.ANIMATION_LEVELS.DIMMED] = private.getLocalisation("ThemeAnimationsDimmed"),
+        [private.ANIMATION_LEVELS.OFF] = private.getLocalisation("ThemeAnimationsOff"),
+      },
+      sorting = { private.ANIMATION_LEVELS.FULL, private.ANIMATION_LEVELS.DIMMED, private.ANIMATION_LEVELS.OFF },
+      set = function(info, val)
+        private.SetAnimationLevel(val)
+      end,
+      get = function(info)
+        return private.GetAnimationLevel()
+      end,
+    },
+    openThemeSelector = {
+      name = private.getLocalisation("ThemeSelectorOpen"),
+      desc = private.getLocalisation("ThemeSelectorOpenDescription"),
+      order = 26,
+      type = "execute",
+      func = function()
+        private.openThemeSelector()
+      end,
+    },
+    resetThemeModifications = {
+      name = private.getLocalisation("ResetThemeModifications"),
+      desc = private.getLocalisation("ResetThemeModificationsDescription"),
+      order = 27,
+      type = "execute",
+      confirm = true,
+      disabled = function()
+        return not private.HasThemeModifications(private.GetSavedThemeKey())
+      end,
+      func = function()
+        private.ResetThemeModifications()
+      end,
+    },
     useTimelineModule = {
       name = private.getLocalisation("useTimelineModule"),
       desc = private.getLocalisation("useTimelineModuleDescription"),

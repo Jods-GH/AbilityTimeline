@@ -11,7 +11,7 @@ local variables = {
     Padding = { x = 2, y = 2 },
     Footer = {
         height = 30,
-    }
+    },
 }
 
 ---@param self AtSpellIconSettingsFrame
@@ -21,6 +21,14 @@ end
 ---@param self AtSpellIconSettingsFrame
 local function OnRelease(self)
     self.frame.Footer.Urls:Release()
+end
+
+---@param self AtSpellIconSettingsFrame
+local function ApplySettings(self)
+    private.ThemeApply.Window(self.frame, private.GetWindowStyle("Window"), self.frame.CloseButton)
+    self.rightContent.AtFill:SetVertexColor(private.ThemeApply.Color("Card"))
+    self.rightContent.AtEdge:SetVertexColor(private.ThemeApply.Color("Edge"))
+    private.ThemeApply.FontRole(self.rightContent.Title, "Title")
 end
 
 local function Constructor()
@@ -127,13 +135,6 @@ local function Constructor()
     )
     local rightContentFrameName = Type .. "RightContentFrame" .. count
     local rightContentFrame = CreateFrame("Frame", rightContentFrameName, frame, "BackdropTemplate")
-    rightContentFrame:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        tile = true,
-        tileSize = 32,
-        edgeSize = 32,
-        insets = { left = 32, right = 32, top = 48, bottom = 32 }
-    })
     rightContentFrame:ClearAllPoints()
     rightContentFrame:SetPoint(
         "TOPLEFT",
@@ -145,13 +146,15 @@ local function Constructor()
     rightContentFrame:SetPoint(
         "BOTTOMRIGHT",
         frame,
-        "BOTTOMRIGHT"
+        "BOTTOMRIGHT",
+        -variables.ContentFramePadding.x,
+        variables.Footer.height + variables.Padding.y
     )
+    private.ThemeApply.CreatePanel(rightContentFrame)
 
-    local IconPreviewTitle = rightContentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    IconPreviewTitle:SetFontHeight(32)
-    IconPreviewTitle:SetPoint("CENTER", rightContentFrame, "TOP", 0, -32)
-    IconPreviewTitle:SetText(private.getLocalisation("IconPreview"))
+    rightContentFrame.Title = rightContentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    rightContentFrame.Title:SetPoint("CENTER", rightContentFrame, "TOP", 0, -24)
+    rightContentFrame.Title:SetText(private.getLocalisation("IconPreview"))
 
 
     ---@class AtSpellIconSettingsFrame : AceGUIWidget
@@ -163,7 +166,10 @@ local function Constructor()
         frame = frame,
         content = contentFrame,
         rightContent = rightContentFrame,
+        ApplySettings = ApplySettings,
     }
+    ApplySettings(widget)
+    private.RegisterThemed(widget)
 
     return AceGUI:RegisterAsContainer(widget)
 end

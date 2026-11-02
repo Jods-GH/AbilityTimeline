@@ -60,7 +60,7 @@ local getZoneIconSize                          = function(zone)
    elseif zone == ZONES.PAUSED then
       return private.PAUSED_FRAME:GetIconSize()
    end
-   return private.db.profile.icon_settings.size
+   return private.GetElementStyle("SpellIcon").Size
 end
 
 ---returns the zone an icon should be displayed in
@@ -169,7 +169,7 @@ local resolveMovingCollisions                  = function(elapsed)
    -- the time one icon takes up on the timeline, later icons are pushed back by that much
    local moveSize = private.TIMELINE_FRAME:GetMoveSize()
    local iconTime = moveSize > 0 and
-       (private.db.profile.icon_settings.size + layout.iconMargin) / moveSize * layout.threshold_time or 0
+       (private.GetElementStyle("SpellIcon").Size + layout.iconMargin) / moveSize * layout.threshold_time or 0
    local previous
    for i = 1, clusterCount do
       local members = clusters[i].members
@@ -243,7 +243,7 @@ local resolveInlinePausedCollisions            = function(elapsed)
          minimum = extent / moveSize * layout.threshold_time
       end
    end
-   local iconTime = (private.db.profile.icon_settings.size + layout.iconMargin) / moveSize * layout.threshold_time
+   local iconTime = (private.GetElementStyle("SpellIcon").Size + layout.iconMargin) / moveSize * layout.threshold_time
    local previous
    for _, widget in ipairs(inlinePausedIcons) do
       local frame = widget.frame
@@ -270,7 +270,7 @@ driver:SetScript("OnUpdate", function(_, elapsed)
    local followsTimeline = waitingFollowsTimeline()
    -- space the icons that entered the timeline still take up in front of the waiting group
    local waitingLeadOffset = 0
-   local waitingSpace = private.db.profile.icon_settings.size + private.WAITING_FRAME:GetSettings().spacing
+   local waitingSpace = private.GetElementStyle("SpellIcon").Size + private.WAITING_FRAME:GetSettings().spacing
    wipe(movingIcons)
    wipe(inlinePausedIcons)
    for eventID, widget in pairs(private.activeFrames) do
@@ -278,7 +278,9 @@ driver:SetScript("OnUpdate", function(_, elapsed)
       local timeRemaining = private.manager.getEventRemainingTime(eventID)
       local state = private.manager.getEventState(eventID)
       local eventInfo = widget.frame.eventInfo
-      if state and timeRemaining and eventInfo then
+      -- an event that ended stays where it is until the manager removes it and the icon leaves from there
+      local ended = state == private.ENCOUNTER_STATES.Finished or state == private.ENCOUNTER_STATES.Canceled
+      if state and not ended and timeRemaining and eventInfo then
          if not timeElapsed or timeElapsed < 0 then timeElapsed = eventInfo.duration end
          local positionRemaining = eventInfo.duration - timeElapsed
          local zone = getZone(state, positionRemaining)
@@ -351,6 +353,16 @@ end
 private.removeAtIconFrame                      = function(eventID)
    local frame = private.activeFrames[eventID]
    if frame then
+      local exitTime = 0
+      if frame.frame:IsVisible() then
+         exitTime = private.ThemeApply.PlayExit(frame.frame, private.GetElementStyle("SpellIcon").Exit,
+            frame.frame.SpellIcon, frame.frame.eventInfo and frame.frame.eventInfo.iconFileID)
+      end
+      -- a group keeps the icon's place free until it finished shattering
+      if groups[frame.frame.zone] then
+         groups[frame.frame.zone]:Hold(eventID, exitTime)
+         frame.frame.zone = nil
+      end
       setZone(eventID, frame, nil)
       frame.frame:Hide()
       frame:Release()
@@ -447,9 +459,15 @@ private.handleFrame = function(show)
       if not private.TIMELINE_FRAME.frame then
          private.createTimelineFrame()
       end
-      private.TIMELINE_FRAME.frame:Show()
+      if not private.TIMELINE_FRAME.frame:IsShown() then
+         private.TIMELINE_FRAME.frame:Show()
+         private.ThemeApply.PlayEnter(private.TIMELINE_FRAME.frame, private.GetElementStyle("Timeline").Enter)
+      end
    else
       if private.TIMELINE_FRAME.frame then
+         if private.TIMELINE_FRAME.frame:IsVisible() then
+            private.ThemeApply.PlayExit(private.TIMELINE_FRAME.frame, private.GetElementStyle("Timeline").Exit)
+         end
          private.TIMELINE_FRAME.frame:Hide()
       end
       private.removeAllFrames()

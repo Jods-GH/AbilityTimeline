@@ -158,7 +158,7 @@ private.manager.getEventColor = function(eventID)
    if private.db.profile.dispellTextColor and icons and icons ~= 0 then
       for _, value in ipairs(private.dispellTypeList) do
          if bit.band(icons, value.mask) ~= 0 then
-            return value.color
+            return CreateColor(private.ThemeApply.DispelColor(value))
          end
       end
    end

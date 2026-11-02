@@ -6,7 +6,7 @@
 ## Author: Jods
 ## X-Curse-Project-ID: 1365171
 ## X-Wago-ID: qGYMWpGg
-## OptionalDeps: Ace3, DevTool, CustomNames, ElvUI, DBM-Core, BigWigs, LibEditMode
+## OptionalDeps: Ace3, DevTool, CustomNames, ElvUI, DBM-Core, BigWigs, LibEditMode, Masque
 ## AddonCompartmentFunc: AbilityTimeline_AddonCompartmentFunction
 ## IconTexture: Interface\AddOns\AbilityTimeline\Media\Logo.tga
 ## Category-enUS: Dungeons & Raids
@@ -32,6 +32,12 @@ Data\specPosition.lua
 
 #util
 Util\Constants.lua
+Util\Theme.lua
+Util\Media.lua
+Util\Tween.lua
+Util\Particles.lua
+Util\ThemeApply.lua
+Util\Transitions.lua
 Util\Debug.lua
 Util\EditMode.lua
 Util\ModernizeSettings.lua
@@ -59,7 +65,18 @@ Locales\zhTW.lua
  
 Locales\Locales.lua
 
+#themes
+Themes\Themes.xml
+
 #templates
+Templates\Widgets\WidgetBase.lua
+Templates\Widgets\AtButton.lua
+Templates\Widgets\AtCheckBox.lua
+Templates\Widgets\AtSlider.lua
+Templates\Widgets\AtEditBox.lua
+Templates\Widgets\AtColorPicker.lua
+Templates\Widgets\AtDropdown.lua
+Templates\Widgets\AtGroups.lua
 Templates\AtImportPopup.lua
 Templates\AtTextCopyFrame.lua
 Templates\AtReminderCreator.lua
@@ -77,8 +94,11 @@ Templates\AtTextHighlightFrame.lua
 Templates\AtBigIcon.lua
 Templates\AtTextHighlight.lua
 Templates\AtSpellIconSettingsFrame.lua
+Templates\AtThemeCard.lua
+Templates\AtThemeSelector.lua
 
 #plugins
+Plugins\Masque.lua
 Plugins\TextHighlight.lua
 Plugins\BigIcon.lua
 Plugins\SoundAlert.lua

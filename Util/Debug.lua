@@ -137,3 +137,65 @@ private.Debug = function(debugValue, tableName)
         end
     end
 end
+
+---prints every shown texture under the mouse in the window under it, to find stray art
+private.debugTexturesUnderMouse = function()
+    local printTextures
+    printTextures = function(frame)
+        for _, region in ipairs({ frame:GetRegions() }) do
+            if region:IsObjectType("Texture") and region:IsVisible() and region:IsMouseOver() then
+                local r, g, b, a = region:GetVertexColor()
+                print(("%s | %s | %s | %.2f %.2f %.2f %.2f"):format(region:GetDebugName(),
+                    tostring(region:GetAtlas() or region:GetTexture()), region:GetDrawLayer(), r, g, b, a))
+            end
+        end
+        for _, child in ipairs({ frame:GetChildren() }) do
+            if child:IsVisible() then
+                printTextures(child)
+            end
+        end
+    end
+    local foci = GetMouseFoci and GetMouseFoci() or { GetMouseFocus() }
+    for _, focus in ipairs(foci) do
+        local window = focus
+        while window:GetParent() and window:GetParent() ~= UIParent do
+            window = window:GetParent()
+        end
+        printTextures(window)
+    end
+end
+
+---prints the theme in use, the player's changes to it and what the timeline is drawn with
+private.debugTheme = function()
+    local settings = private.GetThemeSettings()
+    print("theme:", private.GetCurrentThemeKey(), "saved:", settings.key, "resolves to:", private.GetSavedThemeKey(), "animations:", private.GetAnimationLevel())
+    local printTable
+    printTable = function(value, indent)
+        for k, v in pairs(value) do
+            if type(v) == "table" then
+                print(indent .. tostring(k) .. ":")
+                printTable(v, indent .. "  ")
+            else
+                print(indent .. tostring(k) .. " = " .. tostring(v))
+            end
+        end
+    end
+    print("changes:")
+    printTable(settings.modifications[private.GetCurrentThemeKey()] or {}, "  ")
+    print("timeline style:")
+    printTable(private.GetElementStyle("Timeline"), "  ")
+    local frame = private.TIMELINE_FRAME and private.TIMELINE_FRAME.frame
+    if frame then
+        local backdrop = frame:GetBackdrop()
+        if backdrop then
+            print("drawn backdrop:", tostring(backdrop.bgFile), tostring(backdrop.edgeFile),
+                ("%.2f %.2f %.2f %.2f"):format(frame:GetBackdropColor()))
+        else
+            print("drawn backdrop: none")
+        end
+        for _, key in ipairs({ "Background", "Edge", "Wash", "Now" }) do
+            local texture = frame[key]
+            print(key, texture:IsShown(), tostring(texture:GetTexture()), ("%.2f %.2f %.2f %.2f"):format(texture:GetVertexColor()))
+        end
+    end
+end

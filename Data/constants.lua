@@ -4,26 +4,32 @@ local private = app
 
 private.dispellTypeList = {
 	{ -- Enrage
+		name = "Enrage",
 		mask = 2,
 		color = { r = 0.5137254901960784, b = 0.00392156862745098, g = 0.00392156862745098, a = 1 }
 	},
 	{ -- Bleed
+		name = "Bleed",
 		mask = 4,
 		color = { r = 1, g = 0, b = 0, a = 1 },
 	},
 	{ -- Magic
+		name = "Magic",
 		mask = 8,
 		color = { r = 0, g = 0.5019607843137255, b = 1, a = 1 },
 	},
 	{ -- Disease
+		name = "Disease",
 		mask = 16,
 		color = { r = 1, g = 0.5019607843137255, b = 0, a = 1 },
 	},
 	{ -- Curse
+		name = "Curse",
 		mask = 32,
 		color = { r = 0.5019607843137255, g = 0, b = 1, a = 1 },
 	},
 	{ -- Poison
+		name = "Poison",
 		mask = 64,
 		color = { r = 0, g = 1, b = 0, a = 1 },
 	},

@@ -42,7 +42,12 @@ local removeTextHighlight = function(eventID)
          break
       end
    end
-   textHighlightGroup:Remove(eventID)
+   local exitTime = 0
+   if frame.frame:IsVisible() then
+      exitTime = private.ThemeApply.PlayExit(frame.frame, private.GetElementStyle("TextHighlight").Exit)
+   end
+   -- the other texts keep their place until the text finished its exit
+   textHighlightGroup:Hold(eventID, exitTime)
    frame:Release()
    private.evaluateTextPositions()
 end

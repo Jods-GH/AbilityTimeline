@@ -16,18 +16,28 @@ function AbilityTimeline:OnInitialize()
     -- Called when the addon is loaded
     AbilityTimeline:RegisterEvent("ENCOUNTER_START")
     AbilityTimeline:RegisterEvent("ENCOUNTER_END")
+    AbilityTimeline:RegisterEvent("PLAYER_REGEN_ENABLED")
     AbilityTimeline:RegisterEvent("PLAYER_ENTERING_WORLD")
     AbilityTimeline:RegisterEvent("READY_CHECK")
     AbilityTimeline:RegisterEvent("READY_CHECK_FINISHED")
     AbilityTimeline:RegisterEvent("START_PLAYER_COUNTDOWN")
     AbilityTimeline:RegisterEvent("CANCEL_PLAYER_COUNTDOWN")
     AbilityTimeline:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+    AbilityTimeline:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+    AbilityTimeline:RegisterEvent("PLAYER_TALENT_UPDATE")
     if private.isRetail then
         AbilityTimeline:RegisterEvent("CHALLENGE_MODE_COMPLETED")
         AbilityTimeline:RegisterEvent("CHALLENGE_MODE_RESET")
         AbilityTimeline:RegisterEvent("CHALLENGE_MODE_START")
     end
     private.db = LibStub("AceDB-3.0"):New("AbilityTimeline", private.OptionDefaults, true) -- Generates Saved Variables with default Values (if they don't already exist)
+    local onProfileChanged = function()
+        private.modernize()
+        private.RestoreSavedTheme()
+    end
+    private.db.RegisterCallback(private, "OnProfileChanged", onProfileChanged)
+    private.db.RegisterCallback(private, "OnProfileCopied", onProfileChanged)
+    private.db.RegisterCallback(private, "OnProfileReset", onProfileChanged)
     private.Debug(private, "AT_Options")
     local OptionTable = {
         type = "group",
@@ -200,6 +210,8 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
         AbilityTimeline:Print(private.getLocalisation("TimelineNotSupportedMessage"))
     elseif msg == "iconeditor" then
         private.openSpellIconSettings()
+    elseif msg == "theme" then
+        private.openThemeSelector()
     elseif msg == "version" then
         AbilityTimeline:Print("Ability Timeline Version: " ..  C_AddOns.GetAddOnMetadata(appName, "Version"))
     elseif msg == "test" and private.isRetail then
@@ -212,6 +224,10 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
         private.Debug(private.TIMELINE_FRAME.frame:GetBoundsRect())
     elseif msg == "eventlist" then
         private.Debug(private.manager.getEventList(), "EventList")
+    elseif msg == "debugtheme" then
+        private.debugTheme()
+    elseif msg == "debugui" then
+        private.debugTexturesUnderMouse()
     elseif msg == "debugevents" then
         private.manager.printDebugInfo()
     elseif msg == "debugtimeline" and private.toggleEncounterTimelineDebug then
@@ -232,7 +248,12 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
     end
 end
 
-function AbilityTimeline:PLAYER_ENTERING_WORLD()
+function AbilityTimeline:PLAYER_ENTERING_WORLD(event, isInitialLogin, isReloadingUi)
+    if isInitialLogin or isReloadingUi then
+        -- themes can read other addons (ElvUI) which are only set up by now
+        private.RestoreSavedTheme()
+        C_Timer.After(3, private.checkThemePrompt)
+    end
     if not C_AddOns.IsAddOnLoaded("Blizzard_EncounterJournal") then
         C_AddOns.LoadAddOn("Blizzard_EncounterJournal")
         if private.isRetail then
@@ -285,6 +306,20 @@ function AbilityTimeline:ENCOUNTER_END(event, encounterID, encounterName, diffic
         end
     end
     )
+end
+
+function AbilityTimeline:PLAYER_REGEN_ENABLED()
+    private.checkThemePrompt()
+end
+
+function AbilityTimeline:PLAYER_SPECIALIZATION_CHANGED(event, unit)
+    if unit == "player" then
+        private.RefreshAutoTheme()
+    end
+end
+
+function AbilityTimeline:PLAYER_TALENT_UPDATE()
+    private.RefreshAutoTheme()
 end
 
 function AbilityTimeline:READY_CHECK(event, initiator, readyCheckTimeLeft)

@@ -43,7 +43,13 @@ local removeBigIcon = function(eventID)
          break
       end
    end
-   bigIconGroup:Remove(eventID)
+   local exitTime = 0
+   if frame.frame:IsVisible() then
+      exitTime = private.ThemeApply.PlayExit(frame.frame, private.GetElementStyle("BigIcon").Exit, frame.frame.SpellIcon,
+         frame.eventInfo and frame.eventInfo.iconFileID)
+   end
+   -- the other icons keep their place until the icon finished shattering
+   bigIconGroup:Hold(eventID, exitTime)
    frame:Release()
    private.evaluateBigIconPositions()
 end

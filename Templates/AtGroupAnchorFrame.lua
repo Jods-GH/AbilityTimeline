@@ -117,7 +117,7 @@ local function GetIconSize(self)
     if settings and settings.iconSize and settings.iconSize > 0 then
         return settings.iconSize
     end
-    return private.db.profile.icon_settings.size
+    return private.GetElementStyle("SpellIcon").Size
 end
 
 ---@param self AtGroupAnchorFrame
@@ -144,9 +144,9 @@ local function ResolveAttach(self)
         return private.RELATIVE_POSITIONS[point], point, 0, 0
     end
     -- automatic places the group besides the timeline end, on the opposite side of the spell names
-    local timelineIconSize = private.db.profile.icon_settings.size
+    local timelineIconSize = private.GetElementStyle("SpellIcon").Size
     local margin = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin or variables.spacing
-    local side = private.db.profile.text_settings.text_anchor == 'RIGHT' and -1 or 1
+    local side = private.GetElementStyle("SpellIcon").Text.Anchor == 'RIGHT' and -1 or 1
     local besides = side * (timelineIconSize / 2 + margin + self:GetIconSize() / 2)
     if isHorizontal then
         return point, point, 0, besides
@@ -486,7 +486,7 @@ end
 ---@param config table -- dbKey, title, defaultPosition, atFarEnd, outsideTimeline, growTowardsFarEnd, hasModeSetting, onChange
 local function Setup(self, config)
     self.config = config
-    self.frame:SetSize(private.db.profile.icon_settings.size, private.db.profile.icon_settings.size)
+    self.frame:SetSize(private.GetElementStyle("SpellIcon").Size, private.GetElementStyle("SpellIcon").Size)
     SetupEditModeSettings(self)
     LibEditMode:RegisterCallback('layout', function(layoutName)
         self:ApplyLayout(layoutName)

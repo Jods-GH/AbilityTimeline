@@ -66,6 +66,12 @@ local function SetValues(self, text)
 end
 
 
+---@param self AtTextCopyFrame
+local function ApplySettings(self)
+    private.ThemeApply.Window(self.frame, private.GetWindowStyle("Window"), self.frame.CloseButton)
+    private.ThemeApply.FontRole(self.frame.Hint, "Muted")
+end
+
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
 
@@ -82,7 +88,7 @@ local function Constructor()
     frame.Content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -variables.editBoxOffset.x,
     variables.editBoxOffset.y + 30)
     frame.Content:SetLayout("Fill")
-    frame.EditBox = AceGUI:Create("EditBox")
+    frame.EditBox = AceGUI:Create("AtEditBox")
     frame.EditBox:SetLabel('')
     frame.EditBox:DisableButton(true)
     private.Debug(frame.EditBox, "editbox")
@@ -109,7 +115,10 @@ local function Constructor()
         Hint = frame.Hint,
         CloseButton = frame.CloseButton,
         RegisterKeyBinds = RegisterKeyBinds,
+        ApplySettings = ApplySettings,
     }
+    ApplySettings(widget)
+    private.RegisterThemed(widget)
 
     return AceGUI:RegisterAsWidget(widget)
 end
