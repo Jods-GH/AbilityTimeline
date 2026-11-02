@@ -361,6 +361,7 @@ if L then
     L["ResetThemeModifications"] = "Reset Theme Changes"
     L["ResetThemeModificationsDescription"] = "Removes all your changes to the current theme."
     L["ThemeClassicDescription"] = "The original Ability Timeline look with modern settings windows, no effects."
+    L["ThemePapercraftDescription"] = "Cream paper, ink and coloured pencil: icons are sketched in pencil before they show and torn off when they leave, with washi tape, doodles and a little confetti."
     L["ThemeMageArcaneDescription"] = "Deep indigo and arcane pink: glyphs drifting over the timeline, and everything appears out of spiralling glyphs and disintegrates into specks."
     L["ThemeMageFireDescription"] = "Charcoal, fire and gold: small flames rising on the timeline, and everything appears out of fire and burns away."
     L["ThemeMageFrostDescription"] = "Glacial blue with arcane violet: falling splinters, and everything freezes over and shatters."

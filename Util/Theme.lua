@@ -12,7 +12,7 @@ local SharedMedia = LibStub("LibSharedMedia-3.0")
 -- TimeOfDay overrides a theme per period of the realm's day (GetGameTime), faded in as the period changes.
 
 private.DEFAULT_THEME = "Classic"
-private.THEME_PROMPT_VERSION = 6
+private.THEME_PROMPT_VERSION = 7
 private.Themes = {}
 
 local META_KEYS = {

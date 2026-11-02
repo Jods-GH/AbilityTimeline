@@ -569,8 +569,34 @@ ThemeApply.SkinCloseButton = function(button)
     button.AtIcon:SetVertexColor(ThemeApply.Color("Muted"))
 end
 
+---lays out a window's Decor: textures at points of the window (tape on its corners, doodles in its margins), each
+---{ File, Color, Alpha, BlendMode, Point, X, Y, Size = { width, height }, Rotation (degrees), Layer, SubLevel }
+---@param shell Frame
+---@param decor table[]|nil
+local applyDecor = function(shell, decor)
+    decor = decor or {}
+    for i, spec in ipairs(decor) do
+        local texture = shell.Decor[i]
+        if not texture then
+            texture = shell:CreateTexture()
+            shell.Decor[i] = texture
+        end
+        texture:SetDrawLayer(spec.Layer or "OVERLAY", spec.SubLevel or 0)
+        ThemeApply.Texture(texture, spec)
+        texture:ClearAllPoints()
+        texture:SetPoint("CENTER", shell, spec.Point or "CENTER", spec.X or 0, spec.Y or 0)
+        texture:SetSize(spec.Size[1], spec.Size[2])
+        texture:SetRotation(math.rad(spec.Rotation or 0))
+        texture:Show()
+    end
+    for i = #decor + 1, #shell.Decor do
+        shell.Decor[i]:Hide()
+    end
+end
+
 ---draws a window in the theme's window style: shadow, rounded body, wash, edge, a line under its header,
----a fade in when shown and sparkles along the header when the theme has them
+---a fade in when shown and sparkles along the header when the theme has them; Grain (a texture spec over the body),
+---EdgeArt (a texture spec in place of the edge) and Decor dress it up further
 ---@param frame Frame
 ---@param style table -- a Windows style of the theme
 ---@param closeButton Button|nil
@@ -595,7 +621,9 @@ ThemeApply.Window = function(frame, style, closeButton, title)
         shell.Shadow:SetPoint("BOTTOMRIGHT", 16, -16)
         shell.Fill = ThemeApply.CreateSliced(shell, "panel", "BACKGROUND", -7)
         shell.Fill:SetAllPoints(shell)
-        shell.Wash = shell:CreateTexture(nil, "BACKGROUND", nil, -6)
+        shell.Grain = shell:CreateTexture(nil, "BACKGROUND", nil, -6)
+        shell.Grain:SetAllPoints(shell)
+        shell.Wash = shell:CreateTexture(nil, "BACKGROUND", nil, -5)
         shell.Wash:SetTexture(ThemeApply.File("gradient"))
         shell.Wash:SetPoint("TOPLEFT", 1, -1)
         shell.Wash:SetPoint("TOPRIGHT", -1, -1)
@@ -603,6 +631,9 @@ ThemeApply.Window = function(frame, style, closeButton, title)
         shell.Edge:SetAllPoints(shell)
         shell.HeaderLine = shell:CreateTexture(nil, "BORDER")
         shell.HeaderLine:SetHeight(1)
+        shell.EdgeArt = shell:CreateTexture(nil, "BORDER", nil, -7)
+        shell.EdgeArt:SetAllPoints(shell)
+        shell.Decor = {}
         frame.AtShell = shell
         ThemeApply.AddShowAnimation(frame)
         frame:HookScript("OnShow", function()
@@ -626,6 +657,10 @@ ThemeApply.Window = function(frame, style, closeButton, title)
     shell.Shadow:SetVertexColor(ThemeApply.Color("Shadow"))
     shell.Fill:SetVertexColor(ThemeApply.Color(style.Fill))
     shell.Edge:SetVertexColor(ThemeApply.Color(style.Edge))
+    shell.Grain:SetShown(ThemeApply.Texture(shell.Grain, style.Grain))
+    shell.EdgeArt:SetShown(ThemeApply.Texture(shell.EdgeArt, style.EdgeArt))
+    shell.Edge:SetShown(not style.EdgeArt)
+    applyDecor(shell, style.Decor)
     shell.Wash:SetHeight(style.WashHeight or 120)
     shell.Wash:SetVertexColor(ThemeApply.Color(style.Wash))
     shell.Wash:SetBlendMode("ADD")

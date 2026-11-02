@@ -224,6 +224,50 @@ local function ApplyWash(frame, wash, arrival, isHorizontal)
     frame.Wash:Show()
 end
 
+-- the texture coordinates that lay a mark's left end at the end icons arrive at, its top towards the frame's top or left
+local MARK_COORDS = {
+    LEFT = { 0, 0, 0, 1, 1, 0, 1, 1 },
+    RIGHT = { 1, 0, 1, 1, 0, 0, 0, 1 },
+    BOTTOM = { 1, 0, 0, 0, 1, 1, 0, 1 },
+    TOP = { 0, 0, 1, 0, 0, 1, 1, 1 },
+}
+
+---keeps a mark Length times the timeline's thickness long
+---@param frame Frame
+local function UpdateMarkSize(frame)
+    if not frame.mark then return end
+    if frame.isHorizontal then
+        frame.Mark:SetWidth(frame:GetHeight() * (frame.mark.Length or 2))
+    else
+        frame.Mark:SetHeight(frame:GetWidth() * (frame.mark.Length or 2))
+    end
+end
+
+---a still texture across the timeline at the end icons arrive at, Length times its thickness long, e.g. a stroke of
+---highlighter
+---@param frame Frame
+---@param mark table|nil
+---@param arrival string
+---@param isHorizontal boolean
+local function ApplyMark(frame, mark, arrival, isHorizontal)
+    frame.mark = mark
+    if not (mark and private.ThemeApply.Texture(frame.Mark, mark)) then
+        frame.Mark:Hide()
+        return
+    end
+    frame.Mark:ClearAllPoints()
+    if isHorizontal then
+        frame.Mark:SetPoint("TOP" .. arrival, frame, "TOP" .. arrival)
+        frame.Mark:SetPoint("BOTTOM" .. arrival, frame, "BOTTOM" .. arrival)
+    else
+        frame.Mark:SetPoint(arrival .. "LEFT", frame, arrival .. "LEFT")
+        frame.Mark:SetPoint(arrival .. "RIGHT", frame, arrival .. "RIGHT")
+    end
+    frame.Mark:SetTexCoord(unpack(MARK_COORDS[arrival]))
+    frame.Mark:Show()
+    UpdateMarkSize(frame)
+end
+
 ---lays the flow's texture along the timeline, tiled once per its width and shifted by its offset, the texture's
 ---downwards pointing at the end icons arrive at
 ---@param frame Frame
@@ -292,7 +336,9 @@ local function ApplySettings(self)
     frame.Background:SetShown(private.ThemeApply.Texture(frame.Background, style.Background))
     frame.Edge:SetShown(private.ThemeApply.Texture(frame.Edge, style.Edge))
     local arrival, isHorizontal = GetArrivalPoint()
+    frame.arrival, frame.isHorizontal = arrival, isHorizontal
     ApplyWash(frame, style.Wash, arrival, isHorizontal)
+    ApplyMark(frame, style.Mark, arrival, isHorizontal)
     frame.NowPulse:Stop()
     frame.Now:SetShown(private.ThemeApply.Texture(frame.Now, style.Now))
     if style.Now then
@@ -304,7 +350,6 @@ local function ApplySettings(self)
             frame.NowPulse:Play()
         end
     end
-    frame.arrival, frame.isHorizontal = arrival, isHorizontal
     ApplyFlow(frame, style.Flow, arrival, isHorizontal)
     frame.Sparkles:Start(style.Sparkles)
 end
@@ -754,12 +799,15 @@ local function Constructor()
     frame.Wash:SetTexture("Interface\\Buttons\\WHITE8X8")
     frame.Wash:SetPoint("TOPLEFT", 1, -1)
     frame.Wash:SetPoint("BOTTOMRIGHT", -1, 1)
+    frame.Mark = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+    frame.Mark:Hide()
     frame.Flow = frame:CreateTexture(nil, "BACKGROUND", nil, 2)
     frame.Flow:SetPoint("TOPLEFT", 2, -2)
     frame.Flow:SetPoint("BOTTOMRIGHT", -2, 2)
     frame.Flow:Hide()
     frame.FlowDriver = CreateFrame("Frame", nil, frame)
     frame:HookScript("OnSizeChanged", UpdateFlowCoords)
+    frame:HookScript("OnSizeChanged", UpdateMarkSize)
     frame.Now = frame:CreateTexture(nil, "BORDER", nil, 1)
     frame.NowPulse = frame.Now:CreateAnimationGroup()
     frame.NowPulse:SetLooping("BOUNCE")

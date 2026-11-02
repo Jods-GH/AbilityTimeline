@@ -15,7 +15,9 @@ local ThemeApply = private.ThemeApply
 -- Rise (pixels it moves up, or { from, to } to come down into place), Fade = { from, to } (it fades out unless it
 -- dissolves), Flash (a texture spec flaring up
 -- over it and fading), Dissolve = { Frames, Count, Edge } eats it away along the masks <Frames>1..<Count> while Edge
--- (a texture spec) glows along <Frames>_edge1..<Count>
+-- (a texture spec) glows along <Frames>_edge1..<Count>, Sketch = { Back, Color, Hatch, Frames, Count, Draw } draws
+-- it in pencil instead: over a sheet of Back (a color), the icon desaturated in Color (or the spec's texture) masked by
+-- Hatch is drawn in along the masks <Frames><Count>..1 over the first Draw of Time, then fades with its sheet
 -- Flare: a texture spec over the middle growing from Size[1] to Size[2] times the frame's smaller side, turning by
 -- Spin per second, flaring up and fading over Time
 -- Beam: a texture spec coming straight down onto the frame from Height times its height above it (2.4), Width times
@@ -173,6 +175,21 @@ local stepGhost = function(host, ghost, progress)
     host.Ghost:SetPoint("CENTER", host, "CENTER", 0, type(rise) == "table" and lerp(rise, progress) or (rise or 0) * progress)
     host.Ghost:SetAlpha(lerp(ghost.Fade, progress, ghost.Dissolve and 1 or 1 - progress))
     host.GhostFlash:SetAlpha(math.sin(math.pi * progress))
+    local sketch = ghost.Sketch
+    if sketch then
+        -- drawn in stroke by stroke, the dissolve's masks backwards, then the drawing and its sheet fade together
+        local draw = sketch.Draw or 0.6
+        local count = sketch.Count or 12
+        local index = count - math.min(math.floor(progress / draw * count), count - 1)
+        if index ~= host.dissolveFrame then
+            host.dissolveFrame = index
+            host.GhostDissolve:SetTexture(ThemeApply.File(sketch.Frames .. index), "CLAMPTOBLACKADDITIVE",
+                "CLAMPTOBLACKADDITIVE")
+        end
+        local alpha = progress < draw and 1 or 1 - (progress - draw) / (1 - draw)
+        host.Ghost:SetAlpha(alpha)
+        host.GhostBack:SetAlpha(alpha)
+    end
     local dissolve = ghost.Dissolve
     if dissolve then
         local index = math.min(math.floor(progress * dissolve.Count) + 1, dissolve.Count)
@@ -302,6 +319,10 @@ local acquireHost = function(frame, attach)
         host.Crack = host:CreateTexture(nil, "OVERLAY")
         host.Crack:SetAllPoints(host)
         host.Ghost = host:CreateTexture(nil, "ARTWORK")
+        host.GhostBack = host:CreateTexture(nil, "ARTWORK", nil, -1)
+        host.GhostBack:SetAllPoints(host.Ghost)
+        host.GhostHatch = host:CreateMaskTexture()
+        host.GhostHatch:SetAllPoints(host.Ghost)
         host.GhostFlash = host:CreateTexture(nil, "OVERLAY", nil, 1)
         host.GhostFlash:SetAllPoints(host.Ghost)
         host.GhostEdge = host:CreateTexture(nil, "OVERLAY", nil, 2)
@@ -396,16 +417,27 @@ end
 ---@param iconFile any
 local setupGhost = function(host, ghost, icon, iconFile)
     local texture = host.Ghost
+    local sketch = ghost.Sketch
     if ghost.Source == "Icon" and icon then
         texture:SetTexture(iconFile)
         texture:ClearTextureSlice()
         texture:SetBlendMode("BLEND")
-        texture:SetVertexColor(1, 1, 1, 1)
+        -- a sketch of the icon: its shading in the pencil's color
+        texture:SetVertexColor(ThemeApply.Color(sketch and sketch.Color))
         texture:SetTexCoord(icon:GetTexCoord())
     else
         ThemeApply.Texture(texture, ghost)
         texture:SetTexCoord(0, 1, 0, 1)
     end
+    texture:SetDesaturated(sketch ~= nil and ghost.Source == "Icon")
+    host.GhostBack:SetShown(sketch and sketch.Back and true or false)
+    if sketch and sketch.Back then
+        host.GhostBack:SetColorTexture(ThemeApply.Color(sketch.Back))
+    end
+    if sketch and sketch.Hatch then
+        host.GhostHatch:SetTexture(ThemeApply.File(sketch.Hatch), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    end
+    setMask(texture, host.GhostHatch, sketch ~= nil and sketch.Hatch ~= nil)
     texture:ClearAllPoints()
     host.GhostFlash:SetShown(ghost.Flash and ThemeApply.Texture(host.GhostFlash, ghost.Flash) or false)
     if ghost.Mask then
@@ -414,10 +446,10 @@ local setupGhost = function(host, ghost, icon, iconFile)
     local dissolve = ghost.Dissolve
     host.dissolveFrame = nil
     host.GhostEdge:SetShown(dissolve and dissolve.Edge and ThemeApply.Texture(host.GhostEdge, dissolve.Edge) or false)
-    for _, layer in ipairs({ texture, host.GhostFlash, host.GhostEdge }) do
+    for _, layer in ipairs({ texture, host.GhostFlash, host.GhostEdge, host.GhostBack }) do
         setMask(layer, host.GhostShape, ghost.Mask ~= nil)
     end
-    setMask(texture, host.GhostDissolve, dissolve ~= nil)
+    setMask(texture, host.GhostDissolve, dissolve ~= nil or sketch ~= nil)
     setMask(host.GhostFlash, host.GhostDissolve, dissolve ~= nil)
     stepGhost(host, ghost, 0)
 end
@@ -479,6 +511,7 @@ ThemeApply.PlayExit = function(frame, exit, icon, iconFile, attach)
     else
         host.GhostFlash:Hide()
         host.GhostEdge:Hide()
+        host.GhostBack:Hide()
     end
     host.Flare:SetShown(exit.Flare and ThemeApply.Texture(host.Flare, exit.Flare) or false)
     if exit.Flare then
