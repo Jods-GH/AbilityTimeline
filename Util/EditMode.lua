@@ -137,6 +137,7 @@ local showsEncounterEvents = function()
     end
     return checkButtons.EncounterEvents:IsControlChecked()
 end
+private.ShowsEncounterEvents = showsEncounterEvents
 
 local setAnchorFramesShown = function(shown)
     for _, widget in ipairs({ private.BIGICON_FRAME, private.TEXT_HIGHLIGHT_FRAME, private.WAITING_FRAME,

@@ -117,6 +117,12 @@ local createDialog = function()
     private.RegisterThemed(dialog)
 end
 
+---the frame of the question asked, nil until one was
+---@return Frame|nil
+private.GetThemeDialog = function()
+    return dialog and dialog.frame
+end
+
 ---asks question: { title, text, accept, acceptStyle (Primary or Danger), back, check (the check box's label, none
 ---without), onAccept(checked), onBack }
 ---@param question table
@@ -375,6 +381,10 @@ local fillList = function(list, query)
                     end
                     private.ApplyTheme(selectedKey, false)
                     showTheme(theme)
+                    -- the tour can leave the page, not while the card's own callback runs
+                    C_Timer.After(0, function()
+                        private.OnTourEvent("themeTried")
+                    end)
                 end)
                 card:SetCallback("OnEnter", function()
                     showTheme(theme)
@@ -484,13 +494,15 @@ private.RegisterSettingsPage({
 })
 
 ---opens the theme page once per profile (again whenever THEME_PROMPT_VERSION is raised), not during combat or
----encounters, call it again once they ended
+---encounters, call it again once they ended. The welcome tour goes first, it shows the theme page itself
 local promptedThisSession = false
 
 private.checkThemePrompt = function()
     if promptedThisSession then return end
+    local tourDue = private.IsTourDue()
     -- in debug mode it opens once after every reload, to test it
-    if private.GetThemeSettings().promptVersion >= private.THEME_PROMPT_VERSION and not private.db.profile.debugMode then
+    if not tourDue and private.GetThemeSettings().promptVersion >= private.THEME_PROMPT_VERSION and
+        not private.db.profile.debugMode then
         return
     end
     if not private.ACTIVE_EDITMODE_LAYOUT then
@@ -499,5 +511,9 @@ private.checkThemePrompt = function()
     end
     if InCombatLockdown() or IsEncounterInProgress() then return end
     promptedThisSession = true
-    private.openSettings("Theme")
+    if tourDue then
+        private.ShowTourWelcome()
+    else
+        private.openSettings("Theme")
+    end
 end

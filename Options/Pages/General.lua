@@ -64,6 +64,14 @@ private.RegisterSettingsPage({
         toggle("enableDNDMessage"),
         toggle("disableReadyCheck"),
         { kind = "Heading", name = L("SettingsSectionAddon") },
+        {
+            kind = "Button",
+            name = L("TourStartRow"),
+            desc = L("TourStartRowDescription"),
+            buttonText = L("TourStart"),
+            -- after the button's own callback, the tour renders the window again
+            func = function() C_Timer.After(0, private.StartTour) end,
+        },
         toggle("disableLoginMessage"),
         toggle("debugMode"),
     },

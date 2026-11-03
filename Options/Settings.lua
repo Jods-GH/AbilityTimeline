@@ -260,6 +260,7 @@ local setTestRunning = function(running)
         private.stopTestEvents()
     end
     window:SetTestRunning(running)
+    private.OnTourEvent(running and "test" or "testStop")
 end
 
 ---calls OnHide of the page shown before and OnShow of page (nil while nothing or search results are shown)
@@ -283,6 +284,7 @@ local setShownPage = function(page)
         if page.OnShow then
             page.OnShow()
         end
+        private.OnTourEvent("page" .. page.key)
     end
 end
 
@@ -439,6 +441,7 @@ local showSearch = function(text)
     render(rows, "search")
     window:ShowDetails(display(private.getLocalisation("SettingsSearchResults")),
         display(private.getLocalisation("SettingsSearchResultsDescription")))
+    private.OnTourEvent("search")
 end
 
 ---renders the page again, e.g. after rows were added to it
@@ -540,6 +543,61 @@ local createWindow = function()
         end
     }
     private.RegisterThemed(window.AtThemed)
+end
+
+---the settings window, nil until it was opened once
+---@return AtSettingsWindow|nil
+private.GetSettingsWindow = function()
+    return window
+end
+
+---@return string|nil -- nil while nothing or search results are shown
+private.GetShownSettingsPage = function()
+    return shownPage and shownPage.key
+end
+
+---@return boolean
+private.IsSettingsTestRunning = function()
+    return testRunning
+end
+
+private.StopSettingsTest = function()
+    if testRunning then
+        setTestRunning(false)
+    end
+end
+
+---the dot of a changed theme value shown, when none is changed the first theme value shows its dot until
+---private.RefreshSettingRows
+---@return Frame|nil
+private.GetChangedSettingDot = function()
+    local first
+    for _, entry in ipairs(rendered) do
+        if entry.row.themePath then
+            if isModified(entry.row) then
+                return entry.widget.frame.DotHover
+            end
+            first = first or entry
+        end
+    end
+    if first then
+        first.widget:SetChanged(true)
+        return first.widget.frame.DotHover
+    end
+end
+
+---the button of the first Button row shown
+---@return Frame|nil
+private.GetFirstSettingButton = function()
+    for _, entry in ipairs(rendered) do
+        if entry.row.kind == "Button" then
+            return entry.widget.children[1].frame
+        end
+    end
+end
+
+private.RefreshSettingRows = function()
+    refreshRows()
 end
 
 private.closeSettings = function()

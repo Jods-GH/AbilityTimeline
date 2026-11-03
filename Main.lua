@@ -81,6 +81,10 @@ function AbilityTimeline:OnDisable()
     -- Called when the addon is disabled
 end
 
+private.Print = function(...)
+    AbilityTimeline:Print(...)
+end
+
 function AbilityTimeline_AddonCompartmentFunction()
     AbilityTimeline:SlashCommand("AddonCompartmentFrame")
 end
@@ -281,6 +285,8 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
         private.openSettings("SpellIcons")
     elseif msg == "theme" then
         private.openSettings("Theme")
+    elseif msg == "tour" then
+        private.StartTour()
     elseif msg == "version" then
         AbilityTimeline:Print("Ability Timeline Version: " ..  C_AddOns.GetAddOnMetadata(appName, "Version"))
     elseif msg == "test" and private.isRetail then

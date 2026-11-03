@@ -143,7 +143,12 @@ private.RegisterOptionsPage = function()
         private.openSettings()
     end)
     open:SetPoint("TOPLEFT", card.Text, "BOTTOMLEFT", 0, -gap * 2)
-    local buttons = { open }
+    local tour = createButton(card, L("TourStart"), "Plain", variables.buttonWidth, function()
+        leaveSettingsPanel()
+        private.StartTour()
+    end)
+    tour:SetPoint("LEFT", open, "RIGHT", gap, 0)
+    local buttons = { open, tour }
 
     -- a column per group of links, side by side
     local columns = {}

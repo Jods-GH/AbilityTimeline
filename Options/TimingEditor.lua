@@ -15,6 +15,14 @@ private.openTimingsEditor = function(encounterParams)
     tostring(encounterParams.dungeonEncounterID or encounterParams.journalEncounterID or "nil"))
     local frame = updateTimelineEditorFrame(encounterParams)
     frame.frame:Show()
+    -- the editor's frame is reused, it is hooked once
+    if not frame.frame.atTourHooked then
+        frame.frame.atTourHooked = true
+        frame.frame:HookScript("OnHide", function()
+            private.OnTourEvent("editorClosed")
+        end)
+    end
+    private.OnTourEvent("editorOpen")
 end
 
 

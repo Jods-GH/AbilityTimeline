@@ -97,6 +97,7 @@ Templates\AtBigIcon.lua
 Templates\AtTextHighlight.lua
 Templates\AtThemeCard.lua
 Templates\AtSettingsWindow.lua
+Templates\AtTourCallout.lua
 
 #plugins
 Plugins\Masque.lua
@@ -119,6 +120,7 @@ Options\Pages\Elements.lua
 Options\Pages\Theme.lua
 Options\Pages\Reminders.lua
 Options\Pages\Profiles.lua
+Options\Tour.lua
 Main.lua
 AbilityTimeline.lua
 
