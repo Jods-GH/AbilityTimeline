@@ -129,7 +129,31 @@ private.stopTestEvents = function()
     end
 end
 
-LibEditMode:RegisterCallback('enter', function()
+---Blizzard's "Boss Warnings" checkbox in Edit Mode, clients without it always show our frames
+local showsEncounterEvents = function()
+    local checkButtons = EditModeManagerFrame.AccountSettings and EditModeManagerFrame.AccountSettings.settingsCheckButtons
+    if not checkButtons or not checkButtons.EncounterEvents then
+        return true
+    end
+    return checkButtons.EncounterEvents:IsControlChecked()
+end
+
+local setAnchorFramesShown = function(shown)
+    for _, widget in ipairs({ private.BIGICON_FRAME, private.TEXT_HIGHLIGHT_FRAME, private.WAITING_FRAME,
+        private.QUEUED_FRAME, private.PAUSED_FRAME }) do
+        widget.frame:SetShown(shown)
+    end
+end
+
+local refreshEditModeFrames = function()
+    if not private.TIMELINE_FRAME then return end
+    if not showsEncounterEvents() then
+        EventRegistry:TriggerEvent('EditModeExternal.hideDialog')
+        setAnchorFramesShown(false)
+        private.handleFrame(false)
+        return
+    end
+    setAnchorFramesShown(true)
     if private.db.profile.useTimelineModule then
         private.handleFrame(true)
     end
@@ -137,8 +161,22 @@ LibEditMode:RegisterCallback('enter', function()
     if not private.isRetail then
         startTestTicker()
     end
-end)
+end
+
+if EditModeManagerFrame.AccountSettings and EditModeManagerFrame.AccountSettings.RefreshEncounterEvents then
+    hooksecurefunc(EditModeManagerFrame.AccountSettings, "RefreshEncounterEvents", function()
+        -- also runs while Edit Mode opens, before the 'enter' callback
+        if LibEditMode:IsInEditMode() then
+            refreshEditModeFrames()
+        end
+    end)
+end
+
+LibEditMode:RegisterCallback('enter', refreshEditModeFrames)
 
 LibEditMode:RegisterCallback('exit', function()
+    if private.TIMELINE_FRAME then
+        setAnchorFramesShown(true)
+    end
     private.stopTestEvents()
 end)
