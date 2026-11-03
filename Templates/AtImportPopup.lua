@@ -147,17 +147,7 @@ local function Constructor()
     frame.buttonHolder.supportButton.atStyle = "Primary"
 
     frame.buttonHolder.supportButton:SetScript("OnClick", function()
-        if not private.TextCopyFrame then
-            private.TextCopyFrame = AceGUI:Create('AtTextCopyFrame')
-        end
-        private.TextCopyFrame.frame.CloseButton:SetScript("OnClick",
-            function() if private.TextCopyFrame then
-                    private.TextCopyFrame:Release()
-                    private.TextCopyFrame = nil
-                end end)
-        private.TextCopyFrame.frame:SetPoint("TOP", UIParent, "TOP", 0, -50)
-        private.TextCopyFrame.frame:Show()
-        private.TextCopyFrame:SetValues('https://www.patreon.com/c/Jodsderechte')
+        private.ShowCopyLink("https://www.patreon.com/c/Jodsderechte")
     end)
 
     frame.buttonHolder.cancelButton = CreateFrame("Button", nil, frame.buttonHolder, "UIPanelButtonTemplate")

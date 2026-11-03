@@ -59,15 +59,17 @@ local function ApplySettings(self)
 
     local value = self.checked and 1 or 0
     if frame.atValue ~= value then
-        private.TweenMotion(frame, "Toggle", frame.atValue or value, value, function(progress)
+        -- only a click slides the switch, a value set by code (a pooled check box shown again) jumps to it
+        local from = self.atAnimate and frame.atValue or value
+        private.TweenMotion(frame, "Toggle", from, value, function(progress)
             frame.atProgress = progress
             drawState(frame)
         end)
         frame.atValue = value
     else
-        frame.atProgress = value
         drawState(frame)
     end
+    self.atAnimate = nil
 end
 
 ---@param widget AtCheckBox
@@ -116,6 +118,12 @@ local function Skin(widget)
         frame.atHover = progress
         drawState(frame)
     end)
+
+    local stockToggleChecked = widget.ToggleChecked
+    widget.ToggleChecked = function(self)
+        self.atAnimate = true
+        stockToggleChecked(self)
+    end
 
     local stockSetType = widget.SetType
     widget.SetType = function(self, checkType)

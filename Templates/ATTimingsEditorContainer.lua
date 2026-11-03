@@ -40,7 +40,9 @@ end
 
 ---@param self ATTimingsEditorContainer
 local function ApplySettings(self)
-    private.ThemeApply.Window(self.frame, private.GetWindowStyle("Window"), self.closeButton)
+    local style = private.GetWindowStyle("Window")
+    private.ThemeApply.Window(self.frame, style, self.closeButton)
+    private.DrawFooterLinks(self.frame.Footer, style)
 end
 
 local function Constructor()
@@ -88,61 +90,9 @@ local function Constructor()
     frame.Footer.Background:SetColorTexture(0, 0, 0, 0.5)
     frame.Footer.AddonName = frame.Footer:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     frame.Footer.AddonName:SetPoint("LEFT", frame.Footer, "LEFT", 10, 0)
-    frame.Footer.AddonName:SetFormattedText("Better Timeline %s", C_AddOns.GetAddOnMetadata(appName, "Version"))
-    frame.Footer.Urls = AceGUI:Create("SimpleGroup")
-    frame.Footer:SetScript("OnHide", function(self, button) --TODO FIX THIS WORKAROUND
-        frame.Footer.Urls.frame:Hide()
-    end)
-    frame.Footer:SetScript("OnShow", function(self, button)
-        frame.Footer.Urls.frame:Show()
-    end)
-    frame.Footer.Urls:SetLayout("Flow")
-    frame.Footer.Urls:SetPoint("BOTTOMRIGHT", frame.Footer, "BOTTOMRIGHT", -10, 3)
-    frame.Footer.Urls:SetPoint("TOPRIGHT", frame.Footer, "TOPRIGHT", -10, 3)
-    frame.Footer.Urls:SetWidth(70)
-
-    frame.Footer.PatreonLink = AceGUI:Create("Icon")
-    frame.Footer.PatreonLink:SetImageSize(16, 16)
-    frame.Footer.PatreonLink:SetWidth(30)
-    frame.Footer.PatreonLink:SetHeight(16)
-    frame.Footer.PatreonLink:SetImage("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\Brands\\Patreon_logo.tga")
-    frame.Footer.PatreonLink:SetCallback("OnClick", function()
-        if not private.TextCopyFrame then
-            private.TextCopyFrame = AceGUI:Create('AtTextCopyFrame')
-        end
-        private.TextCopyFrame.frame.CloseButton:SetScript("OnClick",
-            function() if private.TextCopyFrame and not private.TextCopyFrame:IsReleasing() then
-                    private.TextCopyFrame:Release()
-                    private.TextCopyFrame = nil
-                end end)
-        private.TextCopyFrame.frame:SetPoint("TOP", UIParent, "TOP", 0, -50)
-        private.TextCopyFrame.frame:Show()
-        private.TextCopyFrame:SetValues('https://www.patreon.com/c/Jodsderechte')
-    end)
-    private.AddFrameTooltip(frame.Footer.PatreonLink.frame, "PatreonDescription")
-    frame.Footer.Urls:AddChild(frame.Footer.PatreonLink)
-
-    frame.Footer.DiscordLink = AceGUI:Create("Icon")
-    frame.Footer.DiscordLink:SetImageSize(21, 16)
-    frame.Footer.DiscordLink:SetWidth(30)
-    frame.Footer.DiscordLink:SetHeight(16)
-    frame.Footer.DiscordLink:SetImage("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\Brands\\Discord_logo.tga")
-    frame.Footer.DiscordLink:SetCallback("OnClick", function()
-        if not private.TextCopyFrame then
-            private.TextCopyFrame = AceGUI:Create('AtTextCopyFrame')
-        end
-        private.TextCopyFrame.frame.CloseButton:SetScript("OnClick",
-            function() if private.TextCopyFrame then
-                    private.TextCopyFrame:Release()
-                    private.TextCopyFrame = nil
-                end end)
-        private.TextCopyFrame.frame:SetPoint("TOP", UIParent, "TOP", 0, -50)
-        private.TextCopyFrame.frame:Show()
-        private.TextCopyFrame:SetValues('https://discord.com/invite/v3gYmYamGJ')
-    end)
-
-    private.AddFrameTooltip(frame.Footer.DiscordLink.frame, "DiscordDescription")
-    frame.Footer.Urls:AddChild(frame.Footer.DiscordLink)
+    frame.Footer.AddonName:SetFormattedText("%s %s", private.getLocalisation("SettingsTitle"),
+        C_AddOns.GetAddOnMetadata(appName, "Version"))
+    private.CreateFooterLinks(frame.Footer)
 
     ---@class ATTimingsEditorContainer : AceGUIWidget
     local widget = {

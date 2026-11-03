@@ -94,7 +94,7 @@ local function Constructor()
     frame:Show()
 
     LibEditMode:AddFrame(frame, onPositionChanged, private.TextHighlight.defaultPosition,
-        "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline Text Highlight")
+        "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Timeline Text Highlight")
 
     local settings = {
         {
@@ -153,8 +153,8 @@ local function Constructor()
 
     local buttons = {
         {
-            text = private.getLocalisation("OpenTextEditor"),
-            click = function() private.openHighlightTextSettings() end
+            text = private.getLocalisation("SettingsOpenPage"),
+            click = function() private.openSettings("TextHighlight") end
         }
     }
     LibEditMode:AddFrameSettingsButtons(frame, buttons)

@@ -8,8 +8,10 @@ local ThemeApply = private.ThemeApply
 local Type = "AtThemeCard"
 local Version = 1
 local variables = {
-    height = 76,
     gap = 3,
+    -- the height of a line of text to its font size
+    lineHeight = 1.25,
+    descriptionLines = 2,
     padding = 15,
     swatch = 14,
     swatchGap = 4,
@@ -32,6 +34,28 @@ local draw = function(frame)
     frame.Glow:SetAlpha(selected * 0.35)
 end
 
+---a card is as high as its title and two lines of description in the fonts of the theme, the list it is in is laid
+---out again once all its cards changed their height
+---@param self AtThemeCard
+local updateHeight = function(self)
+    local frame = self.frame
+    local _, titleSize = frame.Title:GetFont()
+    local _, textSize = frame.Description:GetFont()
+    local height = math.ceil(variables.padding * 2 + variables.gap * 2 + 4 +
+        (titleSize + textSize * variables.descriptionLines) * variables.lineHeight)
+    if height == self.atHeight then return end
+    self.atHeight = height
+    self:SetHeight(height)
+    local list = self.parent
+    if list and not list.atLayoutQueued then
+        list.atLayoutQueued = true
+        C_Timer.After(0, function()
+            list.atLayoutQueued = nil
+            list:DoLayout()
+        end)
+    end
+end
+
 ---@param self AtThemeCard
 local function ApplySettings(self)
     local frame = self.frame
@@ -39,13 +63,18 @@ local function ApplySettings(self)
     ThemeApply.FontRole(frame.Description, "CardText")
     ThemeApply.FontRole(frame.Badge, "CardText")
     frame.Glow:SetVertexColor(ThemeApply.Color("Accent"))
+    -- a ring around every swatch, the theme's own colors can be the color of the card
+    for _, ring in ipairs(frame.SwatchRings) do
+        ring:SetVertexColor(ThemeApply.Color("Muted", 0.8))
+    end
     draw(frame)
     frame:SetAlpha(self.disabled and 0.5 or 1)
+    updateHeight(self)
 end
 
 ---@param self AtThemeCard
 local function OnAcquire(self)
-    self:SetHeight(variables.height)
+    self.atHeight = nil
     self:SetFullWidth(true)
     self:SetDisabled(false)
     self.frame.atSelected = 0
@@ -106,6 +135,7 @@ local function Constructor()
     frame.Glow:SetBlendMode("ADD")
 
     frame.Swatches = {}
+    frame.SwatchRings = {}
     for i = #variables.swatchColors, 1, -1 do
         local swatch = frame:CreateTexture(nil, "ARTWORK")
         swatch:SetTexture(ThemeApply.File("circle"))
@@ -113,6 +143,11 @@ local function Constructor()
         local offset = -variables.padding - (#variables.swatchColors - i) * (variables.swatch + variables.swatchGap)
         swatch:SetPoint("TOPRIGHT", frame, "TOPRIGHT", offset, -variables.padding)
         frame.Swatches[i] = swatch
+        local ring = frame:CreateTexture(nil, "ARTWORK", nil, 1)
+        ring:SetTexture(ThemeApply.File("ring"))
+        ring:SetSize(variables.swatch + 2, variables.swatch + 2)
+        ring:SetPoint("CENTER", swatch, "CENTER")
+        table.insert(frame.SwatchRings, ring)
     end
 
     frame.Title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -125,6 +160,7 @@ local function Constructor()
     frame.Description:SetPoint("RIGHT", frame.Badge, "LEFT", -8, 0)
     frame.Description:SetJustifyH("LEFT")
     frame.Description:SetWordWrap(true)
+    frame.Description:SetMaxLines(variables.descriptionLines)
 
     ---@class AtThemeCard : AceGUIWidget
     local widget = {
@@ -142,6 +178,7 @@ local function Constructor()
         widget:Fire("OnClick")
     end)
     frame:SetScript("OnEnter", function()
+        widget:Fire("OnEnter")
         private.TweenMotion(frame, "Hover", frame.atHover or 0, 1, function(progress)
             frame.atHover = progress
             draw(frame)

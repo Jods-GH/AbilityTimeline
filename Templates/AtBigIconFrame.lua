@@ -126,7 +126,7 @@ local function Constructor()
     private.Debug(frame, "AT_BIGICON_FRAME_BASE")
 
     LibEditMode:AddFrame(frame, onPositionChanged, private.BigIcon.defaultPosition,
-        "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline Big Icon")
+        "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Timeline Big Icon")
     local settings = {
         {
             name = private.getLocalisation("EnableBigIcon"),
@@ -204,8 +204,8 @@ local function Constructor()
 
     local buttons = {
         {
-            text = private.getLocalisation("OpenIconEditor"),
-            click = function() private.openBigIconSettings() end
+            text = private.getLocalisation("SettingsOpenPage"),
+            click = function() private.openSettings("BigIcon") end
         }
     }
     LibEditMode:AddFrameSettingsButtons(frame, buttons)

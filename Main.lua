@@ -45,21 +45,16 @@ function AbilityTimeline:OnInitialize()
     -- the time of day has no event, nor has every change of the weather's intensity
     C_Timer.NewTicker(30, private.CheckThemeConditions)
     private.Debug(private, "AT_Options")
-    local OptionTable = {
-        type = "group",
-        args = {
-            profile = AceDBOptions:GetOptionsTable(private.db),
-            rest = private.options
-        }
-    }
     if not private.db.profile.disableLoginMessage then
         AbilityTimeline:Print(private.getLocalisation("AccessOptionsMessage"))
         if not private.isRetail and not C_AddOns.IsAddOnLoaded("DBM-Core") and not C_AddOns.IsAddOnLoaded("BigWigs") then
             AbilityTimeline:Print(private.getLocalisation("NoBossModClassicMessage"))
         end
     end
-    AceConfig:RegisterOptionsTable(appName, OptionTable) --
-    AceConfigDialog:AddToBlizOptions(appName, appName)
+    local category = private.RegisterOptionsPage()
+    -- the settings window's Profiles page shows the same table
+    AceConfig:RegisterOptionsTable(private.PROFILES_OPTIONS, AceDBOptions:GetOptionsTable(private.db))
+    AceConfigDialog:AddToBlizOptions(private.PROFILES_OPTIONS, private.getLocalisation("SettingsPageProfiles"), category)
     self:RegisterChatCommand("at", "SlashCommand")
     self:RegisterChatCommand("AT", "SlashCommand")
     self:RegisterChatCommand("pull", "PullCommand")
@@ -208,6 +203,7 @@ local function printTestUsage()
     AbilityTimeline:Print("/at test pause | resume | clear - pauses, resumes or removes all test timers")
     AbilityTimeline:Print("/at test weather - shows every weather in turn (Clear, Rain, Snow, Sandstorm, Miscellaneous) with its transitions while test timers run, then the real weather again; /at test clear stops it")
     AbilityTimeline:Print("/at test time - the same for the time of day (Morning, Midday, Evening, Night), with the real 20 second fades")
+    AbilityTimeline:Print("/at test labels - doubles every text of the settings window to see how long translations fit, again to undo")
 end
 
 ---handles everything after "/at test "
@@ -224,6 +220,8 @@ local function handleTestCommand(args)
             table.insert(periods, period.Name)
         end
         startTour("time of day", periods, private.PERIOD_FADE + 6, private.SetTestPeriod)
+    elseif command == "labels" then
+        private.toggleLongSettingsLabels()
     elseif command == "clear" then
         stopTour()
         for _, eventID in ipairs(testEventIDs) do
@@ -280,9 +278,9 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
     elseif private.isRetail and not C_EncounterTimeline.IsFeatureAvailable() then
         AbilityTimeline:Print(private.getLocalisation("TimelineNotSupportedMessage"))
     elseif msg == "iconeditor" then
-        private.openSpellIconSettings()
+        private.openSettings("SpellIcons")
     elseif msg == "theme" then
-        private.openThemeSelector()
+        private.openSettings("Theme")
     elseif msg == "version" then
         AbilityTimeline:Print("Ability Timeline Version: " ..  C_AddOns.GetAddOnMetadata(appName, "Version"))
     elseif msg == "test" and private.isRetail then
@@ -315,7 +313,7 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
             private.manager.resumeEvent(eventID)
         end
     else
-        AceConfigDialog:Open(appName)
+        private.openSettings()
     end
 end
 
@@ -327,15 +325,9 @@ function AbilityTimeline:PLAYER_ENTERING_WORLD(event, isInitialLogin, isReloadin
         -- since 12.1 the weather can be unknown for a moment after login
         C_Timer.NewTicker(1, private.CheckThemeConditions, 10)
     end
+    -- the Reminders page reads the encounters from the journal
     if not C_AddOns.IsAddOnLoaded("Blizzard_EncounterJournal") then
         C_AddOns.LoadAddOn("Blizzard_EncounterJournal")
-        if private.isRetail then
-            C_Timer.After(5, function()
-                private.buildInstanceOptions()
-            end)
-        end
-    elseif private.isRetail then
-        private.buildInstanceOptions()
     end
 end
 

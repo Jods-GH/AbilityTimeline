@@ -77,6 +77,8 @@ Templates\Widgets\AtEditBox.lua
 Templates\Widgets\AtColorPicker.lua
 Templates\Widgets\AtDropdown.lua
 Templates\Widgets\AtGroups.lua
+Templates\Widgets\AtSettingRow.lua
+Templates\Widgets\AtMediaPicker.lua
 Templates\AtImportPopup.lua
 Templates\AtTextCopyFrame.lua
 Templates\AtReminderCreator.lua
@@ -93,9 +95,8 @@ Templates\AtBigIconFrame.lua
 Templates\AtTextHighlightFrame.lua
 Templates\AtBigIcon.lua
 Templates\AtTextHighlight.lua
-Templates\AtSpellIconSettingsFrame.lua
 Templates\AtThemeCard.lua
-Templates\AtThemeSelector.lua
+Templates\AtSettingsWindow.lua
 
 #plugins
 Plugins\Masque.lua
@@ -112,7 +113,12 @@ Plugins\BigWigs.lua
 Options\Options.lua
 Options\ImportDialogHandler.lua
 Options\TimingEditor.lua
-Options\SpellIconsSettings.lua
+Options\Settings.lua
+Options\Pages\General.lua
+Options\Pages\Elements.lua
+Options\Pages\Theme.lua
+Options\Pages\Reminders.lua
+Options\Pages\Profiles.lua
 Main.lua
 AbilityTimeline.lua
 

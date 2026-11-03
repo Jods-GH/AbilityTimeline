@@ -271,7 +271,7 @@ private.modernize = function()
         private.db.profile.cooldown_settings.cooldown_highlight = {}
     end
 
-    if not private.db.profile.cooldown_settings.cooldown_highlight.enabled then
+    if private.db.profile.cooldown_settings.cooldown_highlight.enabled == nil then
         private.db.profile.cooldown_settings.cooldown_highlight.enabled = true
     end
 

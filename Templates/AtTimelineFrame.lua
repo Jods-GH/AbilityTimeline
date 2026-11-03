@@ -3,7 +3,6 @@ local appName, app = ...
 local private = app
 local AceGUI                = LibStub("AceGUI-3.0")
 local LibEditMode           = LibStub("LibEditMode")
-local SharedMedia           = LibStub("LibSharedMedia-3.0")
 local Type                  = "AtTimelineFrame"
 local Version               = 1
 local variables             = {
@@ -11,16 +10,11 @@ local variables             = {
     travelSize = 500,
     inverse_travel_direction = false,
     ticks_enabled = true,
-    timelineTexture = "Blizzard Dialog Background",
     position = {
         point = 'CENTER',
         y = 110,
         x = 410,
     },
-    timelineTextureColor = CreateColor(1, 1, 1, 1),
-    timelineBorder = "None",
-    timelineBorderColor = CreateColor(1, 1, 1, 1),
-    timelineBorderSize = 2,
     IconMargin = 5,
     thresholdTime = 10,
     preventOverlap = true,
@@ -354,19 +348,6 @@ local function ApplySettings(self)
     frame.Sparkles:Start(style.Sparkles)
 end
 
----@param path string
----@return colorRGBA
-local function getStyleColor(path)
-    return CreateColor(private.ThemeApply.Color(private.GetThemeValue(path)))
-end
-
----@param path string
----@param color colorRGBA
-local function setStyleColor(path, color)
-    private.SetThemeModification(path, { r = color.r, g = color.g, b = color.b, a = color.a })
-end
-
-
 local function GetMoveSize(self)
     if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
         return self.frame:GetWidth()
@@ -374,12 +355,11 @@ local function GetMoveSize(self)
     return self.frame:GetHeight()
 end
 
+-- Edit Mode has what is saved per layout, the look of the timeline is on the settings window's Timeline page
 local function SetupEditModeSettings(frame)
     LibEditMode:AddFrame(frame, onPositionChanged, variables.position,
-        "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Ability Timeline")
+        "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Timeline")
 
-    local areTravelSettingsExpanded = false
-    local areVisualSettingsExpanded = false
     local settings = {
         {
             name = private.getLocalisation("EnableTimeline"),
@@ -391,38 +371,6 @@ local function SetupEditModeSettings(frame)
             end,
             set = function(layoutName, value)
                 private.db.global.timeline_frame[layoutName].enabled = value
-            end,
-        },
-        {
-            name = private.getLocalisation("ExpandTravelSettings"),
-            expandedLabel = private.getLocalisation("CollapseTravelSettings"),
-            collapsedLabel = private.getLocalisation("ExpandTravelSettings"),
-            desc = private.getLocalisation("TravelSettingsDescription"),
-            kind = LibEditMode.SettingType.Expander,
-            default = areTravelSettingsExpanded,
-            get = function()
-                return areTravelSettingsExpanded
-            end,
-            set = function(_, value)
-                areTravelSettingsExpanded = value
-            end,
-        },
-        {
-            name = private.getLocalisation("InverseTravelDirection"),
-            desc = private.getLocalisation("InverseTravelDirectionDescription"),
-            kind = LibEditMode.SettingType.Checkbox,
-            default = false,
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].inverse_travel_direction
-            end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].inverse_travel_direction = value
-                HandleTickVisibility(layoutName)
-                private.refreshTimelineGroups()
-                private.TIMELINE_FRAME:ApplySettings()
-            end,
-            hidden = function()
-                return not areTravelSettingsExpanded
             end,
         },
         {
@@ -454,9 +402,57 @@ local function SetupEditModeSettings(frame)
                     isRadio = true,
                 },
             },
-            hidden = function()
-                return not areTravelSettingsExpanded
+        },
+        {
+            name = private.getLocalisation("InverseTravelDirection"),
+            desc = private.getLocalisation("InverseTravelDirectionDescription"),
+            kind = LibEditMode.SettingType.Checkbox,
+            default = false,
+            get = function(layoutName)
+                return private.db.global.timeline_frame[layoutName].inverse_travel_direction
             end,
+            set = function(layoutName, value)
+                private.db.global.timeline_frame[layoutName].inverse_travel_direction = value
+                HandleTickVisibility(layoutName)
+                private.refreshTimelineGroups()
+                private.TIMELINE_FRAME:ApplySettings()
+            end,
+        },
+        {
+            name = private.getLocalisation("TimelineTravelSize"),
+            desc = private.getLocalisation("TimelineTravelSizeDescription"),
+            kind = LibEditMode.SettingType.Slider,
+            default = variables.travelSize,
+            get = function(layoutName)
+                return private.db.global.timeline_frame[layoutName].travelSize
+            end,
+            set = function(layoutName, value)
+                private.db.global.timeline_frame[layoutName].travelSize = value
+                HandleSizeChanges(private.TIMELINE_FRAME)
+                HandleTicks(private.TIMELINE_FRAME)
+                HandleTickVisibility(layoutName)
+            end,
+            minValue = 1,
+            maxValue = 1000,
+            valueStep = 1,
+        },
+        {
+            name = private.getLocalisation("TimelineOtherSize"),
+            desc = private.getLocalisation("TimelineOtherSizeDescription"),
+            kind = LibEditMode.SettingType.Slider,
+            default = variables.otherSize,
+            get = function(layoutName)
+                return private.db.global.timeline_frame[layoutName].otherSize
+            end,
+            set = function(layoutName, value)
+                private.db.global.timeline_frame[layoutName].otherSize = value
+                HandleSizeChanges(private.TIMELINE_FRAME)
+                HandleTicks(private.TIMELINE_FRAME)
+                HandleTickVisibility(layoutName)
+            end,
+            minValue = 1,
+            maxValue = 200,
+            valueStep = 1,
         },
         {
             name = private.getLocalisation("TimelineWindow"),
@@ -474,9 +470,35 @@ local function SetupEditModeSettings(frame)
             minValue = 5,
             maxValue = 60,
             valueStep = 1,
-            hidden = function()
-                return not areTravelSettingsExpanded
+        },
+        {
+            name = private.getLocalisation("EnableTicks"),
+            desc = private.getLocalisation("EnableTicksDescription"),
+            kind = LibEditMode.SettingType.Checkbox,
+            default = true,
+            get = function(layoutName)
+                return private.db.global.timeline_frame[layoutName].ticks_enabled
             end,
+            set = function(layoutName, value)
+                private.db.global.timeline_frame[layoutName].ticks_enabled = value
+                HandleTickVisibility(layoutName)
+            end,
+        },
+        {
+            name = private.getLocalisation("IconMargin"),
+            desc = private.getLocalisation("IconMarginDescription"),
+            kind = LibEditMode.SettingType.Slider,
+            default = variables.IconMargin,
+            get = function(layoutName)
+                return private.db.global.timeline_frame[layoutName].iconMargin
+            end,
+            set = function(layoutName, value)
+                private.db.global.timeline_frame[layoutName].iconMargin = value
+                private.refreshTimelineGroups()
+            end,
+            minValue = 0,
+            maxValue = 50,
+            valueStep = 1,
         },
         {
             name = private.getLocalisation("PreventOverlap"),
@@ -489,9 +511,6 @@ local function SetupEditModeSettings(frame)
             set = function(layoutName, value)
                 private.db.global.timeline_frame[layoutName].prevent_overlap = value
             end,
-            hidden = function()
-                return not areTravelSettingsExpanded
-            end,
         },
         {
             name = private.getLocalisation("MergeTimers"),
@@ -503,9 +522,6 @@ local function SetupEditModeSettings(frame)
             end,
             set = function(layoutName, value)
                 private.db.global.timeline_frame[layoutName].merge_timers = value
-            end,
-            hidden = function()
-                return not areTravelSettingsExpanded
             end,
         },
         {
@@ -526,258 +542,16 @@ local function SetupEditModeSettings(frame)
                 return string.format("%.1f", value)
             end,
             hidden = function(layoutName)
-                return not areTravelSettingsExpanded or not private.db.global.timeline_frame[layoutName].merge_timers
+                return not private.db.global.timeline_frame[layoutName].merge_timers
             end,
         },
-        {
-            name = private.getLocalisation("ExpandVisualSettings"),
-            expandedLabel = private.getLocalisation("CollapseVisualSettings"),
-            collapsedLabel = private.getLocalisation("ExpandVisualSettings"),
-            desc = private.getLocalisation("VisualSettingsDescription"),
-            kind = LibEditMode.SettingType.Expander,
-            default = areVisualSettingsExpanded,
-            get = function()
-                return areVisualSettingsExpanded
-            end,
-            set = function(_, value)
-                areVisualSettingsExpanded = value
-            end,
-        },
-        {
-            name = private.getLocalisation("EnableTicks"),
-            desc = private.getLocalisation("EnableTicksDescription"),
-            kind = LibEditMode.SettingType.Checkbox,
-            default = true,
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].ticks_enabled
-            end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].ticks_enabled = value
-                HandleTickVisibility(layoutName)
-            end,
-             hidden = function()
-                return not areVisualSettingsExpanded
-            end,
-        },
-        {
-            name = private.getLocalisation("TimelineTexture"),
-            desc = private.getLocalisation("TimelineTextureDescription"),
-            kind = LibEditMode.SettingType.Dropdown,
-
-            get = function()
-                return private.GetThemeValue("Elements.Timeline.Backdrop.Background")
-            end,
-            set = function(_, value)
-                private.SetThemeModification("Elements.Timeline.Backdrop.Background", value)
-            end,
-            default = variables.timelineTexture,
-            height = 300,
-            values = function()
-                local Textures = {}
-                for _, texName in ipairs(SharedMedia:List("background")) do
-                    local texPath = SharedMedia:Fetch("background", texName) or ""
-                    local display = ("|T%s:16:128|t %s"):format(tostring(texPath), texName)
-                    table.insert(Textures, {
-                        text = display,
-                        value = texName,
-                        isRadio = false,
-                    })
-                end
-                return Textures
-            end,
-            hidden = function()
-                return not areVisualSettingsExpanded
-            end,
-        },
-        {
-            name = private.getLocalisation("TimelineTextureColor"),
-            desc = private.getLocalisation("TimelineTextureColorDescription"),
-            kind = LibEditMode.SettingType.ColorPicker,
-            hasOpacity = true,
-            get = function()
-                return getStyleColor("Elements.Timeline.Backdrop.Color")
-            end,
-            set = function(_, value)
-                setStyleColor("Elements.Timeline.Backdrop.Color", value)
-            end,
-            default = variables.timelineTextureColor,
-            hidden = function()
-                return not areVisualSettingsExpanded
-            end,
-        },
-        {
-            name = private.getLocalisation("TimelineBorder"),
-            desc = private.getLocalisation("TimelineBorderDescription"),
-            kind = LibEditMode.SettingType.Dropdown,
-
-            get = function()
-                return private.GetThemeValue("Elements.Timeline.Backdrop.Border")
-            end,
-            set = function(_, value)
-                private.SetThemeModification("Elements.Timeline.Backdrop.Border", value)
-            end,
-            default = variables.timelineBorder,
-            height = 300,
-            values = function()
-                local Borders = {}
-                for _, borderName in ipairs(SharedMedia:List("border")) do
-                    local borderPath = SharedMedia:Fetch("border", borderName) or ""
-                    local display = borderPath ~= "" and ("|T%s:16:128|t %s"):format(tostring(borderPath), borderName) or borderName
-                    table.insert(Borders, {
-                        text = display,
-                        value = borderName,
-                        isRadio = false,
-                    })
-                end
-                return Borders
-            end,
-            hidden = function()
-                return not areVisualSettingsExpanded
-            end,
-        },
-        {
-            name = private.getLocalisation("TimelineBorderColor"),
-            desc = private.getLocalisation("TimelineBorderColorDescription"),
-            kind = LibEditMode.SettingType.ColorPicker,
-            hasOpacity = true,
-            get = function()
-                return getStyleColor("Elements.Timeline.Backdrop.BorderColor")
-            end,
-            set = function(_, value)
-                setStyleColor("Elements.Timeline.Backdrop.BorderColor", value)
-            end,
-            default = variables.timelineBorderColor,
-            hidden = function()
-                return not areVisualSettingsExpanded
-            end,
-        },
-        {
-            name = private.getLocalisation("TimelineBorderSize"),
-            desc = private.getLocalisation("TimelineBorderSizeDescription"),
-            kind = LibEditMode.SettingType.Slider,
-            default = variables.timelineBorderSize,
-            get = function()
-                return private.GetThemeValue("Elements.Timeline.Backdrop.EdgeSize")
-            end,
-            set = function(_, value)
-                private.SetThemeModification("Elements.Timeline.Backdrop.EdgeSize", value)
-            end,
-            minValue = 1,
-            maxValue = 32,
-            valueStep = 1,
-            hidden = function()
-                return not areVisualSettingsExpanded
-            end,
-        },
-        {
-            name = private.getLocalisation("TimelineOtherSize"),
-            desc = private.getLocalisation("TimelineOtherSizeDescription"),
-            kind = LibEditMode.SettingType.Slider,
-            default = variables.otherSize,
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].otherSize
-            end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].otherSize = value
-                HandleSizeChanges(private.TIMELINE_FRAME)
-                HandleTicks(private.TIMELINE_FRAME)
-                HandleTickVisibility(layoutName)
-            end,
-            minValue = 1,
-            maxValue = 200,
-            valueStep = 1,
-            hidden = function()
-                return not areVisualSettingsExpanded
-            end,
-        },
-        {
-            name = private.getLocalisation("TimelineTravelSize"),
-            desc = private.getLocalisation("TimelineTravelSizeDescription"),
-            kind = LibEditMode.SettingType.Slider,
-            default = variables.travelSize,
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].travelSize
-            end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].travelSize = value
-                HandleSizeChanges(private.TIMELINE_FRAME)
-                HandleTicks(private.TIMELINE_FRAME)
-                HandleTickVisibility(layoutName)
-            end,
-            minValue = 1,
-            maxValue = 1000,
-            valueStep = 1,
-            hidden = function()
-                return not areVisualSettingsExpanded
-            end,
-        },
-        {
-            name = private.getLocalisation("IconMargin"),
-            desc = private.getLocalisation("IconMarginDescription"),
-            kind = LibEditMode.SettingType.Slider,
-            default = variables.IconMargin,
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].iconMargin
-            end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].iconMargin = value
-                private.refreshTimelineGroups()
-            end,
-            minValue = 0,
-            maxValue = 50,
-            valueStep = 1,
-            hidden = function()
-                return not areVisualSettingsExpanded
-            end,
-        },
-        {
-            name = COMBAT_WARNINGS_HIDE_QUEUED_COUNTDOWNS_LABEL,
-            desc = COMBAT_WARNINGS_HIDE_QUEUED_COUNTDOWNS_TOOLTIP,
-            kind = LibEditMode.SettingType.Checkbox,
-            default = false,
-            get = function(layoutName)
-                return C_CVar.GetCVar("encounterTimelineHideQueuedCountdowns") == "1" and true or false
-            end,
-            set = function(layoutName, value)
-                C_CVar.SetCVar("encounterTimelineHideQueuedCountdowns", value and "1" or "0")
-            end,
-            hidden = function()
-                return not private.isRetail
-            end,
-        },
-        -- {
-        --     name = 'Style',
-        --     kind = LibEditMode.SettingType.Dropdown,
-
-        --     get = function(layoutName)
-        --         return private.db.global.timeline_frame[layoutName].style
-        --     end,
-        --     set = function(layoutName, value)
-        --         private.db.global.timeline_frame[layoutName].style = value
-        --     end,
-        --     height = 500,
-        --     values = {
-        --         {
-        --             text = 'Default',
-        --             value = 'default',
-        --         },
-        --         {
-        --             text = 'Compact',
-        --             value = 'compact',
-        --         },
-        --         {
-        --             text = 'Expanded',
-        --             value = 'expanded',
-        --         },
-        --     },
-        -- }
     }
     LibEditMode:AddFrameSettings(frame, settings)
 
     local buttons = {
         {
-            text = private.getLocalisation("OpenIconEditor"),
-            click = function() private.openSpellIconSettings() end
+            text = private.getLocalisation("SettingsOpenPage"),
+            click = function() private.openSettings("Timeline") end
         }
     }
     LibEditMode:AddFrameSettingsButtons(frame, buttons)

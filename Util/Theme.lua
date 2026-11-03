@@ -36,6 +36,8 @@ local currentKey
 local resolved
 local resolvedPeriod
 local paletteFade
+-- the other themes DrawInTheme drew in, resolved until the next refresh
+local otherThemes = {}
 
 local isList = function(value)
     return type(value) == "table" and value[1] ~= nil
@@ -471,6 +473,27 @@ private.GetThemeValue = function(path)
     return node
 end
 
+---draws in the theme key instead of the current one: every read of the current theme while draw runs reads key's,
+---e.g. for a preview of a theme that is not in use
+---@param key string -- a theme or an automatic selection
+---@param draw function
+---@param ... any -- passed to draw
+private.DrawInTheme = function(key, draw, ...)
+    key = private.ResolveThemeKey(key)
+    if key == private.GetCurrentThemeKey() or not private.IsThemeAvailable(key) then
+        return draw(...)
+    end
+    local outerKey, outerResolved, outerPeriod = currentKey, resolved, resolvedPeriod
+    currentKey = key
+    otherThemes[key] = otherThemes[key] or resolve(key)
+    resolved = otherThemes[key]
+    local ok, err = pcall(draw, ...)
+    currentKey, resolved, resolvedPeriod = outerKey, outerResolved, outerPeriod
+    if not ok then
+        geterrorhandler()(err)
+    end
+end
+
 ---registers a widget whose ApplySettings is called every time the theme changes
 ---@param widget table
 private.RegisterThemed = function(widget)
@@ -525,6 +548,7 @@ private.RefreshTheme = function(fade)
     end
     local from = fade and resolved and resolved.Palette
     resolved = nil
+    otherThemes = {}
     if from and private.GetAnimationLevel() ~= private.ANIMATION_LEVELS.OFF then
         private.GetCurrentTheme()
         fadePalette(from, fade)
@@ -557,7 +581,7 @@ end
 ---switches theme when an automatic selection picks another one now, e.g. after a spec change or as the weather
 ---changes, fading into it
 private.RefreshAutoTheme = function()
-    if not private.IsAutoTheme(private.GetThemeSelection()) or private.isThemeSelectorOpen() then
+    if not private.IsAutoTheme(private.GetThemeSelection()) or private.isThemePageShown() then
         return
     end
     if private.GetSavedThemeKey() ~= private.GetCurrentThemeKey() then
@@ -572,7 +596,7 @@ end
 private.SetTestWeather = function(weather)
     testWeather = weather
     private.UpdateWeather()
-    if testWeather and not private.isThemeSelectorOpen() then
+    if testWeather and not private.isThemePageShown() then
         currentKey = findWeatherTheme(testWeather) or findWeatherTheme("Clear") or private.DEFAULT_THEME
         private.RefreshTheme(WEATHER_FADE)
     else
@@ -586,7 +610,7 @@ end
 ---@return string key the theme shown
 private.SetTestPeriod = function(period)
     testPeriod = period
-    if not private.isThemeSelectorOpen() then
+    if not private.isThemePageShown() then
         private.RefreshTheme(PERIOD_FADE)
     end
     return private.GetCurrentThemeKey()
@@ -594,7 +618,7 @@ end
 
 ---fades into the next period of the day when it has begun and the current theme changes with it
 private.RefreshTimeOfDay = function()
-    if not resolved or resolvedPeriod == private.GetTimePeriod() or private.isThemeSelectorOpen() then
+    if not resolved or resolvedPeriod == private.GetTimePeriod() or private.isThemePageShown() then
         return
     end
     for _, theme in ipairs(getChain(private.GetCurrentThemeKey())) do
@@ -618,6 +642,20 @@ end
 private.HasThemeModifications = function(key)
     local modifications = private.GetThemeSettings().modifications[key or private.GetCurrentThemeKey()]
     return modifications ~= nil and next(modifications) ~= nil
+end
+
+---whether the player changed the value at path of the current theme
+---@param path string
+---@return boolean
+private.IsThemeModified = function(path)
+    local node = private.GetThemeSettings().modifications[private.GetCurrentThemeKey()]
+    for key in path:gmatch("[^%.]+") do
+        if type(node) ~= "table" then
+            return false
+        end
+        node = node[key]
+    end
+    return node ~= nil
 end
 
 ---stores a modification of the current theme, path is dotted, e.g. "Elements.SpellIcon.Size"

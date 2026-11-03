@@ -83,7 +83,8 @@ local function Constructor()
     frame:SetHeight(variables.height)
 
     frame.Content = AceGUI:Create("SimpleGroup")
-    frame.Content:SetParent(frame)
+    -- a child of the window, so it is drawn on the window's layer; AceGUI's SetParent only takes AceGUI containers
+    frame.Content.frame:SetParent(frame)
     frame.Content:SetPoint("TOPLEFT", frame, "TOPLEFT", variables.editBoxOffset.x, -variables.editBoxOffset.y - 30)
     frame.Content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -variables.editBoxOffset.x,
     variables.editBoxOffset.y + 30)

@@ -62,7 +62,7 @@ LibEditMode:RegisterCallback('delete', function(layoutName)
 end)
 
 local TEST_EVENT_DURATIONS = { 8, 15, 25 }
-local testEventTicker
+local testEventTimer
 
 ---adds our own test events where blizzard has no edit mode events
 private.addTestEvents = function()
@@ -87,10 +87,24 @@ local removeTestEvents = function()
     end
 end
 
+---loops the events Edit Mode shows, as Edit Mode does: they have dispel, role and danger markers. Clients without
+---them get our own test events
+local queueTestEvents
+queueTestEvents = function()
+    local loopDuration
+    if C_EncounterTimeline and C_EncounterTimeline.AddEditModeEvents then
+        loopDuration = C_EncounterTimeline.AddEditModeEvents()
+    else
+        private.addTestEvents()
+        loopDuration = TEST_EVENT_DURATIONS[#TEST_EVENT_DURATIONS]
+    end
+    testEventTimer = C_Timer.NewTimer(loopDuration, queueTestEvents)
+end
+
 local startTestTicker = function()
-    private.addTestEvents()
-    testEventTicker = testEventTicker or
-        C_Timer.NewTicker(TEST_EVENT_DURATIONS[#TEST_EVENT_DURATIONS], private.addTestEvents)
+    if not testEventTimer then
+        queueTestEvents()
+    end
 end
 
 ---shows the timeline with repeating test events, e.g. to preview a theme
@@ -105,9 +119,9 @@ private.stopTestEvents = function()
     if private.isRetail then
         C_EncounterTimeline.CancelEditModeEvents()
     end
-    if testEventTicker then
-        testEventTicker:Cancel()
-        testEventTicker = nil
+    if testEventTimer then
+        testEventTimer:Cancel()
+        testEventTimer = nil
         removeTestEvents()
     end
     if not private.manager.hasVisibleEvents() then
@@ -127,8 +141,4 @@ end)
 
 LibEditMode:RegisterCallback('exit', function()
     private.stopTestEvents()
-    -- the theme selection keeps previewing on the timeline
-    if private.isThemeSelectorOpen and private.isThemeSelectorOpen() then
-        private.startTestEvents()
-    end
 end)

@@ -1,4 +1,6 @@
 Discord logo belongs to Discord: https://discord.com/branding
+The brand page allows the logo "in color, black or white" and asks not to recolor it otherwise: Discord_logo.tga is
+the white logo, on light buttons it is drawn black (the white file tinted black, the same shape), nothing else.
 
 Legal info:
 
@@ -22,6 +24,10 @@ Use the Discord Marks or Brand Assets on merchandise.
 
 
 Patreon Brand Licensing belongs to Patreon: https://www.patreon.com/brand
+The brand page names no colors for the mark and forbids modifying it, so only Patreon's own marks are used, unchanged:
+Patreon_logo.tga, the white mark, on dark buttons and Patreon_logo_black.tga, the black mark (from the brand page's
+asset download), on light ones. Both are scaled down evenly to 117x128 for an icon drawn 16 pixels high: the same
+proportions and colors, only fewer pixels.
 
 Legal notes:
 
@@ -43,3 +49,38 @@ Using Patreon Marks in a manner that, in Patreon's sole opinion, impairs Patreon
 Filing a trademark, copyright, or patent that contains Patreon Marks.
 Licensing or attempting to license Patreon Marks to others in any way.
 Using Patreon Marks on merchandise, unless we agree in writing in advance in each instance to any such use.
+
+
+
+
+GitHub logo belongs to GitHub: https://brand.github.com/foundations/logo (https://github.com/logos redirects there)
+GitHub_logo.tga and GitHub_logo_black.tga are the white and black Invertocat (GitHub_Invertocat_White.png,
+GitHub_Invertocat_Black.png) of the official package https://brand.github.com/GitHub_Logos.zip, converted to TGA
+pixel for pixel: same size (294x288), colors and shape.
+
+Legal info:
+
+GITHUB, the GITHUB logo design, the INVERTOCAT logo design, OCTOCAT and the OCTOCAT logo design are trademarks of
+GitHub, Inc., registered in the United States and other countries.
+
+How it is used here, as the brand page allows: the Invertocat only marks a button that links to the addon's
+GitHub project (its issues), less prominent than the addon's own name and logo.
+
+Following the brand page, it must not:
+Imply that GitHub made, endorses or is affiliated with the addon.
+Be used as the addon's own logo or in its name.
+Be modified: no other colors, proportions, shadows, gradients, or combining it with other words or designs.
+Be shown on busy or low-contrast backgrounds: the white mark is shown on dark buttons, the black one on light ones.
+
+
+
+
+CurseForge logo belongs to CurseForge (Overwolf) https://www.curseforge.com/. 
+
+
+
+Wago logo belongs to Wago https://wago.io/. 
+
+
+
+PayPal logo belongs to PayPal https://www.paypal.com/. 

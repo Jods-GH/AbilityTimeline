@@ -1,383 +1,233 @@
 local appName, app = ...
 ---@class AbilityTimeline
 local private = app
+local ThemeApply = private.ThemeApply
+local ThemedWidgets = private.ThemedWidgets
+local L = private.getLocalisation
 
---Only reminders that carry a saved name are included
-local function getNamedReminderValues()
-  local out = {}
-  if private.db and private.db.profile and private.db.profile.reminders then
-    for id, stored in pairs(private.db.profile.reminders) do
-      local first = stored and stored[1]
-      if first and (first.instanceName or first.encounterName) then
-        if first.instanceName and first.encounterName then
-          out[tostring(id)] = string.format("%s — %s", first.instanceName, first.encounterName)
-        else
-          out[tostring(id)] = first.encounterName or first.instanceName
-        end
-      end
-    end
-  end
-  return out
-end
-
-local function hasNamedReminders()
-  return next(getNamedReminderValues()) ~= nil
-end
-
----@type AceConfigOptionsTable
-private.options = {
-  name = private.getLocalisation("addonOptions"),
-  type = "group",
-  args = {
-    reminderBrowser = {
-      name = private.getLocalisation("reminderBrowser"),
-      desc = private.getLocalisation("reminderBrowserDescription"),
-      type = "group",
-      order = 10,
-      args = {
-        no_reminders_hint = {
-          name = private.getLocalisation("NoRemindersHint"),
-          type = "description",
-          order = 20,
-          fontSize = "medium",
-          hidden = function() return hasNamedReminders() end,
-        },
-        recent_encounters = {
-          name = private.getLocalisation("CreatedReminders"),
-          desc = private.getLocalisation("CreatedRemindersDescription"),
-          type = "select",
-          order = 21,
-          disabled = function() return not hasNamedReminders() end,
-          values = getNamedReminderValues,
-          set = function(info, val) private._recentSelected = tonumber(val) end,
-          get = function(info) return tostring(private._recentSelected or "") end,
-          width = "full",
-        },
-        open_recent = {
-          name = private.getLocalisation("OpenSelectedReminderEditor"),
-          desc = private.getLocalisation("OpenSelectedReminderEditorDescription"),
-          type = "execute",
-          order = 22,
-          disabled = function() return not private._recentSelected end,
-          func = function()
-            local sel = private._recentSelected
-            -- Open the selected saved encounter (keyed by dungeonEncounterID)
-            private.RegisterEncounter(sel, nil, false)
-            local stored = private.db.profile.reminders[sel]
-            local first = stored and stored[1]
-            if first then
-              local params = {
-                journalEncounterID = first.journalEncounterID,
-                journalInstanceID = first.journalInstanceID,
-                dungeonEncounterID = tonumber(sel)
-              }
-              private.openTimingsEditor(params)
-            end
-          end,
-        },
-      },
-    },
-    theme = {
-      name = private.getLocalisation("Theme"),
-      desc = private.getLocalisation("ThemeDescription"),
-      order = 25,
-      type = "select",
-      values = function()
-        local values = {}
-        for _, key in ipairs(private.AUTO_THEMES) do
-          values[key] = private.GetThemeSelectionName(key)
-        end
-        for _, theme in ipairs(private.GetSelectableThemes()) do
-          if private.IsThemeAvailable(theme.Name) then
-            values[theme.Name] = theme.DisplayName or theme.Name
-          end
-        end
-        return values
-      end,
-      sorting = function()
-        local sorting = {}
-        for _, key in ipairs(private.AUTO_THEMES) do
-          table.insert(sorting, key)
-        end
-        for _, theme in ipairs(private.GetSelectableThemes()) do
-          if private.IsThemeAvailable(theme.Name) then
-            table.insert(sorting, theme.Name)
-          end
-        end
-        return sorting
-      end,
-      set = function(info, val)
-        private.SelectTheme(val)
-      end,
-      get = function(info)
-        local selection = private.GetThemeSelection()
-        return private.IsAutoTheme(selection) and selection or private.GetSavedThemeKey()
-      end,
-    },
-    animations = {
-      name = private.getLocalisation("ThemeAnimations"),
-      desc = private.getLocalisation("ThemeAnimationsDescription"),
-      order = 25.5,
-      type = "select",
-      values = {
-        [private.ANIMATION_LEVELS.FULL] = private.getLocalisation("ThemeAnimationsFull"),
-        [private.ANIMATION_LEVELS.DIMMED] = private.getLocalisation("ThemeAnimationsDimmed"),
-        [private.ANIMATION_LEVELS.OFF] = private.getLocalisation("ThemeAnimationsOff"),
-      },
-      sorting = { private.ANIMATION_LEVELS.FULL, private.ANIMATION_LEVELS.DIMMED, private.ANIMATION_LEVELS.OFF },
-      set = function(info, val)
-        private.SetAnimationLevel(val)
-      end,
-      get = function(info)
-        return private.GetAnimationLevel()
-      end,
-    },
-    openThemeSelector = {
-      name = private.getLocalisation("ThemeSelectorOpen"),
-      desc = private.getLocalisation("ThemeSelectorOpenDescription"),
-      order = 26,
-      type = "execute",
-      func = function()
-        private.openThemeSelector()
-      end,
-    },
-    resetThemeModifications = {
-      name = private.getLocalisation("ResetThemeModifications"),
-      desc = private.getLocalisation("ResetThemeModificationsDescription"),
-      order = 27,
-      type = "execute",
-      confirm = true,
-      disabled = function()
-        return not private.HasThemeModifications(private.GetSavedThemeKey())
-      end,
-      func = function()
-        private.ResetThemeModifications()
-      end,
-    },
-    useTimelineModule = {
-      name = private.getLocalisation("useTimelineModule"),
-      desc = private.getLocalisation("useTimelineModuleDescription"),
-      order = 29,
-      width = "full",
-      type = "toggle",
-      hidden = function() return not private.isRetail end,
-      set = function(info, val)
-        private.db.profile.useTimelineModule = val
-        StaticPopupDialogs["ABILITYTIMELINE_RELOAD"] = StaticPopupDialogs["ABILITYTIMELINE_RELOAD"] or {
-          text = private.getLocalisation("ReloadRequired"),
-          button1 = RELOADUI,
-          button2 = CANCEL,
-          OnAccept = ReloadUI,
-          timeout = 0,
-          whileDead = true,
-          hideOnEscape = true,
-        }
-        StaticPopup_Show("ABILITYTIMELINE_RELOAD")
-      end,
-      get = function(info)
-        return private.db.profile.useTimelineModule
-      end,
-    },
-    debugMode = {
-      name = private.getLocalisation("debugMode"),
-      desc = private.getLocalisation("debugModeDescription"),
-      order = 30,
-      width = "full",
-      type = "toggle",
-      set = function(info, val) private.db.profile.debugMode = val end, --Sets value of SavedVariables depending on toggles
-      get = function(info)
-        return private.db.profile
-            .debugMode --Sets value of toggles depending on SavedVariables
-      end,
-    },
-    disableLoginMessage = {
-      name = private.getLocalisation("disableLoginMessage"),
-      desc = private.getLocalisation("disableLoginMessageDescription"),
-      order = 31,
-      width = "full",
-      type = "toggle",
-      set = function(info, val) private.db.profile.disableLoginMessage = val end, --Sets value of SavedVariables depending on toggles
-      get = function(info)
-        return private.db.profile.disableLoginMessage                             --Sets value of toggles depending on SavedVariables
-      end,
-    },
-    disableAllBlizzTimers = {
-      name = private.getLocalisation("disableAllBlizzTimers"),
-      desc = private.getLocalisation("disableAllBlizzTimersDescription"),
-      order = 32,
-      width = "full",
-      type = "toggle",
-      set = function(info, val) --Sets value of SavedVariables depending on toggles
-        private.db.profile.disableAllBlizzTimers = val
-        if private.refreshEncounterTimelineVisibility then
-          private.refreshEncounterTimelineVisibility()
-        end
-      end,
-      get = function(info)
-        return private.db.profile.disableAllBlizzTimers                             --Sets value of toggles depending on SavedVariables
-      end,
-    },
-    disableReadyCheck = {
-      name = private.getLocalisation("disableReadyCheck"),
-      desc = private.getLocalisation("disableReadyCheckDescription"),
-      order = 33,
-      width = "full",
-      type = "toggle",
-      set = function(info, val) private.db.profile.disableReadyCheck = val end, --Sets value of SavedVariables depending on toggles
-      get = function(info)
-        return private.db.profile.disableReadyCheck                             --Sets value of toggles depending on SavedVariables
-      end,
-    },
-    disableBossModsBars = {
-      name = private.getLocalisation("disableBossModsBars"),
-      desc = private.getLocalisation("disableBossModsBarsDescription"),
-      order = 34,
-      width = "full",
-      type = "toggle",
-      set = function(info, val)
-        private.db.profile.disableBossModsBars = val
-        if private.initDbmSkin then
-          private.initDbmSkin()
-        end
-      end,                                            --Sets value of SavedVariables depending on toggles
-      get = function(info)
-        return private.db.profile.disableBossModsBars --Sets value of toggles depending on SavedVariables
-      end,
-    },
-    disableBossModsEmphasisedBars = {
-      name = private.getLocalisation("disableBossModsEmphasisedBars"),
-      desc = private.getLocalisation("disableBossModsEmphasisedBarsDescription"),
-      order = 35,
-      width = "full",
-      type = "toggle",
-      set = function(info, val)
-        private.db.profile.disableBossModsEmphasisedBars = val
-        if private.initDbmSkin then
-          private.initDbmSkin()
-        end
-      end,                                                      --Sets value of SavedVariables depending on toggles
-      get = function(info)
-        return private.db.profile.disableBossModsEmphasisedBars --Sets value of toggles depending on SavedVariables
-      end,
-    },
-    disableAllOnEncounterEnd = {
-      name = private.getLocalisation("disableAllOnEncounterEnd"),
-      desc = private.getLocalisation("disableAllOnEncounterEndDescription"),
-      order = 35,
-      width = "full",
-      type = "toggle",
-      set = function(info, val) private.db.profile.disableAllOnEncounterEnd = val end,
-      get = function(info)
-        return private.db.profile.disableAllOnEncounterEnd
-      end,
-    },
-    useAudioCountdowns = {
-      name = private.getLocalisation("useAudioCountdowns"),
-      desc = private.getLocalisation("useAudioCountdownsDescription"),
-      order = 40,
-      width = "full",
-      type = "toggle",
-      set = function(info, val) private.db.profile.useAudioCountdowns = val end, --Sets value of SavedVariables depending on toggles
-      get = function(info)
-        return private.db.profile
-            .useAudioCountdowns --Sets value of toggles depending on SavedVariables
-      end,
-    },
-    audioCountdownTime = {
-      name = private.getLocalisation("audioCountdownTime"),
-      desc = private.getLocalisation("audioCountdownTimeDescription"),
-      order = 41,
-      width = "full",
-      type = "range",
-      min = 1,
-      max = 5,
-      step = 1,
-      disabled = function() return not private.db.profile.useAudioCountdowns end,
-      set = function(info, val) private.db.profile.audioCountdownTime = val end,
-      get = function(info)
-        return private.db.profile.audioCountdownTime
-      end,
-    },
-    enableKeyRerollTimer = {
-      name = private.getLocalisation("enableKeyRerollTimer"),
-      desc = private.getLocalisation("enableKeyRerollTimerDescription"),
-      order = 40,
-      width = "full",
-      type = "toggle",
-      set = function(info, val) private.db.profile.enableKeyRerollTimer = val end, --Sets value of SavedVariables depending on toggles
-      get = function(info)
-        return private.db.profile
-            .enableKeyRerollTimer --Sets value of toggles depending on SavedVariables
-      end,
-    },
-    enableDNDMessage = {
-      name = private.getLocalisation("enableDNDMessage"),
-      desc = private.getLocalisation("enableDNDMessageDescription"),
-      order = 40,
-      width = "full",
-      type = "toggle",
-      set = function(info, val) private.db.profile.enableDNDMessage = val end, --Sets value of SavedVariables depending on toggles
-      get = function(info)
-        return private.db.profile
-            .enableDNDMessage --Sets value of toggles depending on SavedVariables
-      end,
-    },
-    encounterOptions = {
-      name = private.getLocalisation("reminderOptions"),
-      desc = private.getLocalisation("reminderOptionsDescription"),
-      type = "group",
-      hidden = function() return not private.isRetail end,
-      args = {
-
-      },
-    },
-
-  }
+-- the page in Esc > Options > AddOns: what the addon is, the way into its settings window and where to find it, in
+-- the theme. Profiles is a category below it, drawn by AceConfigDialog
+local variables = {
+    padding = 24,
+    gap = 12,
+    logoSize = 64,
+    buttonHeight = 28,
+    buttonWidth = 200,
+    linkIcon = 16,
 }
-OPTIONS_INITIALIZED = false
-private.buildInstanceOptions = function()
-  if OPTIONS_INITIALIZED then return end
-  for dungeonId, dungeonValue in pairs(private.Instances) do
-    EJ_SelectInstance(dungeonId)
-    local Instancename, Instancedescription, _, InstanceImage, _, _, _, _, _ = EJ_GetInstanceInfo()
-    assert(Instancename, "BetterTimeline: EncounterJournal returned nil for instance name for dungeonId " .. dungeonId .. " please alert the Author.")
-    private.options.args.encounterOptions.args["dungeon" .. dungeonId] = {
-      name = Instancename,
-      -- description = Instancedescription,
-      -- image = InstanceImage,
-      type = "group",
-      order = dungeonId,
-      args = {}
-    }
-    for encounterNumber, encounterID in pairs(dungeonValue.encounters) do
-      local EncounterName, Encounterdescription, journalEncounterID, rootSectionID, link, journalInstanceID, dungeonEncounterID, instanceID =
-          EJ_GetEncounterInfoByIndex(encounterNumber, dungeonId)
-      assert(EncounterName, "BetterTimeline: EncounterJournal returned nil for encounter name for encounterNumber " .. encounterNumber .. " in dungeonId " .. dungeonId .. " please alert the Author.")
-      private.options.args.encounterOptions.args["dungeon" .. dungeonId].args["encounter" .. encounterNumber] = {
-        name = EncounterName,
-        -- description = Encounterdescription,
-        -- image = InstanceImage,
-        type = "group",
-        order = encounterNumber,
-        args = {
-          OptionsButton = {
-            name = private.getLocalisation("EditTimingsForEncounter") .. ": " .. EncounterName,
-            type = "execute",
-            order = 0,
-            func = function()
-              local params = {
-                journalEncounterID = journalEncounterID,
-                journalInstanceID = journalInstanceID,
-                dungeonEncounterID =
-                    dungeonEncounterID,
-                name = EncounterName
-              }
-              private.openTimingsEditor(params)
-            end
-          },
-        }
-      }
+
+-- brand names as their owners spell them, where each logo comes from is in Media/Textures/Brands/BrandLicensing.txt.
+-- aspect is a logo's width to its height; on light buttons a logo shows its darkIcon file, or itself drawn black with
+-- darkTint, or itself without either
+local LINK_GROUPS = {
+    {
+        name = "SettingsLinksHelp",
+        links = {
+            -- Discord's brand allows its logo in black, the white file drawn black is that
+            {
+                name = "Discord",
+                url = "https://discord.com/invite/v3gYmYamGJ",
+                icon = "Discord_logo",
+                darkTint = true,
+                aspect = 528 / 400,
+            },
+            {
+                key = "SettingsReportBug",
+                url = "https://github.com/Jods-GH/AbilityTimeline/issues",
+                icon = "GitHub_logo",
+                -- GitHub's mark for light buttons, its brand allows it in white or black only
+                darkIcon = "GitHub_logo_black",
+                aspect = 294 / 288,
+            },
+        },
+    },
+    {
+        name = "SettingsLinksDownload",
+        links = {
+            {
+                name = "CurseForge",
+                url = "https://www.curseforge.com/wow/addons/better-timeline",
+                icon = "CurseForge_logo",
+                darkIcon = "CurseForge_logo_black",
+                aspect = 202 / 128,
+            },
+            {
+                name = "Wago",
+                url = "https://addons.wago.io/addons/better-timeline",
+                icon = "Wago_logo",
+                darkIcon = "Wago_logo_black",
+                aspect = 222 / 128,
+            },
+        },
+    },
+    {
+        name = "SettingsLinksSupport",
+        links = {
+            {
+                name = "Patreon",
+                url = "https://www.patreon.com/c/Jodsderechte",
+                icon = "Patreon_logo",
+                -- Patreon's own black mark, its brand names no colors and forbids modifying the mark
+                darkIcon = "Patreon_logo_black",
+                aspect = 117 / 128,
+            },
+            -- in its own blues on every button
+            {
+                name = "PayPal",
+                url = "https://www.paypal.com/donate/?hosted_button_id=PSQ4D3HXNZKMG",
+                icon = "PayPal_logo",
+                aspect = 1,
+            },
+        },
+    },
+}
+
+---the addon's own windows take the place of Blizzard's settings
+local leaveSettingsPanel = function()
+    if SettingsPanel and SettingsPanel:IsShown() then
+        HideUIPanel(SettingsPanel)
     end
-  end
-  OPTIONS_INITIALIZED = true
+end
+
+---@param parent Frame
+---@param text string
+---@param style string -- Plain or Primary
+---@param width number
+---@param onClick function
+---@return Button
+local createButton = function(parent, text, style, width, onClick)
+    local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    ThemedWidgets.SkinButton(button)
+    button.atStyle = style
+    button:SetSize(width, variables.buttonHeight)
+    button:SetText(text)
+    button:SetScript("OnClick", onClick)
+    return button
+end
+
+---creates the page and registers it as the addon's category, returns the name the Profiles category goes below
+---@return string
+private.RegisterOptionsPage = function()
+    local name = L("SettingsTitle")
+    local padding, gap = variables.padding, variables.gap
+    local frame = CreateFrame("Frame")
+    frame.name = name
+
+    local card = CreateFrame("Frame", nil, frame)
+    card:SetPoint("TOPLEFT", frame, "TOPLEFT", padding, -padding)
+    card:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -padding, -padding)
+    -- without a height the card has no place on screen and never learns its width, the layout below sets the real one
+    card:SetHeight(1)
+    ThemeApply.CreatePanel(card)
+
+    card.Logo = card:CreateTexture(nil, "ARTWORK")
+    card.Logo:SetTexture("Interface\\AddOns\\AbilityTimeline\\Media\\Logo.tga")
+    card.Logo:SetSize(variables.logoSize, variables.logoSize)
+    card.Logo:SetPoint("TOPLEFT", card, "TOPLEFT", padding, -padding)
+    card.Title = card:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    card.Title:SetPoint("BOTTOMLEFT", card.Logo, "RIGHT", gap, 2)
+    card.Title:SetText(name)
+    card.Version = card:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    card.Version:SetPoint("TOPLEFT", card.Logo, "RIGHT", gap, -2)
+    card.Version:SetText(L("SettingsVersion"):format(C_AddOns.GetAddOnMetadata(appName, "Version")))
+    card.Text = card:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    -- only its top left is anchored, a RIGHT anchor would also pin its middle to the card's and cut it to one line
+    card.Text:SetPoint("TOPLEFT", card.Logo, "BOTTOMLEFT", 0, -gap)
+    card.Text:SetJustifyH("LEFT")
+    card.Text:SetWordWrap(true)
+    card.Text:SetSpacing(3)
+    card.Text:SetText(L("SettingsLauncherDescription"))
+
+    local open = createButton(card, L("SettingsOpenPage"), "Primary", variables.buttonWidth, function()
+        leaveSettingsPanel()
+        private.openSettings()
+    end)
+    open:SetPoint("TOPLEFT", card.Text, "BOTTOMLEFT", 0, -gap * 2)
+    local buttons = { open }
+
+    -- a column per group of links, side by side
+    local columns = {}
+    for i, group in ipairs(LINK_GROUPS) do
+        local heading = card:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        heading:SetText(L(group.name))
+        local previous = heading
+        local column = { heading = heading, buttons = {} }
+        for _, link in ipairs(group.links) do
+            local button = createButton(card, link.name or L(link.key), "Plain", variables.buttonWidth, function()
+                private.ShowCopyLink(link.url)
+            end)
+            button:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, -gap / 2)
+            if link.icon then
+                button.Icon = button:CreateTexture(nil, "OVERLAY")
+                button.Icon:SetSize(variables.linkIcon * link.aspect, variables.linkIcon)
+                button.Icon:SetPoint("LEFT", button, "LEFT", gap, 0)
+                button.link = link
+            end
+            table.insert(buttons, button)
+            table.insert(column.buttons, button)
+            previous = button
+        end
+        columns[i] = column
+    end
+
+    -- the card and its columns are as wide as Blizzard's settings make the page: laid out once the card has its width,
+    -- which it doesn't yet the moment the page is shown
+    local layout = function()
+        local width = card:GetWidth() - padding * 2
+        if width <= 0 then return end
+        card.Text:SetWidth(width)
+        local columnWidth = (width - gap * (#columns - 1)) / #columns
+        for i, column in ipairs(columns) do
+            column.heading:ClearAllPoints()
+            column.heading:SetPoint("TOPLEFT", open, "BOTTOMLEFT", (i - 1) * (columnWidth + gap), -gap * 2)
+            for _, button in ipairs(column.buttons) do
+                button:SetWidth(columnWidth)
+            end
+        end
+        local mostLinks = 0
+        for _, group in ipairs(LINK_GROUPS) do
+            mostLinks = math.max(mostLinks, #group.links)
+        end
+        card:SetHeight(padding * 2 + variables.logoSize + gap * 5 + card.Text:GetStringHeight() +
+            variables.buttonHeight + columns[1].heading:GetStringHeight() +
+            mostLinks * (variables.buttonHeight + gap / 2))
+    end
+    card:SetScript("OnSizeChanged", layout)
+    frame:SetScript("OnShow", layout)
+
+    -- the themed are held weakly, the page's frame holds it
+    frame.AtThemed = {
+        ApplySettings = function()
+            -- drawn like a window of the addon: Blizzard's dark panel is behind it, not one of the theme's windows
+            local style = private.GetWindowStyle("Window")
+            card.AtFill:SetVertexColor(ThemeApply.Color(style.Fill))
+            card.AtEdge:SetVertexColor(ThemeApply.Color(style.Edge))
+            ThemeApply.FontRole(card.Title, "Title")
+            ThemeApply.FontRole(card.Version, "Muted")
+            ThemeApply.FontRole(card.Text, "Control")
+            for _, column in ipairs(columns) do
+                ThemeApply.FontRole(column.heading, "Heading")
+            end
+            for _, button in ipairs(buttons) do
+                ThemedWidgets.DrawButton(button)
+                if button.link then
+                    private.DrawBrandLogo(button.Icon, button.link, "Field")
+                end
+            end
+            -- another theme's fonts make the texts higher or lower, the card follows
+            layout()
+        end,
+    }
+    frame.AtThemed:ApplySettings()
+    private.RegisterThemed(frame.AtThemed)
+
+    if Settings and Settings.RegisterCanvasLayoutCategory then
+        local category = Settings.RegisterCanvasLayoutCategory(frame, name)
+        -- AceConfigDialog finds the parent of the Profiles category by this ID
+        category.ID = name
+        Settings.RegisterAddOnCategory(category)
+    else
+        InterfaceOptions_AddCategory(frame)
+    end
+    return name
 end

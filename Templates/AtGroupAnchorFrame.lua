@@ -474,8 +474,8 @@ local function SetupEditModeSettings(self)
 
     local buttons = {
         {
-            text = private.getLocalisation("OpenIconEditor"),
-            click = function() private.openSpellIconSettings() end
+            text = private.getLocalisation("SettingsOpenPage"),
+            click = function() private.openSettings("SpellIcons") end
         }
     }
     LibEditMode:AddFrameSettingsButtons(frame, buttons)
