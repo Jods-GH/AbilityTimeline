@@ -25,6 +25,7 @@ end
 
 local useTimelineModule = toggle("useTimelineModule", private.showReloadPopup)
 useTimelineModule.hidden = function() return not private.isRetail end
+useTimelineModule.image = "Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\Settings\\useTimelineModule.tga"
 
 local timelineHeading = { kind = "Heading", name = L("SettingsSectionTimeline") }
 timelineHeading.hidden = useTimelineModule.hidden
