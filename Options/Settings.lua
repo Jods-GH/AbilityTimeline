@@ -504,6 +504,16 @@ local createWindow = function()
         window.frame:Hide()
         ShowUIPanel(EditModeManagerFrame)
     end)
+    -- a label set while the window grows in is laid out at the size it grows from and keeps it, so the labels are set
+    -- again once the window has its full size
+    window.frame.AtShowAnimation:HookScript("OnFinished", function()
+        for _, entry in ipairs(rendered) do
+            local label = entry.widget.frame.Label
+            local text = label:GetText()
+            label:SetText("")
+            label:SetText(text)
+        end
+    end)
     window.frame:HookScript("OnHide", function()
         setShownPage(nil)
         if testRunning then
