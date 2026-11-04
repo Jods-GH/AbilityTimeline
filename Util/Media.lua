@@ -9,7 +9,7 @@ local SharedMedia = LibStub("LibSharedMedia-3.0")
 local TEXTURES = "Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\Theme\\"
 local SHARED_TEXTURES = {
     "check", "chevron", "circle", "close", "cracks", "dust", "fel_ember", "flake", "frost", "glint", "glow", "gradient", "ice",
-    "leaf", "minus", "mote", "panel", "panel_edge", "pill", "plus", "ring", "shadow", "thumb",
+    "leaf", "minus", "mote", "panel", "panel_edge", "pill", "plus", "ring", "shadow", "thumb", "undo",
 }
 -- the pieces ice shatters into, Util/Transitions.lua cuts shards with them
 for i = 1, 10 do

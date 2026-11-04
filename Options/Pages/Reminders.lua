@@ -3,8 +3,8 @@ local appName, app = ...
 local private = app
 local L = private.getLocalisation
 
--- the reminders page: the encounters with saved reminders and every encounter of the season, each opening the
--- timings editor
+-- the reminders page: the encounters with saved reminders and, on retail, every encounter of the season, each opening
+-- the timings editor
 
 ---opens the timings editor in place of the settings window, which comes back on this page when the editor closes
 ---@param params table
@@ -27,7 +27,7 @@ end
 
 ---@param dungeonEncounterID number
 local openSavedEncounter = function(dungeonEncounterID)
-    private.RegisterEncounter(dungeonEncounterID, nil, false)
+    private.RegisterEncounter(dungeonEncounterID)
     local stored = private.db.profile.reminders[dungeonEncounterID]
     local first = stored and stored[1]
     if first then
@@ -39,14 +39,14 @@ local openSavedEncounter = function(dungeonEncounterID)
     end
 end
 
----the encounters with saved reminders, only those that carry a saved name
+---the encounters with saved reminders, named after their instance and encounter where those were saved
 ---@return table[]
 local getSavedRows = function()
     local rows = {}
     for id, stored in pairs(private.db.profile.reminders) do
         local first = stored and stored[1]
-        if first and (first.instanceName or first.encounterName) then
-            local name = first.encounterName or first.instanceName
+        if first then
+            local name = first.encounterName or first.instanceName or L("EncounterFallbackName"):format(tonumber(id) or 0)
             if first.instanceName and first.encounterName then
                 name = string.format("%s — %s", first.instanceName, first.encounterName)
             end
@@ -67,9 +67,13 @@ end
 
 local encounterRows
 
----a heading per instance of the season with a row per encounter, read once from the Encounter Journal
+---a heading per instance of the season with a row per encounter, read once from the Encounter Journal; only on retail,
+---the season's encounters are retail ones
 ---@return table[]
 local getEncounterRows = function()
+    if not private.isRetail then
+        return {}
+    end
     if encounterRows then
         return encounterRows
     end
@@ -116,9 +120,10 @@ private.RegisterSettingsPage({
     key = "Reminders",
     order = 60,
     name = L("SettingsPageReminders"),
-    desc = L("SettingsPageRemindersDescription"),
+    desc = L(private.isRetail and "SettingsPageRemindersDescription" or "SettingsPageRemindersDescriptionClassic"),
+    -- without the season's encounters there is nothing to show before reminders were saved
     hidden = function()
-        return not private.isRetail
+        return not private.isRetail and #getSavedRows() == 0
     end,
     rows = function()
         local rows = {}

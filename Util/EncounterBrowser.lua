@@ -1,54 +1,13 @@
 local appName, app = ...
 ---@class AbilityTimeline
 local private = app
--- Utility: Encounter registration and Encounter Journal integration
--- Keeps reminders keyed by numeric encounterID and allows copying defaults from Data/ when available.
-
-local function copyDefaultsToEncounter(encounterID, meta)
-    if not meta or not meta.instanceID then return end
-    local inst = private.Instances and private.Instances[meta.instanceID]
-    if not inst or not inst.encounters then return end
-    -- find encounter index within instance encounters
-    local encounterIndex
-    for idx, v in ipairs(inst.encounters) do
-        if v == encounterID then
-            encounterIndex = idx
-            break
-        end
-    end
-    if not encounterIndex then return end
-    -- If default spell data exists for this instance/encounter, copy it.
-    -- Data format may vary; attempt to copy if present as inst.spells[encounterIndex]
-    if inst.spells and inst.spells[encounterIndex] then
-        private.db.profile.reminders[encounterID] = private.db.profile.reminders[encounterID] or {}
-        for _, spellDef in ipairs(inst.spells[encounterIndex]) do
-            table.insert(private.db.profile.reminders[encounterID], spellDef)
-        end
-        private.Debug("Copied default spells for encounter " .. tostring(encounterID))
-    end
-end
-
--- Public: Register an encounter by numeric encounterID. Optionally merge metadata and copy defaults.
-private.RegisterEncounter = function(encounterID, meta, copyDefaults)
-    if not encounterID then return false end
+---makes sure the encounter has a reminder list to edit
+---@param encounterID number|string
+---@return boolean
+private.RegisterEncounter = function(encounterID)
     encounterID = tonumber(encounterID)
     if not encounterID then return false end
     private.db.profile.reminders[encounterID] = private.db.profile.reminders[encounterID] or {}
-    -- If reminders already exist and copyDefaults requested, ask user whether to append defaults (non-destructive)
-    if copyDefaults and private.db.profile.reminders[encounterID] and #private.db.profile.reminders[encounterID] > 0 then
-        copyDefaultsToEncounter(encounterID, meta)
-    end
-    if meta then
-        meta = meta or {}
-        meta.name = meta.name or (select(1, EJ_GetEncounterInfo(encounterID)) or "Unknown")
-        meta.instanceID = meta.instanceID or select(6, EJ_GetEncounterInfo(encounterID))
-        meta.source = meta.source or "ej"
-    end
-    -- If copyDefaults requested but there were no existing reminders, copy immediately
-    if copyDefaults and (#private.db.profile.reminders[encounterID] == 0) then
-        copyDefaultsToEncounter(encounterID, meta)
-    end
-    private.Debug("Registered encounter " .. tostring(encounterID) .. " to AbilityTimeline")
     return true
 end
 
@@ -134,9 +93,7 @@ local function ensureEJButton()
                 -- Register encounter and open editor using explicit EJ ids
                 local key = entry.dungeonEncounterID or entry.journalEncounterID or entry.raw
                 key = tonumber(key) or key
-                private.RegisterEncounter(key,
-                    { name = entry.name, instanceID = entry.journalInstanceID, journalID = entry.journalEncounterID },
-                    true)
+                private.RegisterEncounter(key)
                 local params = {
                     journalEncounterID = entry.journalEncounterID,
                     journalInstanceID = entry.journalInstanceID,

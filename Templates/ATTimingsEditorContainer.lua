@@ -3,23 +3,16 @@ local appName, app = ...
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
 
+-- the window of the timings editor, a plain frame drawn in the theme like the settings window: Blizzard's window
+-- templates bring art of their own that differs between the game versions
 local Type = "ATTimingsEditorContainer"
-local Version = 1
+local Version = 2
 local variables = {
-    BackdropBorderColor = { 0.25, 0.25, 0.25, 0.9 },
-    BackdropColor = { 0, 0, 0, 0.9 },
-    FrameHeight = 600,
-    FrameWidth = 800,
-    BarHeight = 10,
-    Backdrop = {
-        bgFile = nil,
-        edgeFile = nil,
-        tile = true,
-        tileSize = 16,
-        edgeSize = 1,
-    },
-    ContentFramePadding = { x = 15, y = 15 },
-    Padding = { x = 2, y = 2 },
+    width = 800,
+    height = 600,
+    padding = 12,
+    headerHeight = 34,
+    footerHeight = 30,
 }
 
 ---@param self ATTimingsEditorContainer
@@ -33,63 +26,55 @@ local function OnRelease(self)
     self.frame:Hide()
 end
 
-
+---@param self ATTimingsEditorContainer
+---@param title string
 local function SetTitle(self, title)
-    self.frame:SetTitle(title)
+    self.frame.Title:SetText(title)
 end
 
 ---@param self ATTimingsEditorContainer
 local function ApplySettings(self)
     local style = private.GetWindowStyle("Window")
-    private.ThemeApply.Window(self.frame, style, self.closeButton)
+    private.ThemeApply.Window(self.frame, style, self.closeButton, self.frame.Title)
     private.DrawFooterLinks(self.frame.Footer, style)
 end
 
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
 
-    local frame = CreateFrame("Frame", Type .. count, UIParent, "PortraitFrameTemplateNoCloseButton")
-    frame:SetPortraitTextureRaw("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\portrait.tga")
-    frame:SetSize(variables.FrameWidth, variables.FrameHeight)
-    private.Debug(frame, "AT_TIMINGS_EDITOR_FRAME_BASE")
+    local frame = CreateFrame("Frame", Type .. count, UIParent)
+    frame:SetSize(variables.width, variables.height)
     frame:SetPoint("CENTER", UIParent, "CENTER")
+    frame:SetClampedToScreen(true)
     frame:EnableMouse(true)
     frame:SetMovable(true)
     frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
-    frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
+    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+
+    frame.Title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    frame.Title:SetPoint("TOPLEFT", frame, "TOPLEFT", variables.padding + 4, -10)
+    frame.Title:SetPoint("RIGHT", frame, "RIGHT", -40, 0)
+    frame.Title:SetJustifyH("LEFT")
+    frame.Title:SetWordWrap(false)
 
     local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
-    closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT")
     closeButton:SetScript("OnClick", function()
         private.closeTimingsEditor()
     end)
 
-    local contentFrameName = Type .. "ContentFrame" .. count
-    local contentFrame = CreateFrame("Frame", contentFrameName, frame)
-
-    contentFrame:SetPoint(
-        "TOPLEFT",
-        frame,
-        "TOPLEFT",
-        variables.Padding.x,
-        -variables.ContentFramePadding.y - frame.TitleContainer:GetHeight()
-    )
-    contentFrame:SetPoint(
-        "BOTTOMRIGHT",
-        frame,
-        "BOTTOMRIGHT", 0, 30
-    )
+    local contentFrame = CreateFrame("Frame", Type .. "ContentFrame" .. count, frame)
+    contentFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -variables.headerHeight)
+    contentFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, variables.footerHeight)
 
     frame.Footer = CreateFrame("Frame", nil, frame)
-    frame.Footer:SetHeight(30)
-    frame.Footer:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT")
-    frame.Footer:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+    frame.Footer:SetHeight(variables.footerHeight)
+    frame.Footer:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 1, 1)
+    frame.Footer:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 1)
     frame.Footer.Background = frame.Footer:CreateTexture(nil, "BACKGROUND")
     frame.Footer.Background:SetAllPoints(frame.Footer)
-    frame.Footer.Background:SetColorTexture(0, 0, 0, 0.5)
     frame.Footer.AddonName = frame.Footer:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    frame.Footer.AddonName:SetPoint("LEFT", frame.Footer, "LEFT", 10, 0)
+    frame.Footer.AddonName:SetPoint("LEFT", frame.Footer, "LEFT", variables.padding + 4, 0)
     frame.Footer.AddonName:SetFormattedText("%s %s", private.getLocalisation("SettingsTitle"),
         C_AddOns.GetAddOnMetadata(appName, "Version"))
     private.CreateFooterLinks(frame.Footer)

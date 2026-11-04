@@ -51,7 +51,7 @@ private.AUDIO_ALERT_FRAME:SetScript("OnUpdate", function(self, elapsed)
     for id, value in pairs(private.REGISTERED_AUDIO_ALERTS) do
         local remaining = private.manager.getEventRemainingTime(id)
         for soundTime, soundName in pairs(SOUND_ALERTS) do
-            if remaining and remaining <= soundTime and soundTime <= private.db.profile.audioCountdownTime and not tContains(value.played, soundTime) then
+            if remaining and remaining <= soundTime and soundTime <= value.countdown and not tContains(value.played, soundTime) then
                 table.insert(value.played, soundTime)
                 local soundFile = SharedMedia:Fetch("sound", value.voice .. "_" .. soundName)
                 if soundFile then
@@ -67,7 +67,12 @@ private.playAudioAlert = function(eventID)
     end
     local voice = getVoice()
     active_voices[voice] = true
-    private.REGISTERED_AUDIO_ALERTS[eventID] = { voice = voice, played = {} }
+    local info = private.manager.getEventInfo(eventID)
+    private.REGISTERED_AUDIO_ALERTS[eventID] = {
+        voice = voice,
+        played = {},
+        countdown = info and info.countdown or private.db.profile.audioCountdownTime,
+    }
 end
 
 private.manager.RegisterCallback("AtSoundAlert", "EVENT_DISPLAY_START", function(_, eventID, display)

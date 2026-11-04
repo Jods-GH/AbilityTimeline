@@ -2,115 +2,115 @@ local appName, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
+local ThemeApply = private.ThemeApply
 
+-- the window of the import and export dialogs: a plain frame in the theme's dialog style like the timings editor, a
+-- note below its header and its rows (List layout) below that, as high as they need
 local Type = "AtImportDialog"
-local Version = 1
-
+local Version = 2
 local variables = {
-    x = 600,
-    y = 380,
-    titleBar = {
-        height = 30,
-        padding = {
-            x = 0,
-            y = -10,
-        },
-    },
-    contentFrame = {
-        padding = {
-            x = 10,
-            y = 5,
-        }
-    },
+    width = 620,
+    padding = 16,
+    headerHeight = 34,
 }
 
 ---@param self AtImportDialog
 local function OnAcquire(self)
+    self.frame:ClearAllPoints()
     self.frame:SetPoint("CENTER", UIParent, "CENTER")
+    -- above the timings editor (HIGH)
     self.frame:SetFrameStrata("DIALOG")
     self:SetLayout("List")
+    self:SetNote(nil)
     self.frame:Show()
 end
 
 ---@param self AtImportDialog
 local function OnRelease(self)
-    self:ReleaseChildren()
     self.frame:Hide()
 end
 
+---@param self AtImportDialog
+---@param title string
 local function SetTitle(self, title)
-    self.frame.titleBar:SetText(title)
+    self.frame.Title:SetText(title)
+end
+
+---a line below the header, nil leaves it out
+---@param self AtImportDialog
+---@param note string|nil
+local function SetNote(self, note)
+    local frame = self.frame
+    frame.Note:SetText(note or "")
+    frame.Note:SetShown(note ~= nil)
+    self.content:ClearAllPoints()
+    self.content:SetPoint("TOPLEFT", note and frame.Note or frame, note and "BOTTOMLEFT" or "TOPLEFT", note and 0 or
+        variables.padding, note and -variables.padding / 2 or -variables.headerHeight - variables.padding / 2)
+    self.content:SetPoint("RIGHT", frame, "RIGHT", -variables.padding, 0)
+end
+
+---@param self AtImportDialog
+---@param width number|nil
+---@param height number
+local function LayoutFinished(self, width, height)
+    local note = self.frame.Note
+    local top = variables.headerHeight + variables.padding / 2 +
+        (note:IsShown() and note:GetStringHeight() + variables.padding / 2 or 0)
+    self.content:SetHeight(height)
+    self.frame:SetHeight(top + height + variables.padding)
 end
 
 ---@param self AtImportDialog
 local function ApplySettings(self)
-    private.ThemeApply.Window(self.frame, private.GetWindowStyle("Dialog"), self.closeButton, self.frame.titleBar)
-    private.ThemeApply.FontRole(self.frame.subtitleBar, "Heading")
+    ThemeApply.Window(self.frame, private.GetWindowStyle("Dialog"), self.closeButton, self.frame.Title)
+    ThemeApply.FontRole(self.frame.Note, "Muted")
 end
 
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
-    local frame = CreateFrame("Frame", Type .. count, UIParent, "BackdropTemplate")
+    local frame = CreateFrame("Frame", Type .. count, UIParent)
     frame:SetFrameStrata("DIALOG")
-    frame:SetSize(variables.x, variables.y)
-
+    frame:SetSize(variables.width, 400)
+    frame:SetClampedToScreen(true)
     frame:EnableMouse(true)
     frame:SetMovable(true)
     frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
-    frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
+    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
 
+    frame.Title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    frame.Title:SetPoint("TOPLEFT", frame, "TOPLEFT", variables.padding, -10)
+    frame.Title:SetPoint("RIGHT", frame, "RIGHT", -40, 0)
+    frame.Title:SetJustifyH("LEFT")
 
-    frame.titleBar = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    frame.titleBar:SetPoint("TOPLEFT", frame, "TOPLEFT", variables.titleBar.padding.x, variables.titleBar.padding.y)
-    frame.titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", variables.titleBar.padding.x, variables.titleBar.padding.y)
-    frame.titleBar:SetText(private.getLocalisation("ImportDialogTitle"))
-    frame.titleBar:SetHeight(variables.titleBar.height)
-
-    frame.subtitleBar = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    frame.subtitleBar:SetPoint("TOPLEFT", frame.titleBar, "BOTTOMLEFT", 0, -5)
-    frame.subtitleBar:SetPoint("TOPRIGHT", frame.titleBar, "BOTTOMRIGHT", 0, -5)
-    frame.subtitleBar:SetText(private.getLocalisation("ImportDialogFreeOfCharge"))
-    frame.subtitleBar:SetHeight(variables.titleBar.height)
-    frame.subtitleBar:SetWordWrap(true)
-    frame.subtitleBar:SetTextColor(1, 0.64, 0) -- orange
+    frame.Note = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    frame.Note:SetPoint("TOPLEFT", frame, "TOPLEFT", variables.padding, -variables.headerHeight - variables.padding / 2)
+    frame.Note:SetPoint("RIGHT", frame, "RIGHT", -variables.padding, 0)
+    frame.Note:SetJustifyH("LEFT")
+    frame.Note:SetSpacing(3)
 
     local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
-    closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT")
     closeButton:SetScript("OnClick", function()
         frame:Hide()
     end)
 
-    local contentFrameName = Type .. "ContentFrame" .. count
-    local contentFrame = CreateFrame("Frame", contentFrameName, frame)
+    local contentFrame = CreateFrame("Frame", Type .. "ContentFrame" .. count, frame)
 
-    contentFrame:SetPoint(
-        "TOPLEFT",
-        frame,
-        "TOPLEFT",
-        variables.contentFrame.padding.x,
-        -(variables.contentFrame.padding.y * 2 + frame.titleBar:GetHeight() + frame.subtitleBar:GetHeight())
-    )
-    contentFrame:SetPoint(
-        "BOTTOMRIGHT",
-        frame,
-        "BOTTOMRIGHT",
-        -variables.contentFrame.padding.x,
-        variables.contentFrame.padding.y
-    )
-
-    ---@class AtImportDialog : AceGUIWidget
+    ---@class AtImportDialog : AceGUIContainer
     local widget = {
         OnAcquire = OnAcquire,
         OnRelease = OnRelease,
+        LayoutFinished = LayoutFinished,
         type = Type,
         count = count,
         frame = frame,
         closeButton = closeButton,
         content = contentFrame,
         SetTitle = SetTitle,
+        SetNote = SetNote,
         ApplySettings = ApplySettings,
     }
+    SetNote(widget, nil)
     ApplySettings(widget)
     private.RegisterThemed(widget)
 

@@ -88,11 +88,7 @@ local ChatHandler = function(prefix, message, _, sender)
             return
         end
 
-        private.RegisterEncounter(encounterID, {
-            name = name,
-            instanceID = journalInstanceID,
-            journalID = journalEncounterID
-        }, true)
+        private.RegisterEncounter(encounterID)
 
         local params = {
             journalEncounterID = journalEncounterID,

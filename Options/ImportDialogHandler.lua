@@ -2,362 +2,283 @@ local appName, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
+local ThemeApply = private.ThemeApply
+local L = private.getLocalisation
+
+-- the import and export dialogs of the timings editor. Import shows what a pasted text holds per stage and how much of
+-- it is for the player, export the reminders and boss timers of an encounter in each format
+local variables = {
+    importLines = 10,
+    exportLines = 12,
+}
+-- the export formats in the order of their buttons, Better Timeline's own first
+local EXPORT_FORMATS = { "encoded", "viserio", "mrt", "json" }
+-- the formats that can hold boss timer rules
+local RULE_FORMATS = { encoded = true, json = true }
+
+---@param text string
+---@param color string -- a palette color
+---@return string
+local colored = function(text, color)
+    local r, g, b = ThemeApply.Color(color)
+    return string.format("|cff%02x%02x%02x%s|r", r * 255, g * 255, b * 255, text)
+end
+
+---a label in a text role of the theme
+---@param role string
+---@return table
+local createLabel = function(role)
+    local label = AceGUI:Create("Label")
+    label:SetFullWidth(true)
+    label:SetFontObject(ThemeApply.FontObject(role))
+    return label
+end
+
+---a row of the dialog like the settings window's: label left, control right
+---@param dialog AtImportDialog
+---@param key string
+---@param control table
+---@param tooltip string|nil
+local addRow = function(dialog, key, control, tooltip)
+    local row = AceGUI:Create("AtSettingRow")
+    row:SetLabel(L(key))
+    row:AddChild(control)
+    if tooltip then
+        control:SetCallback("OnEnter", function()
+            GameTooltip:SetOwner(control.frame, "ANCHOR_TOPLEFT")
+            GameTooltip:AddLine(L(tooltip), 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        control:SetCallback("OnLeave", function() GameTooltip:Hide() end)
+    end
+    dialog:AddChild(row)
+end
+
+---two buttons side by side at the bottom of a dialog
+---@param dialog AtImportDialog
+---@return AtButton left, AtButton right
+local addButtons = function(dialog, leftText, rightText)
+    local group = AceGUI:Create("SimpleGroup")
+    group:SetLayout("Flow")
+    group:SetFullWidth(true)
+    local left = AceGUI:Create("AtButton")
+    left:SetText(leftText)
+    left:SetRelativeWidth(0.5)
+    group:AddChild(left)
+    local right = AceGUI:Create("AtButton")
+    right:SetText(rightText)
+    right:SetRelativeWidth(0.5)
+    group:AddChild(right)
+    dialog:AddChild(group)
+    return left, right
+end
+
+---what a parsed import holds: its format and encounter, per stage how many reminders and how many for the player,
+---the boss timers. The whole note is kept, the reminders for others are left out at the pull
+---@param encounterID number
+---@param reminders table[]
+---@param rules table[]
+---@return string
+local describeImport = function(encounterID, reminders, rules)
+    local util = private.ImportUtil
+    local lines = {}
+    local format = util.lastParsedFormat and L("ImportFormat_" .. util.lastParsedFormat)
+    table.insert(lines, colored(format or "", "Accent"))
+    if util.lastParsedEncounterID and util.lastParsedEncounterID ~= encounterID then
+        table.insert(lines, colored(L("ImportEncounterMismatchPlain"), "Danger"))
+    end
+    local stages, order = {}, {}
+    for _, reminder in ipairs(reminders) do
+        local stage = tonumber(reminder.phase) or 1
+        if not stages[stage] then
+            stages[stage] = { all = 0, mine = 0 }
+            table.insert(order, stage)
+        end
+        stages[stage].all = stages[stage].all + 1
+        if util:DoesTagApplyToPlayer(reminder.tag) then
+            stages[stage].mine = stages[stage].mine + 1
+        end
+    end
+    table.sort(order)
+    for _, stage in ipairs(order) do
+        table.insert(lines, L("ImportPreviewStage"):format(tostring(stage), stages[stage].all, stages[stage].mine))
+    end
+    if #rules > 0 then
+        table.insert(lines, L("ImportPreviewBossTimers"):format(#rules))
+    end
+    return table.concat(lines, "\n")
+end
 
 private.createImportDialog = function(editorWindow, encounterID, initialImportText)
     local dialog = AceGUI:Create("AtImportDialog")
-    dialog:SetTitle(private.getLocalisation("ImportDialogTitle"))
-    dialog:SetLayout("List")
+    dialog:SetTitle(L("ImportDialogTitle"))
+    dialog:SetNote(L("ImportDialogFreeOfCharge"))
     dialog:SetAutoAdjustHeight(true)
-
-    -- Track the open dialog
     private.IMPORT_DIALOG_WINDOW = dialog
 
-    dialog.closeButton:SetScript("OnClick", function()
+    local close = function()
         dialog:Release()
         private.IMPORT_DIALOG_WINDOW = nil
-        if private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS then
-            local params = private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS
-            private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS = nil
-            private.openTimingsEditor(params)
-        end
-    end)
-
-    local settingsGroup = AceGUI:Create("SimpleGroup")
-    settingsGroup:SetLayout("Flow")
-    settingsGroup:SetFullWidth(true)
-    settingsGroup:SetHeight(50)
-
-    local filterCheckbox = AceGUI:Create("AtCheckBox")
-    filterCheckbox:SetLabel(private.getLocalisation("ImportRelevant"))
-    private.AddFrameTooltip(filterCheckbox.frame, "ImportRelevantDescription")
-    filterCheckbox:SetValue(private.db.profile.importRelevant)
-    filterCheckbox:SetRelativeWidth(0.5)
-    settingsGroup:AddChild(filterCheckbox)
-
-    local mergeCheckbox = AceGUI:Create("AtCheckBox")
-    mergeCheckbox:SetLabel(private.getLocalisation("ImportMergeMode"))
-    private.AddFrameTooltip(mergeCheckbox.frame, "ImportMergeModeDescription")
-    mergeCheckbox:SetValue(private.db.profile.importMergeMode)
-    mergeCheckbox:SetRelativeWidth(0.5)
-    settingsGroup:AddChild(mergeCheckbox)
-    mergeCheckbox:SetCallback("OnValueChanged", function(_, _, value)
-        private.db.profile.importMergeMode = value
-    end)
-
-    dialog:AddChild(settingsGroup)
-
-    local parsedEncounterID = nil
+        private.OnTourEvent("importClosed")
+    end
+    dialog.closeButton:SetScript("OnClick", close)
 
     local importText = AceGUI:Create("AtMultiLineEditBox")
-    importText:SetLabel(private.getLocalisation("ImportTextPlaceholder"))
+    importText:SetLabel(L("ImportTextPlaceholder"))
     importText:SetFullWidth(true)
-    importText:SetNumLines(15)
+    importText:SetNumLines(variables.importLines)
     importText:DisableButton(true)
     dialog:AddChild(importText)
 
-    local previewGroup = AceGUI:Create("SimpleGroup")
-    previewGroup:SetLayout("List")
-    previewGroup:SetFullWidth(true)
-    previewGroup:SetHeight(150)
+    local preview = createLabel("Control")
+    dialog:AddChild(preview)
 
-    local previewLabel = AceGUI:Create("Label")
-    previewLabel:SetText(private.getLocalisation("ImportPreviewEmpty"))
-    previewLabel:SetFullWidth(true)
-    previewGroup:AddChild(previewLabel)
+    local merge = AceGUI:Create("AtCheckBox")
+    merge:SetLabel("")
+    merge:SetValue(private.db.profile.importMergeMode)
+    addRow(dialog, "ImportMergeMode", merge, "ImportMergeModeDescription")
 
-    dialog:AddChild(previewGroup)
+    local importButton, cancelButton = addButtons(dialog, L("ImportButton"), L("ReminderCancelButton"))
+    importButton:SetStyle("Primary")
+    cancelButton:SetCallback("OnClick", close)
 
-    local function updatePreview()
-        local warningLabel = ""
-        local importData = importText:GetText()
-        if not importData or importData:trim() == "" then
-            previewLabel:SetText(private.getLocalisation("ImportPreviewEmpty"))
-            return
+    ---the reminders and boss timers the text holds; nil and the error when there is nothing to import
+    local parse = function()
+        local text = importText:GetText()
+        if not text or strtrim(text) == "" then
+            return nil, nil, L("ImportPreviewEmpty")
         end
-
-        local reminders, errorMsg = private.ImportUtil:ParseImportText(importData)
-
+        local reminders, errorMsg = private.ImportUtil:ParseImportText(text)
         if errorMsg then
-            previewLabel:SetText("|cffff0000" .. private.getLocalisation("ImportError"):format(errorMsg) .. "|r")
-            return
+            return nil, nil, L("ImportError"):format(errorMsg)
         end
-
-        parsedEncounterID = private.ImportUtil.lastParsedEncounterID
-        if parsedEncounterID and parsedEncounterID ~= encounterID then
-            warningLabel = "|cffff6600" .. private.getLocalisation("ImportEncounterMismatch") .. "|r"
-        end
-
-        local filteredReminders = reminders
-        if private.db.profile.importRelevant then
-            filteredReminders = private.ImportUtil:FilterReminders(reminders)
-        end
-
-        local count = #filteredReminders
-        if count == 0 then
-            previewLabel:SetText("|cffff0000" ..
-            private.getLocalisation("ImportError"):format("No reminders found for your character") .. "|r")
-            return
-        end
-
-        local countMsg
-        if count ~= #reminders then
-            countMsg = "|cffff9900" .. private.getLocalisation("ImportPreviewFiltered"):format(count, #reminders) .. "|r"
-        else
-            countMsg = "|cff00ff00" .. private.getLocalisation("ImportPreview"):format(count) .. "|r"
-        end
-        previewLabel:SetText(countMsg .. " " .. warningLabel)
+        return reminders, private.ImportUtil.lastParsedRules or {}
     end
 
-    importText:SetCallback("OnTextChanged", function()
-        updatePreview()
+    local updatePreview = function()
+        local reminders, rules, problem = parse()
+        if problem then
+            preview:SetText(colored(problem, problem == L("ImportPreviewEmpty") and "Muted" or "Danger"))
+        else
+            preview:SetText(describeImport(encounterID, reminders, rules))
+        end
+        importButton:SetDisabled(reminders == nil)
         dialog:DoLayout()
+    end
+
+    importText:SetCallback("OnTextChanged", updatePreview)
+    merge:SetCallback("OnValueChanged", function(_, _, value)
+        private.db.profile.importMergeMode = value
     end)
 
-    filterCheckbox:SetCallback("OnValueChanged", function(_, _, value)
-        updatePreview()
-        dialog:DoLayout()
-        private.db.profile.importRelevant = value
+    importButton:SetCallback("OnClick", function()
+        local kept, rules = parse()
+        if not kept then return end
+        local importData = importText:GetText()
+        close()
+        -- a short countdown that can still be cancelled before anything is changed
+        local importPopup = AceGUI:Create("AtImportPopup")
+        local onComplete = function()
+            if not private.ImportUtil:ApplyReminders(encounterID, kept, private.db.profile.importMergeMode, rules) then
+                private.Debug("Failed to apply reminders")
+                return
+            end
+            local editor = editorWindow or private.TIMINGS_EDITOR_WINDOW
+            if editor then
+                -- the editor still has the reminders from before, undo brings them back
+                editor:RecordUndo()
+                editor:LoadReminders(encounterID)
+                editor:RefreshReminders()
+            end
+        end
+        local onCancel = function()
+            private.showImportDialog(encounterID, editorWindow, importData)
+        end
+        importPopup:StartImport(5, onComplete, onCancel)
     end)
 
     if initialImportText and initialImportText ~= "" then
         importText:SetText(initialImportText)
-        updatePreview()
-        dialog:DoLayout()
     end
-
-    local buttonGroup = AceGUI:Create("SimpleGroup")
-    buttonGroup:SetLayout("Flow")
-    buttonGroup:SetFullWidth(true)
-    buttonGroup:SetHeight(25)
-
-    local importButton = AceGUI:Create("AtButton")
-    importButton:SetText(private.getLocalisation("ImportButton"))
-    importButton:SetRelativeWidth(0.5)
-    importButton:SetCallback("OnClick", function()
-        local importData = importText:GetText()
-        if not importData or importData == "" then
-            private.Debug("Import text is empty")
-            return
-        end
-
-        local reminders, errorMsg = private.ImportUtil:ParseImportText(importData)
-
-        if errorMsg then
-            private.Debug("Import error: " .. tostring(errorMsg))
-            return
-        end
-
-        if filterCheckbox:GetValue() then
-            reminders = private.ImportUtil:FilterReminders(reminders)
-        end
-
-        local valid, validationMsg = private.ImportUtil:ValidateReminders(reminders)
-        if not valid then
-            private.Debug("Validation error: " .. tostring(validationMsg))
-            return
-        end
-
-        dialog:Release()
-        private.IMPORT_DIALOG_WINDOW = nil
-        -- before importing show a progress popup
-        local importPopup = AceGUI:Create("AtImportPopup")
-
-        local function onComplete()
-            local success = private.ImportUtil:ApplyReminders(encounterID, reminders, private.db.profile.importMergeMode)
-
-            if success then
-                private.Debug("Successfully imported " .. #reminders .. " reminders")
-
-                if editorWindow then
-                    if editorWindow.LoadReminders then
-                        editorWindow:LoadReminders(encounterID)
-                    end
-                    editorWindow:RefreshReminders()
-                elseif private.TIMINGS_EDITOR_WINDOW then
-                    if private.TIMINGS_EDITOR_WINDOW.LoadReminders then
-                        private.TIMINGS_EDITOR_WINDOW:LoadReminders(encounterID)
-                    end
-                    private.TIMINGS_EDITOR_WINDOW:RefreshReminders()
-                end
-            else
-                private.Debug("Failed to apply reminders")
-            end
-
-            -- Reopen timings editor if it was closed
-            if private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS then
-                private.openTimingsEditor(private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS)
-                private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS = nil
-            end
-        end
-
-        local function onCancel()
-            private.Debug("Import cancelled by user")
-            -- Reshow the import dialog with the original import text
-            private.showImportDialog(encounterID, editorWindow, importData)
-        end
-
-        importPopup:StartImport(5, onComplete, onCancel)
-    end)
-    buttonGroup:AddChild(importButton)
-
-    local cancelButton = AceGUI:Create("AtButton")
-    cancelButton:SetText(private.getLocalisation("ReminderCancelButton"))
-    cancelButton:SetRelativeWidth(0.5)
-    cancelButton:SetCallback("OnClick", function()
-        dialog:Release()
-        private.IMPORT_DIALOG_WINDOW = nil
-        -- Reopen timings editor if it was closed
-        if private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS then
-            local params = private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS
-            private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS = nil
-            private.openTimingsEditor(params)
-        end
-    end)
-    buttonGroup:AddChild(cancelButton)
-
-    dialog:AddChild(buttonGroup)
-
+    updatePreview()
+    private.OnTourEvent("importOpen")
     return dialog
 end
 
 private.showImportDialog = function(encounterID, editorWindow, initialImportText)
-    if not encounterID then
-        private.Debug("No encounter ID provided for import")
+    if not encounterID or private.IMPORT_DIALOG_WINDOW then
         return
     end
-
-    -- Don't open a new dialog if one is already open
-    if private.IMPORT_DIALOG_WINDOW then
-        private.Debug("Import dialog is already open, ignoring duplicate request")
-        return
-    end
-
-    -- Close timings editor if open and store encounter params
-    if private.TIMINGS_EDITOR_WINDOW then
-        private.IMPORT_DIALOG_STORED_ENCOUNTER_PARAMS = {
-            journalEncounterID = private.TIMINGS_EDITOR_WINDOW.journalEncounterID,
-            journalInstanceID = private.TIMINGS_EDITOR_WINDOW.journalInstanceID,
-            dungeonEncounterID = private.TIMINGS_EDITOR_WINDOW.encounterID
-        }
-        private.closeTimingsEditor()
-    end
-
+    -- the dialog opens above the timings editor, which stays open and shows the imported reminders
     private.createImportDialog(editorWindow, encounterID, initialImportText)
 end
 
 private.showExportDialog = function(encounterID)
-    if not encounterID then
-        private.Debug("No encounter ID provided for export")
+    if not encounterID then return end
+    local reminders = private.db.profile.reminders[encounterID] or {}
+    local rules = private.db.profile.timerRules and private.db.profile.timerRules[encounterID]
+    if #reminders == 0 and not rules then
         return
-    end
-
-    -- Get reminders for this encounter first (before closing editor)
-    if not private.db or not private.db.profile or not private.db.profile.reminders then
-        private.Debug("No reminders database found")
-        return
-    end
-
-    local reminders = private.db.profile.reminders[encounterID]
-    if not reminders or #reminders == 0 then
-        private.Debug("No reminders found for this encounter")
-        return
-    end
-
-    -- Only close timings editor if we have reminders to export
-    if private.TIMINGS_EDITOR_WINDOW then
-        private.EXPORT_DIALOG_STORED_ENCOUNTER_PARAMS = {
-            journalEncounterID = private.TIMINGS_EDITOR_WINDOW.journalEncounterID,
-            journalInstanceID = private.TIMINGS_EDITOR_WINDOW.journalInstanceID,
-            dungeonEncounterID = private.TIMINGS_EDITOR_WINDOW.encounterID
-        }
-        private.closeTimingsEditor()
     end
 
     local dialog = AceGUI:Create("AtImportDialog")
-    dialog:SetTitle(private.getLocalisation("ExportDialogTitle"))
-    dialog:SetLayout("List")
-    private.Debug("Export dialog created and shown")
-
-    dialog.closeButton:SetScript("OnClick", function()
+    dialog:SetTitle(L("ExportDialogTitle"))
+    dialog:SetAutoAdjustHeight(true)
+    private.EXPORT_DIALOG_WINDOW = dialog
+    local close = function()
         dialog:Release()
-        -- Reopen timings editor if it was closed
-        if private.EXPORT_DIALOG_STORED_ENCOUNTER_PARAMS and private.EXPORT_DIALOG_STORED_ENCOUNTER_PARAMS.dungeonEncounterID then
-            local params = private.EXPORT_DIALOG_STORED_ENCOUNTER_PARAMS
-            private.EXPORT_DIALOG_STORED_ENCOUNTER_PARAMS = nil
-            private.openTimingsEditor(params)
-        end
-    end)
+        private.EXPORT_DIALOG_WINDOW = nil
+        private.OnTourEvent("exportClosed")
+    end
+    dialog.closeButton:SetScript("OnClick", close)
 
     local formatGroup = AceGUI:Create("SimpleGroup")
     formatGroup:SetLayout("Flow")
     formatGroup:SetFullWidth(true)
-    formatGroup:SetHeight(50)
-
-    local exportText = AceGUI:Create("AtMultiLineEditBox")
-    exportText:SetLabel(private.getLocalisation("ExportDialogTitle"))
-    exportText:SetFullWidth(true)
-    exportText:SetNumLines(15)
-    exportText:DisableButton(true)
-
-    local encounterName = EJ_GetEncounterInfo(encounterID) or ""
-
-    local function updateExport(format)
-        local exportData = private.ImportUtil:ExportReminders(reminders, format, encounterID, encounterName)
-        exportText:SetText(exportData)
-    end
-    updateExport("encoded")
-
-    local encodedButton = AceGUI:Create("AtButton")
-    encodedButton:SetText(private.getLocalisation("ExportAsEncoded"))
-    encodedButton:SetRelativeWidth(0.25)
-    encodedButton:SetCallback("OnClick", function()
-        updateExport("encoded")
-    end)
-    formatGroup:AddChild(encodedButton)
-
-    local viserioButton = AceGUI:Create("AtButton")
-    viserioButton:SetText(private.getLocalisation("ExportAsViserio"))
-    viserioButton:SetRelativeWidth(0.25)
-    viserioButton:SetCallback("OnClick", function()
-        updateExport("viserio")
-    end)
-    formatGroup:AddChild(viserioButton)
-
-    local jsonButton = AceGUI:Create("AtButton")
-    jsonButton:SetText(private.getLocalisation("ExportAsJSON"))
-    jsonButton:SetRelativeWidth(0.25)
-    jsonButton:SetCallback("OnClick", function()
-        updateExport("json")
-    end)
-    formatGroup:AddChild(jsonButton)
-
-    local mrtButton = AceGUI:Create("AtButton")
-    mrtButton:SetText(private.getLocalisation("ExportAsMRT"))
-    mrtButton:SetRelativeWidth(0.25)
-    mrtButton:SetCallback("OnClick", function()
-        updateExport("mrt")
-    end)
-    formatGroup:AddChild(mrtButton)
-
     dialog:AddChild(formatGroup)
+    local note = createLabel("Muted")
+    dialog:AddChild(note)
+    local exportText = AceGUI:Create("AtMultiLineEditBox")
+    exportText:SetLabel("")
+    exportText:SetFullWidth(true)
+    exportText:SetNumLines(variables.exportLines)
+    exportText:DisableButton(true)
     dialog:AddChild(exportText)
+    local hint = createLabel("Muted")
+    hint:SetText(L("ExportCopyHint"))
+    dialog:AddChild(hint)
 
-    local hintText = AceGUI:Create("Label")
-    hintText:SetText(private.getLocalisation("ExportCopyHint"))
-    hintText:SetFullWidth(true)
-    dialog:AddChild(hintText)
-
-    local sendToChatButton = AceGUI:Create("AtButton")
-    sendToChatButton:SetText(private.getLocalisation("ReminderSendToChatButton"))
-    sendToChatButton:SetRelativeWidth(1)
-    sendToChatButton:SetCallback("OnClick", function()
-        private.StartExportingToChat(encounterID)
-        dialog:Release()
-        -- Reopen timings editor if it was closed
-        if private.EXPORT_DIALOG_STORED_ENCOUNTER_PARAMS then
-            private.openTimingsEditor(private.EXPORT_DIALOG_STORED_ENCOUNTER_PARAMS)
-            private.EXPORT_DIALOG_STORED_ENCOUNTER_PARAMS = nil
+    local encounterName = EJ_GetEncounterInfo and EJ_GetEncounterInfo(encounterID) or ""
+    local buttons = {}
+    local show = function(format)
+        private.db.profile.exportFormat = format
+        for key, button in pairs(buttons) do
+            button:SetStyle(key == format and "Primary" or "Plain")
         end
+        note:SetText(rules and not RULE_FORMATS[format] and L("ExportRulesLeftOut") or "")
+        exportText:SetText(private.ImportUtil:ExportReminders(reminders, format, encounterID, encounterName))
+        -- ready to copy
+        exportText:SetFocus()
+        exportText:HighlightText()
+        dialog:DoLayout()
+    end
+    for _, format in ipairs(EXPORT_FORMATS) do
+        local button = AceGUI:Create("AtButton")
+        button:SetText(L("ExportFormat_" .. format))
+        button:SetRelativeWidth(1 / #EXPORT_FORMATS)
+        button:SetCallback("OnClick", function() show(format) end)
+        formatGroup:AddChild(button)
+        buttons[format] = button
+    end
+
+    local sendButton, closeButton = addButtons(dialog, L("ReminderSendToChatButton"), L("DialogClose"))
+    sendButton:SetDisabled(not IsInGroup())
+    sendButton:SetCallback("OnClick", function()
+        private.StartExportingToChat(encounterID)
+        close()
     end)
-    dialog:AddChild(sendToChatButton)
+    closeButton:SetCallback("OnClick", close)
+
+    show(tContains(EXPORT_FORMATS, private.db.profile.exportFormat) and private.db.profile.exportFormat or "encoded")
+    private.OnTourEvent("exportOpen")
 end

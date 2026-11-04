@@ -14,6 +14,8 @@ private.OptionDefaults = {
 			iconMargin = 5,
 		},
 		reminders = {},
+		-- boss timer rules per encounter (Plugins/TimerRules.lua)
+		timerRules = {},
 		editor = {
 			defaultEncounterDuration = 300,
 		},

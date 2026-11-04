@@ -66,6 +66,9 @@ private.manager.displays = {
          isHighlighted(remaining, state, private.db.profile.highlight_text_settings.threshold_time)
    end,
    audio = function(event, remaining, state)
+      if event.info.countdown then
+         return isHighlighted(remaining, state, event.info.countdown)
+      end
       return private.db.profile.useAudioCountdowns and
          isHighlighted(remaining, state, private.db.profile.audioCountdownTime)
    end,
@@ -148,12 +151,13 @@ end
 private.manager.getEventColor = function(eventID)
    local event = activeTimers[eventID]
    if not event then return end
+   -- a color of our own (boss mod, reminder or boss timer rule) wins over the timeline's
+   if event.textColor then
+      return event.textColor
+   end
    local icons = event.info.icons
    if issecretvalue(icons) then
       return event.provider and event.provider.getColor(event.sourceID)
-   end
-   if event.textColor then
-      return event.textColor
    end
    if private.db.profile.dispellTextColor and icons and icons ~= 0 then
       for _, value in ipairs(private.dispellTypeList) do
@@ -202,6 +206,14 @@ private.manager.addEvent = function(eventInfo)
          icons = eventInfo.icons,
          severity = eventInfo.severity or 1,
          isApproximate = eventInfo.isApproximate,
+         -- { timeline, bigIcon, textHighlight } set to false hides the event there
+         allowedDisplays = eventInfo.allowedDisplays,
+         -- its own audio countdown in seconds, 0 for none
+         countdown = eventInfo.countdown,
+         glow = eventInfo.glow,
+         glowColor = eventInfo.glowColor,
+         -- glows from the start, not only once it is close (boss timer rules)
+         glowAlways = eventInfo.glowAlways,
       },
       startTime = GetTime(),
       pausedElapsed = eventInfo.paused and 0 or nil,
@@ -219,6 +231,22 @@ private.manager.addEvent = function(eventInfo)
    ticker:Show()
    private.manager.callbacks:Fire("EVENT_ADDED", eventID)
    return eventID
+end
+
+---changes how an added event shows: spellName, allowedDisplays, countdown, glow, glowColor, glowAlways, textColor,
+---borderColor
+---@param eventID number
+---@param overrides table
+private.manager.setEventOverrides = function(eventID, overrides)
+   local event = activeTimers[eventID]
+   if not event then return end
+   for _, key in ipairs({ "spellName", "allowedDisplays", "countdown", "glow", "glowColor", "glowAlways" }) do
+      if overrides[key] ~= nil then
+         event.info[key] = overrides[key]
+      end
+   end
+   event.textColor = overrides.textColor or event.textColor
+   event.borderColor = overrides.borderColor or event.borderColor
 end
 
 private.manager.pauseEvent = function(eventID)
@@ -370,8 +398,10 @@ ticker:SetScript("OnUpdate", function()
          end
          local remaining = private.manager.getEventRemainingTime(eventID)
          if not event.hidden then
+            local allowed = event.info.allowedDisplays
             for display, shouldDisplay in pairs(private.manager.displays) do
-               local isDisplayed = shouldDisplay(event, remaining, state) and true or nil
+               local isDisplayed = (not allowed or allowed[display] ~= false) and shouldDisplay(event, remaining, state) and
+                  true or nil
                if isDisplayed ~= event.displays[display] then
                   event.displays[display] = isDisplayed
                   private.manager.callbacks:Fire(isDisplayed and "EVENT_DISPLAY_START" or "EVENT_DISPLAY_STOP", eventID,

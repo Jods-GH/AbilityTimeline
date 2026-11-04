@@ -4,7 +4,21 @@ local private = app
 local CustomNames = C_AddOns.IsAddOnLoaded("CustomNames") and LibStub("CustomNames")
 private.ImportUtil = private.ImportUtil or {}
 local ImportUtil = private.ImportUtil
-local IMPORT_PREFIX = "!AT:"
+-- the version of the !AT exports and the JSON's exportVersion: strings of a newer version are refused, older ones
+-- are read the way their version wrote them. 1 had no version (!AT:), 2 added the boss timer rules
+local EXPORT_VERSION = 2
+local IMPORT_PREFIX = "!AT" .. EXPORT_VERSION .. ":"
+-- the keys of a boss timer rule (Plugins/TimerRules.lua) in the !AT exports
+local RULE_KEYS = {
+    "match", "value", "name", "color", "useColor", "glow", "glowWhen", "displays", "countdown", "TTS", "useTTS",
+    "TTSTimer", "sound",
+}
+-- the reminder keys the !AT: strings carry
+local ENCODED_KEYS = {
+    "name", "spellId", "CombatTime", "CombatTimeDelay", "StartTimerAfter", "severity", "effectTypes", "tag", "phase",
+    "text", "TTS", "useTTS", "TTSTimer", "dur", "countdown", "sound", "glowunit", "displays", "color", "useColor", "glow",
+    "glowWhen",
+}
 
 -- Parse time string in mm:ss or seconds format
 ---@param timeStr string Time as "mm:ss" or "seconds"
@@ -30,67 +44,70 @@ local function parseTime(timeStr)
     return nil
 end
 
--- Parse single MRT note line
----@param line string MRT note line
----@return table|nil parsed reminder data
-local function parseMRTLine(line)
-    if not line or line == "" then return nil end
-
-    -- Remove leading/trailing whitespace
-    line = line:gsub("^%s+", ""):gsub("%s+$", "")
-    if line == "" then return nil end
-
-    -- Skip empty lines and pure section markers (not lines with {time:})
-    if not string.find(line, "{time:") then
-        return nil
-    end
-
-    private.Debug("Parsing MRT line: " .. line)
-
-    -- Parse {time:XX} or {time:MM:SS}
-    local timeStr = string.match(line, "{time:([^}]+)}")
-    private.Debug("Found timeStr: " .. tostring(timeStr))
-    if not timeStr then return nil end
-
-    local time = parseTime(timeStr)
-    private.Debug("Parsed time: " .. tostring(time))
-    if not time then return nil end
-
-    -- Parse {spell:XXXXX}
-    local spellIdStr = string.match(line, "{spell:(%d+)}")
-    private.Debug("Found spellIdStr: " .. tostring(spellIdStr))
-    local spellId = spellIdStr and tonumber(spellIdStr) or nil
-
-    if not spellId then
-        private.Debug("No spell ID found")
-        return nil
-    end
-
-    local spellInfo = C_Spell.GetSpellInfo(spellId)
-    local spellName = spellInfo and spellInfo.name
-    local icon = spellInfo and spellInfo.iconID
-    private.Debug("Got spell info for " .. spellId .. ": " .. tostring(spellName))
-
-    -- Extract optional player name (first word that's not in brackets)
-    local playerName = string.match(line, "%s([%w]+)%s{")
-    if not playerName then
-        playerName = string.match(line, "^%s*([%w]+)%s{")
-    end
-
-    local reminder = {
-        name = playerName or spellName or "Unknown",
-        spellId = spellId,
-        spellName = spellName,
-        iconId = icon or 134400,
+---@param spellId number|nil
+---@param text string|nil
+---@param time number
+---@param phase number
+---@return table reminder with the spell's name and icon
+local function newReminder(spellId, text, time, phase)
+    local spellInfo = spellId and spellId > 0 and C_Spell.GetSpellInfo(spellId)
+    return {
+        name = text or spellInfo and spellInfo.name or (spellId and "Spell " .. spellId) or "Unknown",
+        text = text,
+        spellId = spellId or 0,
+        spellName = spellInfo and spellInfo.name,
+        iconId = spellInfo and spellInfo.iconID or 134400,
         CombatTime = time,
         CombatTimeDelay = 0,
         StartTimerAfter = 0,
         severity = 1,
         effectTypes = 0,
+        phase = phase,
     }
+end
 
-    private.Debug("Successfully parsed reminder: " .. reminder.name)
-    return reminder
+-- Parse single MRT note line: {time:1:30,p2} Name {spell:123} Name2 {spell:456} or {time:0:25} text
+---@param line string MRT note line
+---@return table|nil parsed reminders of the line
+local function parseMRTLine(line)
+    local timeStr = line and string.match(line, "{time:([^}]+)}")
+    if not timeStr then return nil end
+
+    local timeText, options = strsplit(",", timeStr, 2)
+    local time = parseTime(timeText)
+    if not time then return nil end
+
+    local phase = 1
+    for option in (options or ""):gmatch("[^,]+") do
+        local phaseText = option:match("^p:?(.+)$")
+        if phaseText then
+            -- named and global (p:g2) phases can't be followed
+            phase = tonumber(phaseText)
+            if not phase then return nil end
+        elseif option:find("^%u%u%u:") or option == "e" then
+            -- timers started by combat log or custom events
+            return nil
+        end
+    end
+
+    local rest = line:gsub("{time:[^}]+}", ""):gsub("|+c%x%x%x%x%x%x%x%x", ""):gsub("|+r", "")
+    local reminders = {}
+    for name, spellId in rest:gmatch("([^%s{}]*)%s*{spell:(%d+)}") do
+        local reminder = newReminder(tonumber(spellId), nil, time, phase)
+        reminder.tag = name ~= "" and name or nil
+        table.insert(reminders, reminder)
+    end
+    if #reminders == 0 then
+        local text = strtrim((rest:gsub("{[^}]*}", "")))
+        if text == "" then return nil end
+        -- "Name text" when the name is someone of the group
+        local name, nameText = text:match("^(%S+)%s+(.+)$")
+        local isMember = name and (name:lower() == UnitName("player"):lower() or UnitInRaid(name) or UnitInParty(name))
+        local reminder = newReminder(nil, isMember and nameText or text, time, phase)
+        reminder.tag = isMember and name or nil
+        table.insert(reminders, reminder)
+    end
+    return reminders
 end
 
 -- Parse MRT note format (plain text with {time:} and {spell:} markers)
@@ -98,8 +115,6 @@ end
 ---@return table array of parsed reminders
 function ImportUtil:ParseMRTFormat(mrtText)
     local reminders = {}
-
-    private.Debug("ParseMRTFormat called with text: " .. mrtText)
 
     -- Split by lines
     local lines = {}
@@ -110,11 +125,11 @@ function ImportUtil:ParseMRTFormat(mrtText)
     private.Debug("Split into " .. #lines .. " lines")
 
     for i, line in ipairs(lines) do
-        private.Debug("Line " .. i .. ": " .. line)
-        local reminder = parseMRTLine(line)
-        if reminder then
-            private.Debug("Successfully added reminder from line " .. i)
-            table.insert(reminders, reminder)
+        local lineReminders = parseMRTLine(line)
+        if lineReminders then
+            for _, reminder in ipairs(lineReminders) do
+                table.insert(reminders, reminder)
+            end
         else
             private.Debug("Failed to parse line " .. i)
         end
@@ -144,75 +159,36 @@ function ImportUtil:ParseViserioFormat(viserioText)
         return reminders, encounterID, encounterName
     end
 
-    -- First line should be "EncounterID:number;Name:string" or just "EncounterID:number"
-    local firstLine = lines[1]
-    encounterID = tonumber(firstLine:match("EncounterID:(%d+)"))
-    encounterName = firstLine:match("Name:([^;]+)")
+    -- the first line can be "EncounterID:number;Name:string", notes copied without it start with the reminders
+    encounterID = tonumber(lines[1]:match("^EncounterID:(%d+)"))
+    encounterName = encounterID and lines[1]:match("Name:([^;]+)")
 
-    if not encounterID then
-        private.Debug("Viserio format: No valid EncounterID found in first line")
-        return reminders, encounterID, encounterName
-    end
-
-    -- Parse remaining lines as reminders
-    for i = 2, #lines do
-        local line = lines[i]
-        if line and line ~= "" then
-            -- Parse parameters separated by semicolons
-            local params = {}
-            for param in line:gmatch("([^;]+)") do
-                local key, value = param:match("^%s*([%w]+)%s*:%s*(.+)%s*$")
-                if key and value then
-                    params[key] = value
-                end
+    for i = encounterID and 2 or 1, #lines do
+        local params = {}
+        for param in lines[i]:gmatch("([^;]+)") do
+            local key, value = param:match("^%s*([%w]+)%s*:%s*(.-)%s*$")
+            if key and value ~= "" then
+                params[key:lower()] = value
             end
+        end
 
-            local time = tonumber(params.time)
-            if time then
-                local spellId = tonumber(params.spellid)
-                local text = params.text
-                local dur = tonumber(params.dur) or 0
-                local tag = params.tag
-                local phase = tonumber(params.ph) or 1
-
-                local spellName, icon
-                if spellId then
-                    local spellInfo = C_Spell.GetSpellInfo(spellId)
-                    if spellInfo then
-                        spellName = spellInfo.name
-                        icon = spellInfo.iconID
-                    end
-                end
-
-                local name = "Unknown"
-                if text and type(text) == "string" and text ~= "" then
-                    name = text
-                elseif spellId and spellId > 0 then
-                    name = spellName or ("Spell " .. tostring(spellId))
-                end
-
-                local reminder = {
-                    name = name,
-                    spellId = spellId or 0,
-                    spellName = spellName,
-                    iconId = icon or 134400,
-                    CombatTime = time,
-                    CombatTimeDelay = dur,
-                    StartTimerAfter = 0,
-                    severity = 1,
-                    effectTypes = 0,
-                    -- Store all additional Viserio params even if we are not using them right now
-                    tag = tag,
-                    phase = phase,
-                    text = text,
-                    TTS = params.TTS,
-                    countdown = tonumber(params.countdown),
-                    sound = params.sound,
-                    glowunit = params.glowunit,
-                }
-
-                table.insert(reminders, reminder)
+        local time = parseTime(params.time)
+        if time then
+            local TTS = params.tts
+            if TTS == "true" then
+                TTS = true
+            elseif TTS == "false" then
+                TTS = nil
             end
+            local reminder = newReminder(tonumber(params.spellid), params.text, time, tonumber(params.ph) or 1)
+            reminder.tag = params.tag
+            reminder.dur = tonumber(params.dur)
+            reminder.TTS = TTS
+            reminder.TTSTimer = tonumber(params.ttstimer)
+            reminder.countdown = tonumber(params.countdown)
+            reminder.sound = params.sound
+            reminder.glowunit = params.glowunit
+            table.insert(reminders, reminder)
         end
     end
 
@@ -224,7 +200,12 @@ end
 ---@return table array of parsed reminders
 function ImportUtil:ParseJSONFormat(jsonText)
     local reminders = {}
+    local rules = {}
     local encounterID = nil
+    local version = tonumber(jsonText:match('"exportVersion"%s*:%s*(%d+)')) or 1
+    if version > EXPORT_VERSION then
+        return reminders, nil, rules, private.getLocalisation("ImportNewerVersion")
+    end
 
     -- Extract encounterID from top-level JSON
     local encounterId = tonumber(jsonText:match('"encounterId"%s*:%s*(%d+)')) or
@@ -241,31 +222,24 @@ function ImportUtil:ParseJSONFormat(jsonText)
         local pattern = "{[^{}]*}"
 
         for match in text:gmatch(pattern) do
-            local time = tonumber(match:match('"time"%s*:%s*(%d+)'))
+            local ruleMatch = match:match('"match"%s*:%s*"([^"]*)"')
+            if ruleMatch then
+                table.insert(rules, ImportUtil.ParseJSONRule(match, ruleMatch))
+            end
+            local time = tonumber(match:match('"time"%s*:%s*([%d%.]+)'))
             local spellId = tonumber(match:match('"spellId"%s*:%s*(%d+)'))
             local name = match:match('"name"%s*:%s*"([^"]*)"')
-            local severity = tonumber(match:match('"severity"%s*:%s*(%d+)'))
-            local duration = tonumber(match:match('"duration"%s*:%s*(%d+)'))
+            local text = match:match('"text"%s*:%s*"([^"]*)"')
             local iconId = tonumber(match:match('"iconId"%s*:%s*(%d+)'))
-            local effectTypes = tonumber(match:match('"effectTypes"%s*:%s*(%d+)'))
 
-            if time and spellId ~= nil then
-                local spellInfo = spellId > 0 and C_Spell.GetSpellInfo(spellId) or nil
-                local spellName = spellInfo and spellInfo.name
-                local icon = spellInfo and spellInfo.iconID
-
-                local reminder = {
-                    name = name or spellName or "Unknown",
-                    spellId = spellId,
-                    spellName = spellName,
-                    iconId = iconId or icon or 134400,
-                    CombatTime = time,
-                    CombatTimeDelay = duration,
-                    StartTimerAfter = 0,
-                    severity = severity,
-                    effectTypes = effectTypes,
-                }
-
+            if time and (spellId or text) then
+                local reminder = newReminder(spellId, text, time, tonumber(match:match('"phase"%s*:%s*([%d%.]+)')) or 1)
+                reminder.name = name or reminder.name
+                reminder.iconId = iconId or reminder.iconId
+                reminder.CombatTimeDelay = tonumber(match:match('"duration"%s*:%s*([%d%.]+)')) or 0
+                reminder.severity = tonumber(match:match('"severity"%s*:%s*(%d+)')) or 1
+                reminder.effectTypes = tonumber(match:match('"effectTypes"%s*:%s*(%d+)')) or 0
+                reminder.tag = match:match('"tag"%s*:%s*"([^"]*)"')
                 table.insert(results, reminder)
             end
         end
@@ -273,7 +247,44 @@ function ImportUtil:ParseJSONFormat(jsonText)
         return results
     end
 
-    return findRemindersInJSON(jsonText), encounterID
+    return findRemindersInJSON(jsonText), encounterID, rules
+end
+
+---a boss timer rule of the JSON export, its color and displays are flat keys there
+---@param object string -- the rule's JSON object
+---@param match string
+---@return table
+ImportUtil.ParseJSONRule = function(object, match)
+    local stringOf = function(key) return object:match('"' .. key .. '"%s*:%s*"([^"]*)"') end
+    local numberOf = function(key) return tonumber(object:match('"' .. key .. '"%s*:%s*(%-?[%d%.]+)')) end
+    local boolOf = function(key) return object:match('"' .. key .. '"%s*:%s*(%a+)') end
+    local rule = {
+        match = match,
+        value = stringOf("value") or tostring(numberOf("value") or ""),
+        name = stringOf("name"),
+        glow = stringOf("glow"),
+        glowWhen = stringOf("glowWhen"),
+        countdown = numberOf("countdown"),
+        TTS = stringOf("TTS") or (boolOf("TTS") == "true" or nil),
+        TTSTimer = numberOf("TTSTimer"),
+        sound = stringOf("sound"),
+    }
+    if numberOf("colorR") then
+        rule.color = { r = numberOf("colorR"), g = numberOf("colorG") or 1, b = numberOf("colorB") or 1 }
+    end
+    if boolOf("useColor") == "false" then
+        rule.useColor = false
+    end
+    if boolOf("useTTS") == "false" then
+        rule.useTTS = false
+    end
+    for _, display in ipairs({ "timeline", "bigIcon", "textHighlight" }) do
+        if boolOf("show_" .. display) == "false" then
+            rule.displays = rule.displays or { timeline = true, bigIcon = true, textHighlight = true }
+            rule.displays[display] = false
+        end
+    end
+    return rule
 end
 
 -- Auto-detect format and parse
@@ -287,24 +298,35 @@ function ImportUtil:ParseImportText(importText)
 
     -- Trim whitespace
     importText = importText:gsub("^%s+", ""):gsub("%s+$", "")
+    self.lastParsedEncounterID = nil
+    self.lastParsedEncounterName = nil
+    self.lastParsedRules = {}
+    -- the format found: encoded, viserio, json or mrt
+    self.lastParsedFormat = nil
 
-    -- Try encoded format first (base64 encoded string)
-    if importText:match("^[A-Za-z0-9+/=!:]+$") and importText:sub(1, IMPORT_PREFIX:len()) == IMPORT_PREFIX and #importText > 50 then
+    -- Try encoded format first: !AT: (version 1) or !AT<version>:
+    if importText:match("^!AT%d*:[A-Za-z0-9+/=]+$") and #importText > 50 then
         private.Debug("Detected encoded format")
-        local reminders = self:ParseEncodedFormat(importText)
-        if #reminders > 0 then
+        local reminders, rules, errorMsg = self:ParseEncodedFormat(importText)
+        if errorMsg then
+            return {}, errorMsg
+        end
+        self.lastParsedRules = rules
+        if #reminders > 0 or #rules > 0 then
+            self.lastParsedFormat = "encoded"
             return reminders
         end
     end
 
-    -- Try Viserio format (starts with "EncounterID:")
-    if importText:match("^EncounterID:%d+") then
+    -- Try Viserio format (starts with "EncounterID:" or directly with the reminders)
+    if importText:match("^EncounterID:%d+") or importText:match("^ph:") or importText:match("^time:") then
         private.Debug("Detected Viserio format")
         local reminders, encounterID, encounterName = self:ParseViserioFormat(importText)
         if #reminders > 0 then
             -- Store encounter info for later use
             self.lastParsedEncounterID = encounterID
             self.lastParsedEncounterName = encounterName
+            self.lastParsedFormat = "viserio"
             return reminders
         end
     end
@@ -312,8 +334,13 @@ function ImportUtil:ParseImportText(importText)
     -- Try JSON format (starts with { and contains quoted keys or unquoted keys with colons)
     if importText:sub(1, 1) == "{" and (importText:match('"[%w_]+"%s*:') or importText:match('[%w_]+%s*:')) then
         private.Debug("Detected JSON format")
-        local reminders, encounterID = self:ParseJSONFormat(importText)
-        if #reminders > 0 then
+        local reminders, encounterID, rules, errorMsg = self:ParseJSONFormat(importText)
+        if errorMsg then
+            return {}, errorMsg
+        end
+        self.lastParsedRules = rules
+        if #reminders > 0 or #rules > 0 then
+            self.lastParsedFormat = "json"
             -- Store encounter ID if found in JSON
             if encounterID then
                 self.lastParsedEncounterID = encounterID
@@ -327,6 +354,7 @@ function ImportUtil:ParseImportText(importText)
         private.Debug("Detected MRT format")
         local reminders = self:ParseMRTFormat(importText)
         if #reminders > 0 then
+            self.lastParsedFormat = "mrt"
             return reminders
         end
     end
@@ -369,7 +397,9 @@ function ImportUtil:DoesTagApplyToPlayer(tag)
         tagValue = tagValue:gsub("^%s+", ""):gsub("%s+$", "") -- trim
 
         -- Check various tag types
-        if tagValue == playerName then
+        -- characters of other realms are saved as Name-Realm
+        local fullName = playerName .. "-" .. (GetNormalizedRealmName() or "")
+        if tagValue:lower() == playerName:lower() or tagValue:lower() == fullName:lower() or tagValue == "everyone" then
             return true
         end
 
@@ -385,11 +415,9 @@ function ImportUtil:DoesTagApplyToPlayer(tag)
             return true
         end
 
-        if string.find(tagValue:lower(), "group") then
-            local subGroupTag = tagValue:sub(6)
-            if subGroupTag == subgroup then
-                return true
-            end
+        local groupTag = tonumber(tagValue:lower():match("^group(%d)$"))
+        if groupTag and groupTag == subgroup then
+            return true
         end
 
         if tagValue == "melee" and private.SpecPosition.melee and tContains(private.SpecPosition.melee, playerSpecID) then
@@ -408,90 +436,69 @@ function ImportUtil:DoesTagApplyToPlayer(tag)
     return false
 end
 
--- Filter reminders to only include ones relevant for the current player
----@param reminders table array of reminders
----@return table filtered reminders
-function ImportUtil:FilterReminders(reminders)
-    local filtered = {}
-
-    for _, reminder in ipairs(reminders) do
-        -- Get tag from reminder.tag field (where it's stored)
-        local tag = reminder.tag or "everyone"
-
-        -- Add reminder if it applies to the player
-        if self:DoesTagApplyToPlayer(tag) then
-            table.insert(filtered, reminder)
-        end
-    end
-
-    return filtered
-end
 
 -- Parse encoded format (CBOR + compression + base64)
 ---@param encodedText string Encoded string
 ---@return table array of parsed reminders
 function ImportUtil:ParseEncodedFormat(text)
-    local reminders = {}
+    local reminders, rules = {}, {}
 
-    local encodedText = text:sub(IMPORT_PREFIX:len() + 1)
+    local prefixVersion, encodedText = text:match("^!AT(%d*):(.+)$")
+    prefixVersion = tonumber(prefixVersion) or 1
+    if prefixVersion > EXPORT_VERSION then
+        return reminders, rules, private.getLocalisation("ImportNewerVersion")
+    end
 
     -- Decode from base64
     local success, compressed = pcall(C_EncodingUtil.DecodeBase64, encodedText)
     if not success then
         private.Debug("Failed to decode base64")
-        return reminders
+        return reminders, rules
     end
 
     -- Decompress
-    private.Debug(compressed)
     local success, serialized = pcall(C_EncodingUtil.DecompressString, compressed)
     if not success then
         private.Debug("Failed to decompress data")
-        return reminders
+        return reminders, rules
     end
 
     -- Deserialize CBOR
     local success, data = pcall(C_EncodingUtil.DeserializeCBOR, serialized)
     if not success or type(data) ~= "table" then
         private.Debug("Failed to deserialize CBOR data")
-        return reminders
+        return reminders, rules
+    end
+    if (tonumber(data.version) or prefixVersion) > EXPORT_VERSION then
+        return reminders, rules, private.getLocalisation("ImportNewerVersion")
     end
 
     self.lastParsedEncounterID = data.encounterID
+    for _, item in ipairs(data.rules or {}) do
+        if type(item) == "table" and item.match then
+            local rule = {}
+            for _, key in ipairs(RULE_KEYS) do
+                rule[key] = item[key]
+            end
+            table.insert(rules, rule)
+        end
+    end
     local reminderData = data.reminders or {}
 
     -- Convert to reminder format
     for _, item in ipairs(reminderData) do
-        if type(item) == "table" and item.spellId and item.CombatTime then
-            local spellInfo = C_Spell.GetSpellInfo(item.spellId)
-            local spellName = spellInfo and spellInfo.name
-            local icon = spellInfo and spellInfo.iconID
-
-            local reminder = {
-                name = item.name or spellName or "Unknown",
-                spellId = item.spellId,
-                spellName = spellName,
-                iconId = item.iconId or icon or 134400,
-                CombatTime = item.CombatTime,
-                CombatTimeDelay = item.CombatTimeDelay or 0,
-                StartTimerAfter = item.StartTimerAfter or 0,
-                severity = item.severity or 1,
-                effectTypes = item.effectTypes or 0,
-                -- Save additional parameters if present
-                tag = item.tag,
-                phase = item.phase,
-                text = item.text,
-                TTS = item.TTS,
-                countdown = item.countdown,
-                sound = item.sound,
-                glowunit = item.glowunit,
-            }
-
+        if type(item) == "table" and item.CombatTime and (item.spellId or item.text) then
+            local reminder = newReminder(item.spellId, item.text, item.CombatTime, item.phase or 1)
+            for _, key in ipairs(ENCODED_KEYS) do
+                if item[key] ~= nil then
+                    reminder[key] = item[key]
+                end
+            end
             table.insert(reminders, reminder)
         end
     end
 
-    return reminders
+    return reminders, rules
 end
 
 ---@param reminders table array of reminder tables
@@ -515,7 +522,7 @@ function ImportUtil:ValidateReminders(reminders)
             return false, string.format("Reminder %d: Combat time cannot be negative", i)
         end
 
-        if not reminder.spellId or type(reminder.spellId) ~= "number" then
+        if type(reminder.spellId) ~= "number" and not reminder.text then
             return false, string.format("Reminder %d: Invalid or missing spell ID", i)
         end
     end
@@ -523,21 +530,34 @@ function ImportUtil:ValidateReminders(reminders)
     return true
 end
 
+---what makes two reminders the same one: stage, time, spell or text and who it is for
+---@param reminder table
+---@return string
+ImportUtil.GetReminderKey = function(reminder)
+    local spellId = reminder.spellId or 0
+    local text = spellId > 0 and "" or reminder.text or reminder.name or ""
+    return string.format("%s;%s;%d;%s;%s", tostring(tonumber(reminder.phase) or 1), tostring(reminder.CombatTime),
+        spellId, text:lower(), (reminder.tag or "everyone"):lower())
+end
+
 -- Apply imported reminders to an encounter
 ---@param encounterID number encounter ID
 ---@param reminders table array of reminder tables
 ---@param mergeMode boolean if true, merge with existing; if false, replace
 ---@return boolean success
-function ImportUtil:ApplyReminders(encounterID, reminders, mergeMode)
+function ImportUtil:ApplyReminders(encounterID, reminders, mergeMode, rules)
     if not private.db or not private.db.profile or not private.db.profile.reminders then
         return false
     end
 
-    -- Validate before applying
+    -- Validate before applying, an import can be boss timer rules only
     local valid, msg = self:ValidateReminders(reminders)
-    if not valid then
+    if not valid and not (rules and #rules > 0 and #reminders == 0) then
         private.Debug("Validation failed: " .. tostring(msg))
         return false
+    end
+    if rules and #rules > 0 then
+        self:ApplyTimerRules(encounterID, rules, mergeMode)
     end
 
     if not mergeMode then
@@ -550,8 +570,25 @@ function ImportUtil:ApplyReminders(encounterID, reminders, mergeMode)
         end
     end
 
+    -- an imported reminder replaces the one with the same stage, time, spell or text and tag instead of doubling it
+    -- doubles left by earlier imports go as well
+    local stored, index = {}, {}
+    for _, reminder in ipairs(private.db.profile.reminders[encounterID]) do
+        local key = ImportUtil.GetReminderKey(reminder)
+        if not index[key] then
+            table.insert(stored, reminder)
+            index[key] = #stored
+        end
+    end
+    private.db.profile.reminders[encounterID] = stored
     for _, reminder in ipairs(reminders) do
-        table.insert(private.db.profile.reminders[encounterID], reminder)
+        local key = ImportUtil.GetReminderKey(reminder)
+        if index[key] then
+            stored[index[key]] = reminder
+        else
+            table.insert(stored, reminder)
+            index[key] = #stored
+        end
     end
 
     -- Sort reminders by time
@@ -560,6 +597,39 @@ function ImportUtil:ApplyReminders(encounterID, reminders, mergeMode)
     end)
 
     return true
+end
+
+---a rule replaces the one that finds the same bars, all go when not merging
+---@param encounterID number
+---@param rules table[]
+---@param mergeMode boolean
+function ImportUtil:ApplyTimerRules(encounterID, rules, mergeMode)
+    private.db.profile.timerRules = private.db.profile.timerRules or {}
+    local stored = mergeMode and private.db.profile.timerRules[encounterID] or {}
+    local keyOf = function(rule)
+        return (rule.match or "spell") .. ";" .. tostring(rule.value or ""):lower()
+    end
+    local index = {}
+    for i, rule in ipairs(stored) do
+        index[keyOf(rule)] = i
+    end
+    for _, rule in ipairs(rules) do
+        local key = keyOf(rule)
+        if index[key] then
+            stored[index[key]] = rule
+        else
+            table.insert(stored, rule)
+            index[key] = #stored
+        end
+    end
+    private.db.profile.timerRules[encounterID] = #stored > 0 and stored or nil
+end
+
+---the boss timer rules of an encounter for the exports
+---@param encounterID number|nil
+---@return table[]
+local getRules = function(encounterID)
+    return encounterID and private.db.profile.timerRules and private.db.profile.timerRules[encounterID] or {}
 end
 
 -- Format reminders for export
@@ -593,10 +663,37 @@ end
 ---@param encounterID number|nil
 ---@return string
 function ImportUtil:ExportAsJSON(reminders, encounterID)
-    local export = {}
+    local export = { exportVersion = EXPORT_VERSION }
 
     if encounterID then
         export.encounterId = encounterID
+    end
+    local rules = getRules(encounterID)
+    if #rules > 0 then
+        -- flat objects: the import reads objects without anything nested
+        export.rules = {}
+        for _, rule in ipairs(rules) do
+            local item = {
+                match = rule.match or "spell",
+                value = rule.value or "",
+                name = rule.name,
+                glow = rule.glow,
+                glowWhen = rule.glowWhen,
+                countdown = rule.countdown,
+                TTS = rule.TTS,
+                useTTS = rule.useTTS,
+                useColor = rule.useColor,
+                TTSTimer = rule.TTSTimer,
+                sound = rule.sound,
+            }
+            if rule.color then
+                item.colorR, item.colorG, item.colorB = rule.color.r, rule.color.g, rule.color.b
+            end
+            for display, shown in pairs(rule.displays or {}) do
+                item["show_" .. display] = shown
+            end
+            table.insert(export.rules, item)
+        end
     end
 
     export.reminders = {}
@@ -606,6 +703,9 @@ function ImportUtil:ExportAsJSON(reminders, encounterID)
             time = reminder.CombatTime,
             spellId = reminder.spellId,
             name = reminder.name,
+            text = reminder.text,
+            tag = reminder.tag,
+            phase = reminder.phase,
             duration = reminder.CombatTimeDelay,
             severity = reminder.severity,
             effectTypes = reminder.effectTypes,
@@ -700,11 +800,17 @@ function ImportUtil:ExportAsMRT(reminders)
     local result = ""
 
     for _, reminder in ipairs(reminders) do
-        local minutes = math.floor(reminder.CombatTime / 60)
-        local seconds = reminder.CombatTime % 60
-        local timeStr = string.format("%d:%02d", minutes, seconds)
-
-        result = result .. string.format("{time:%s} %s {spell:%d}\n", timeStr, reminder.name, reminder.spellId)
+        local timeStr = string.format("%d:%02d", math.floor(reminder.CombatTime / 60), reminder.CombatTime % 60)
+        local phase = tonumber(reminder.phase) or 1
+        if phase ~= 1 then
+            timeStr = timeStr .. ",p" .. phase
+        end
+        local who = reminder.tag and reminder.tag ~= "everyone" and reminder.tag .. " " or ""
+        if reminder.spellId and reminder.spellId > 0 then
+            result = result .. string.format("{time:%s} %s{spell:%d}\n", timeStr, who, reminder.spellId)
+        else
+            result = result .. string.format("{time:%s} %s%s\n", timeStr, who, reminder.text or reminder.name or "")
+        end
     end
 
     return result
@@ -730,7 +836,7 @@ function ImportUtil:ExportAsViserio(reminders, encounterID, encounterName)
         local phase = reminder.phase or 1
         line = line .. "ph:" .. tostring(phase) .. ";"
 
-        line = line .. "time:" .. tostring(math.floor(reminder.CombatTime)) .. ";"
+        line = line .. "time:" .. tostring(reminder.CombatTime) .. ";"
 
         if reminder.tag and reminder.tag ~= "" then
             line = line .. "tag:" .. reminder.tag .. ";"
@@ -744,20 +850,24 @@ function ImportUtil:ExportAsViserio(reminders, encounterID, encounterName)
 
         if reminder.text and reminder.text ~= "" then
             line = line .. "text:" .. reminder.text .. ";"
-        elseif not reminder.text and reminder.name and reminder.name ~= "" and reminder.name ~= "Unknown" then
+        elseif reminder.name and reminder.name ~= "" and reminder.name ~= "Unknown" and reminder.name ~= reminder.spellName then
             line = line .. "text:" .. reminder.name .. ";"
         end
 
-        if reminder.TTS then
+        if reminder.TTS and reminder.useTTS ~= false then
             line = line .. "TTS:" .. tostring(reminder.TTS) .. ";"
+        end
+
+        if reminder.TTSTimer then
+            line = line .. "TTSTimer:" .. tostring(reminder.TTSTimer) .. ";"
         end
 
         if reminder.countdown then
             line = line .. "countdown:" .. tostring(reminder.countdown) .. ";"
         end
 
-        if reminder.CombatTimeDelay and reminder.CombatTimeDelay > 0 then
-            line = line .. "dur:" .. tostring(reminder.CombatTimeDelay) .. ";"
+        if reminder.dur then
+            line = line .. "dur:" .. tostring(reminder.dur) .. ";"
         end
 
         if reminder.sound then
@@ -780,28 +890,25 @@ end
 ---@return string
 function ImportUtil:ExportAsEncoded(reminders, encounterID)
     local data = {
+        version = EXPORT_VERSION,
         encounterID = encounterID,
-        reminders = {}
+        reminders = {},
+        rules = {},
     }
+    for _, rule in ipairs(getRules(encounterID)) do
+        local item = {}
+        for _, key in ipairs(RULE_KEYS) do
+            item[key] = rule[key]
+        end
+        table.insert(data.rules, item)
+    end
 
     for _, reminder in ipairs(reminders) do
-        table.insert(data.reminders, {
-            name = reminder.name,
-            spellId = reminder.spellId,
-            CombatTime = reminder.CombatTime,
-            CombatTimeDelay = reminder.CombatTimeDelay,
-            StartTimerAfter = reminder.StartTimerAfter,
-            severity = reminder.severity,
-            effectTypes = reminder.effectTypes,
-            -- Include additional Viserio/MRT parameters
-            tag = reminder.tag,
-            phase = reminder.phase,
-            text = reminder.text,
-            TTS = reminder.TTS,
-            countdown = reminder.countdown,
-            sound = reminder.sound,
-            glowunit = reminder.glowunit,
-        })
+        local item = {}
+        for _, key in ipairs(ENCODED_KEYS) do
+            item[key] = reminder[key]
+        end
+        table.insert(data.reminders, item)
     end
 
     local serialized = C_EncodingUtil.SerializeCBOR(data)

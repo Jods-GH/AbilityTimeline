@@ -22,6 +22,13 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
         if private.claimEncounterTimelineEvent then
             private.Debug("Bigwigs timer started for default event, adding to timeline".. eventID)
             private.claimEncounterTimelineEvent(eventID)
+            -- the timeline's event is hidden from addons, BigWigs' key and text match a boss timer rule
+            local rule = private.GetTimerRule(timerKey, timerMsg)
+            local timelineID = private.manager.getEventIDFromSource(private.manager.SOURCES.EncounterTimeline, eventID)
+            if rule and timelineID then
+                private.manager.setEventOverrides(timelineID, private.GetTimerRuleOverrides(rule))
+                private.ScheduleTimerRuleSound(rule, timerDuration, timelineID, timerMsg)
+            end
         end
         return
     end
@@ -73,7 +80,16 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
     else
         private.Debug("No color found for bar background, not adding border color for timer event")
     end
-    private.manager.addEvent(eventinfo)
+    local rule = private.GetTimerRule(timerKey, timerMsg)
+    if rule then
+        for key, value in pairs(private.GetTimerRuleOverrides(rule)) do
+            eventinfo[key] = value
+        end
+    end
+    local addedID = private.manager.addEvent(eventinfo)
+    if rule then
+        private.ScheduleTimerRuleSound(rule, timerDuration, addedID, timerMsg)
+    end
 end
 
 local function TimerStopped(event, module, text)
@@ -104,6 +120,9 @@ BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_StopBar", TimerStopped);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_PauseBar", TimerUpdated);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_ResumeBar", TimerUpdated);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_StopBars", StopAllTimers);
+BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_SetStage", function(event, module, stage)
+    private.SetReminderStage(stage)
+end);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_OnBossDisable", StopAllTimers);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_OnPluginDisable", StopAllTimers);
 

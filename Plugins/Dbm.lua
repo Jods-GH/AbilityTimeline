@@ -94,7 +94,16 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
             private.Debug("No color found for DBM Timer Color ID: " .. timerColordId)
         end
     end
-    private.manager.addEvent(eventinfo)
+    local rule = private.GetTimerRule(timerSpellId, timerMsg)
+    if rule then
+        for key, value in pairs(private.GetTimerRuleOverrides(rule)) do
+            eventinfo[key] = value
+        end
+    end
+    local addedID = private.manager.addEvent(eventinfo)
+    if rule then
+        private.ScheduleTimerRuleSound(rule, timerDuration, addedID, timerMsg)
+    end
     timerInfos[timerId] = {
         eventinfo = eventinfo,
         timerDuration = timerDuration,
@@ -162,6 +171,9 @@ DBM:RegisterCallback("DBM_TimerBegin", TimerBegin)
 DBM:RegisterCallback("DBM_TimerUpdate", TimerUpdated)
 DBM:RegisterCallback("DBM_TimerPause", TimerUpdated)
 DBM:RegisterCallback("DBM_TimerResume", TimerUpdated)
+DBM:RegisterCallback("DBM_SetStage", function(event, mod, modId, stage)
+    private.SetReminderStage(stage)
+end)
 DBM:RegisterCallback("DBM_IgnoreBlizzAPI", DisableBlizApi)
 DBM:RegisterCallback("DBM_ResumeBlizzAPI", EnableBlizApi)
 

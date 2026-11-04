@@ -348,9 +348,6 @@ private.modernize = function()
         private.db.profile.importMergeMode = true
     end
 
-    if private.db.profile.importRelevant == nil then
-        private.db.profile.importRelevant = true
-    end
 
     -- fix cooldown highlights missing essential settings
     for _, highlight in ipairs(private.db.profile.cooldown_settings.cooldown_highlight.highlights) do

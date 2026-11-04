@@ -43,12 +43,18 @@ end
 local HandleCooldown     = function(self, remainingTime)
 	local roundedTime = math.ceil(remainingTime)
 	self.CooldownText:SetText(roundedTime)
+	-- a reminder's own glow for as long as it shows, it replaces the cooldown highlight glow
+	local info = self.eventID and private.manager.getEventInfo(self.eventID)
+	local glow = info and info.glow
+	if glow and remainingTime > 0 then
+		private.EnableGlow(self, glow, remainingTime, info.glowColor)
+	end
 	if private.db.profile.cooldown_settings.cooldown_highlight and private.db.profile.cooldown_settings.cooldown_highlight.enabled then
 		for _, value in pairs(private.db.profile.cooldown_settings.cooldown_highlight.highlights) do
 			local time, color = value.time, value.color
 			if (remainingTime <= time) then
 				self.CooldownText:SetTextColor(color.r, color.g, color.b)
-				if value.useGlow then
+				if value.useGlow and not glow then
 					private.EnableGlow(self, value.glowType, remainingTime, value.glowColor)
 				end
 				return

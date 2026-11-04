@@ -1,4 +1,4 @@
-name: Gather Encounter Data
+name: Gather Data
 
 on:
   schedule:
@@ -30,6 +30,10 @@ jobs:
         run: |
           python .github/Scripts/encounterFetcher.py
 
+      - name: Run cooldown fetcher
+        run: |
+          python .github/Scripts/cooldownFetcher.py
+
       - name: Configure git user
         run: |
           git config user.name "github-actions"
@@ -53,10 +57,10 @@ jobs:
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore: update encounter data'
-          branch: update/encounter-data-${{ github.run_id }}
+          commit-message: 'chore: update encounter and cooldown data'
+          branch: update/data-${{ github.run_id }}
           base: main
-          title: "Update encounter data"
+          title: "Update encounter and cooldown data"
           body: |
-            Automated update of encounter data for Reminders.
+            Automated update of the encounter data and class cooldowns for Reminders.
           labels: automated

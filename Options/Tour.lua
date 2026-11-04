@@ -77,6 +77,23 @@ local isEditorShown = function()
     return editor ~= nil and editor.frame:IsShown()
 end
 
+---@param key string
+---@return function
+local editorPart = function(key)
+    return function()
+        local editor = private.TIMINGS_EDITOR_WINDOW
+        return editor and editor[key]
+    end
+end
+
+---@param window string -- IMPORT_DIALOG_WINDOW or EXPORT_DIALOG_WINDOW
+---@return function
+local dialogFrame = function(window)
+    return function()
+        return private[window] and private[window].frame
+    end
+end
+
 ---shows the first boss of the season's first instance in the Adventure Guide
 local openSeasonEncounter = function()
     local instanceIDs = {}
@@ -227,10 +244,57 @@ local steps = {
         advanceOn = "editorOpen",
         skip = hasJournal,
     },
+    -- only when the editor was opened: from what it shows to sharing reminders
+    { key = "Editor", context = "editor", target = editorPart("frame") },
     {
-        key = "Editor",
+        key = "EditorStages",
         context = "editor",
-        target = function() return private.TIMINGS_EDITOR_WINDOW.frame end,
+        target = function() return { editorPart("tabStrip")(), editorPart("addStageButton")() } end,
+        anchor = editorPart("tabStrip"),
+        side = "BOTTOM",
+    },
+    { key = "EditorAdd", context = "editor", target = editorPart("addButton"), advanceOn = "reminderAdded" },
+    { key = "EditorPanel", context = "editor", target = editorPart("inspectorPanel") },
+    { key = "EditorTimeline", context = "editor", target = editorPart("board"), advanceOn = "reminderMoved" },
+    {
+        key = "EditorUndo",
+        context = "editor",
+        target = function() return { editorPart("undoButton")(), editorPart("redoButton")() } end,
+        anchor = editorPart("undoButton"),
+        side = "BOTTOM",
+    },
+    { key = "EditorBossTimers", context = "editor", target = editorPart("rulesButton"), advanceOn = "bossTimersOpen" },
+    -- only when the boss timers were opened
+    {
+        key = "EditorBackToStages",
+        context = "editor",
+        target = editorPart("tabStrip"),
+        anchor = editorPart("tabStrip"),
+        side = "BOTTOM",
+        advanceOn = "stageOpen",
+        skip = function() return private.TIMINGS_EDITOR_WINDOW.mode ~= "rules" end,
+    },
+    { key = "EditorExport", context = "editor", target = editorPart("exportButton"), advanceOn = "exportOpen" },
+    -- only once the dialog is open, closing it goes on
+    {
+        key = "EditorExportDialog",
+        context = "editor",
+        target = dialogFrame("EXPORT_DIALOG_WINDOW"),
+        advanceOn = "exportClosed",
+        onNext = function() private.EXPORT_DIALOG_WINDOW.closeButton:Click() end,
+    },
+    { key = "EditorImport", context = "editor", target = editorPart("importButton"), advanceOn = "importOpen" },
+    {
+        key = "EditorImportDialog",
+        context = "editor",
+        target = dialogFrame("IMPORT_DIALOG_WINDOW"),
+        advanceOn = "importClosed",
+        onNext = function() private.IMPORT_DIALOG_WINDOW.closeButton:Click() end,
+    },
+    {
+        key = "EditorClose",
+        context = "editor",
+        target = editorPart("frame"),
         waitFor = "editorClosed",
         onNext = function() private.closeTimingsEditor() end,
     },
@@ -418,7 +482,8 @@ showStep = function(newIndex, direction)
 end
 
 ---@param event string -- test, testStop, search, page<key>, themeTried, themeDialog, bossWarnings, editModeEnter,
----editModeExit, timelineMoved, anchorMoved, journalOpen, journalClosed, editorOpen or editorClosed
+---editModeExit, timelineMoved, anchorMoved, journalOpen, journalClosed, editorOpen, editorClosed, reminderAdded,
+---reminderMoved, bossTimersOpen, stageOpen, exportOpen, exportClosed, importOpen or importClosed
 private.OnTourEvent = function(event)
     if not active or paused or showing then return end
     if advancesOn(steps[index], event) then

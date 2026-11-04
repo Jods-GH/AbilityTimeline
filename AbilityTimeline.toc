@@ -27,6 +27,12 @@ embeds.xml
 #data
 Data\dungeons.xml
 Data\seasons.lua
+Data\Cooldowns\Retail.lua [AllowLoadGameType standard][ExcludeLoadGameType forever, mists, cata, wrath, tbc, vanilla]
+Data\Cooldowns\Forever.lua [AllowLoadGameType forever][ExcludeLoadGameType standard, mists, cata, wrath, tbc, vanilla]
+Data\Cooldowns\Mists.lua [AllowLoadGameType mists][ExcludeLoadGameType standard, forever, cata, wrath, tbc, vanilla]
+Data\Cooldowns\Wrath.lua [AllowLoadGameType wrath][ExcludeLoadGameType standard, forever, mists, cata, tbc, vanilla]
+Data\Cooldowns\TBC.lua [AllowLoadGameType tbc][ExcludeLoadGameType standard, forever, mists, cata, wrath, vanilla]
+Data\Cooldowns\Vanilla.lua [AllowLoadGameType vanilla][ExcludeLoadGameType standard, forever, mists, cata, wrath, tbc]
 Data\constants.lua
 Data\specPosition.lua
 
@@ -79,13 +85,11 @@ Templates\Widgets\AtDropdown.lua
 Templates\Widgets\AtGroups.lua
 Templates\Widgets\AtSettingRow.lua
 Templates\Widgets\AtMediaPicker.lua
+Templates\Widgets\AtAutoComplete.lua
 Templates\AtImportPopup.lua
 Templates\AtTextCopyFrame.lua
-Templates\AtReminderCreator.lua
 Templates\AtImportDialog.lua
 Templates\AtTimelineTick.lua
-Templates\AtEditorSpellIcon.lua
-Templates\AtTimingsEditorTimelineFrame.lua
 Templates\AtTimingsEditorDataFrame.lua
 Templates\ATTimingsEditorContainer.lua
 Templates\AtAbilitySpellIcon.lua
@@ -106,6 +110,7 @@ Plugins\BigIcon.lua
 Plugins\SoundAlert.lua
 Plugins\Glow.lua
 Plugins\Reminders.lua
+Plugins\TimerRules.lua
 Plugins\EncounterTimeline.lua
 Plugins\Dbm.lua
 Plugins\BigWigs.lua
