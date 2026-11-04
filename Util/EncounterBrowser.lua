@@ -100,6 +100,7 @@ local function ensureEJButton()
                     dungeonEncounterID = entry.dungeonEncounterID or key,
                 }
                 private.openTimingsEditor(params)
+                HideUIPanel(EncounterJournal)
             end)
             EncounterJournalEncounterFrameInfoModelTab:HookScript("OnDisable", function(self)
                 btn:DesaturateHierarchy(100)
