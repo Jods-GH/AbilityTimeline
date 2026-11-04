@@ -83,7 +83,8 @@ end
 
 local createPopup = function()
     popup = CreateFrame("Frame", nil, UIParent)
-    popup:SetFrameStrata("FULLSCREEN_DIALOG")
+    -- above every window it suggests for, dialogs of the FULLSCREEN_DIALOG strata and their buttons included
+    popup:SetFrameStrata("TOOLTIP")
     popup:SetClampedToScreen(true)
     popup:Hide()
     ThemeApply.CreatePanel(popup)

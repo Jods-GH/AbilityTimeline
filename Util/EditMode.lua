@@ -129,8 +129,12 @@ private.stopTestEvents = function()
     end
 end
 
----Blizzard's "Boss Warnings" checkbox in Edit Mode, clients without it always show our frames
+---Blizzard's "Boss Warnings" checkbox in Edit Mode, clients without it always show our frames; classic has the check
+---box of the shared Edit Mode code without the feature
 local showsEncounterEvents = function()
+    if not private.isRetail then
+        return true
+    end
     local checkButtons = EditModeManagerFrame.AccountSettings and EditModeManagerFrame.AccountSettings.settingsCheckButtons
     if not checkButtons or not checkButtons.EncounterEvents then
         return true

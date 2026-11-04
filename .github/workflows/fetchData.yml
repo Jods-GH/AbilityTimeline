@@ -12,9 +12,6 @@ permissions:
 jobs:
   gather-data:
     runs-on: ubuntu-latest
-    env:
-      BLIZZARD_CLIENT_ID: ${{ secrets.BLIZZARD_CLIENT_ID }}
-      BLIZZARD_CLIENT_SECRET: ${{ secrets.BLIZZARD_CLIENT_SECRET }}
     steps:
       - uses: actions/checkout@v6
 

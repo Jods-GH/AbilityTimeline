@@ -17,7 +17,23 @@ local ThemeApply = private.ThemeApply
 local variables = {
     -- typing renders the results once it paused this long
     searchDelay = 0.25,
+    -- the second button of a Button row with secondaryFunc
+    secondaryWidth = 96,
+    buttonGap = 4,
 }
+
+-- a Button row's two buttons: the second its own width on the right, the first fills the rest. Anchored, so they follow
+-- the row's width without a layout pass
+AceGUI:RegisterLayout("AtButtonPair", function(content, children)
+    local first, second = children[1], children[2]
+    -- AddChild lays out after each child, the first one is added alone
+    if not second then return end
+    second.frame:ClearAllPoints()
+    second.frame:SetPoint("TOPRIGHT", content, "TOPRIGHT")
+    first.frame:ClearAllPoints()
+    first.frame:SetPoint("TOPLEFT", content, "TOPLEFT")
+    first.frame:SetPoint("TOPRIGHT", second.frame, "TOPLEFT", -variables.buttonGap, 0)
+end)
 local pages = {}
 local window
 local searchTimer
@@ -261,7 +277,29 @@ local createControl = function(row)
             row.func()
             refreshRows()
         end)
-        return control
+        if not row.secondaryFunc then
+            return control
+        end
+        -- a second button beside the first, e.g. to delete what the first edits
+        local secondary = AceGUI:Create("AtButton")
+        secondary:SetText(row.secondaryText)
+        secondary:SetStyle("Danger")
+        secondary:SetCallback("OnClick", function()
+            row.secondaryFunc()
+            refreshRows()
+        end)
+        local group = AceGUI:Create("SimpleGroup")
+        group:SetLayout("AtButtonPair")
+        group:SetAutoAdjustHeight(false)
+        group:SetHeight(control.frame:GetHeight())
+        secondary:SetWidth(variables.secondaryWidth)
+        for _, button in ipairs({ control, secondary }) do
+            button:SetCallback("OnEnter", function()
+                group:Fire("OnEnter")
+            end)
+            group:AddChild(button)
+        end
+        return group
     end
     control:SetCallback("OnValueChanged", function(_, _, value)
         setValue(row, value)
@@ -615,11 +653,11 @@ private.GetChangedSettingDot = function()
     end
 end
 
----the button of the first Button row shown
+---the button of the first Button row shown that the tour may point at
 ---@return Frame|nil
 private.GetFirstSettingButton = function()
     for _, entry in ipairs(rendered) do
-        if entry.row.kind == "Button" then
+        if entry.row.kind == "Button" and not entry.row.skipTour then
             return entry.widget.children[1].frame
         end
     end

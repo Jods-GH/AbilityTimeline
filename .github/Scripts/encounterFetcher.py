@@ -1,381 +1,198 @@
 from __future__ import annotations
-import os
-import sys
-import time
 import csv
 import io
+import os
+import sys
 import logging
 import requests
-from typing import Dict, List, Optional, Iterable
-from pathlib import Path
-import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from typing import Dict, List, Optional
 
+# Writes Data/Encounters/<game type>.lua for the game types the addon supports (the flavors of autoToc.yml): every
+# dungeon and raid encounter with its instance, and the instances of the current content, from the game's own tables on
+# wago.tools of the latest build of the game type's live product. The toc loads each file only on its game type with
+# AllowLoadGameType and ExcludeLoadGameType. The current content is the Adventure Guide's current season where the
+# game has one (retail), else the raids of the newest expansion.
 
-# --- Configuration ---
-BLIZZARD_CLIENT_ID = os.getenv("BLIZZARD_CLIENT_ID")
-BLIZZARD_CLIENT_SECRET = os.getenv("BLIZZARD_CLIENT_SECRET")
-BLIZZARD_OAUTH_URL = "https://oauth.battle.net/token"
-BLIZZARD_API_BASE = "https://us.api.blizzard.com"
-BLIZZARD_NAMESPACE = "dynamic-us"
+WAGO_LATEST_BUILDS_URL = "https://wago.tools/api/builds/latest"
+WAGO_CSV_URL = "https://wago.tools/db2/{table}/csv"
+OUTPUT_DIR = os.path.join("Data", "Encounters")
+# file name -> live wago.tools product, PTR and beta clients load the file of their game type with the live data
+GAME_TYPES = {
+    "Retail": "wow",
+    "Forever": "wowf",
+    "Mists": "wow_classic",
+    "Wrath": "wow_classic_titan",
+    "TBC": "wow_anniversary",
+    "Vanilla": "wow_classic_era",
+}
+DUNGEON, RAID = "1", "2"
+# the expansion of the Adventure Guide's "Current Season" tier
+CURRENT_SEASON_EXPANSION = "9000"
+MIN_ENCOUNTERS = 50
 
-RAIDERIO_DUNGEON_API_URL = "https://raider.io/api/v1/mythic-plus/static-data?expansion_id=" # Midnight needs adjustment when new expac releases
-RAIDERIO_RAID_API_URL = "https://raider.io/api/v1/raiding/static-data?expansion_id="
-WAGO_CSV_URL = "https://wago.tools/db2/JournalEncounter/csv"
-
-DATA_DIR = os.path.join("Data")
-OUTPUT_DIR = os.path.join(DATA_DIR, "Dungeons")
-
-# Logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-log = logging.getLogger("generate-lua")
+log = logging.getLogger("encounter-fetcher")
 
 
-# --- Helpers ---
-class BlizzardAuthError(Exception):
-    pass
-
-def fetch_raidbots_metadata():
-    print("\nFetching raidbots metadata...")
-    url = "https://www.raidbots.com/static/data/live/metadata.json"
-    
-    metadata = fetch_json(url)
-    
-    wow_build = metadata.get("wowBuild", "")  # e.g. "11.1.7.61559"
-    if wow_build:
-        major = int(wow_build.split(".", 1)[0])  # e.g. 11
-        expansion_id = major - 1  # 11 -> expansion 10 (TWW)
-        print(f"[OK] WoW build: {wow_build} -> expansion_id: {expansion_id}")
-        return expansion_id, wow_build
-    
-    raise Exception(f"WoW build not found in raidbots metadata. {metadata}")
+def number(value: Optional[str]) -> int:
+    try:
+        return int(float(value or 0))
+    except ValueError:
+        return 0
 
 
-def get_blizzard_token(client_id: str, client_secret: str, oauth_url: str, retries: int = 3, backoff: float = 1.0) -> str:
-    if not client_id or not client_secret:
-        raise BlizzardAuthError("Missing BLIZZARD_CLIENT_ID or BLIZZARD_CLIENT_SECRET environment variables.")
-    for attempt in range(1, retries + 1):
-        try:
-            r = requests.post(oauth_url, auth=(client_id, client_secret), data={"grant_type": "client_credentials"}, timeout=30)
-            r.raise_for_status()
-            j = r.json()
-            token = j.get("access_token")
-            if not token:
-                raise BlizzardAuthError(f"OAuth response missing access_token: {j}")
-            return token
-        except Exception as e:
-            log.warning("Blizzard token attempt %d failed: %s", attempt, e)
-            if attempt == retries:
-                raise BlizzardAuthError("Failed to obtain Blizzard OAuth token.") from e
-            time.sleep(backoff * attempt)
-    raise BlizzardAuthError("Unreachable")
-
-
-def fetch_json(url: str, params: Optional[Dict] = None, headers: Optional[Dict] = None, timeout: int = 30) -> Dict:
-    r = requests.get(url, params=params or {}, headers=headers or {}, timeout=timeout)
+def latest_builds() -> Dict[str, str]:
+    """product -> version of its latest build"""
+    r = requests.get(WAGO_LATEST_BUILDS_URL, timeout=60)
     r.raise_for_status()
-    return r.json()
+    return {product: build["version"] for product, build in r.json().items() if isinstance(build, dict)}
 
 
-def fetch_text(url: str, params: Optional[Dict] = None, headers: Optional[Dict] = None, timeout: int = 30) -> str:
-    r = requests.get(url, params=params or {}, headers=headers or {}, timeout=timeout)
+def load(table: str, build: str) -> List[Dict[str, str]]:
+    """a table of the build, empty where the version doesn't have it (only retail and Mists have the Adventure Guide)"""
+    r = requests.get(WAGO_CSV_URL.format(table=table), params={"build": build}, timeout=180)
+    if r.status_code == 400:
+        return []
     r.raise_for_status()
-    return r.text
+    return list(csv.DictReader(io.StringIO(r.text)))
 
 
-def parse_wago_csv(csv_text: str) -> List[Dict[str, str]]:
-    f = io.StringIO(csv_text)
-    reader = csv.DictReader(f)
-    rows = [row for row in reader]
-    return rows
+def lua_string(text: str) -> str:
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ") + '"'
 
 
-def ensure_dir(path) -> None:
-    Path(path).mkdir(parents=True, exist_ok=True)
-
-def iso_to_unix(s: Optional[str]) -> Optional[int]:
-    if not s:
-        return None
-    try:
-        if s.endswith("Z"):
-            dt = datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-            return int(dt.timestamp())
-        # accept offsets like +00:00
-        dt = datetime.fromisoformat(s)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return int(dt.timestamp())
-    except Exception:
-        try:
-            dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
-            return int(dt.timestamp())
-        except Exception:
-            log.warning("Failed to parse ISO timestamp: %s", s)
-            return None
+TABLES = ["DungeonEncounter", "Map", "JournalTier", "JournalTierXInstance", "JournalInstance", "JournalEncounter"]
 
 
-def int_or_none(x: Optional[str]) -> Optional[int]:
-    if x is None:
-        return None
-    x = x.strip()
-    if x == "":
-        return None
-    try:
-        return int(x)
-    except Exception:
-        return None
+def build_file(name: str, build: str):
+    t = {table: load(table, build) for table in TABLES}
+    maps = {row["ID"]: row for row in t["Map"]}
+    journal_instances = {row["ID"]: row for row in t["JournalInstance"]}
+    # the journal holds a dungeon encounter in the instance it shows it in: world bosses are on the open world map
+    journal_of = {}
+    for row in t["JournalEncounter"]:
+        if number(row["DungeonEncounterID"]) and row["JournalInstanceID"] in journal_instances:
+            journal_of.setdefault(number(row["DungeonEncounterID"]), row)
 
-
-def is_current_main_season(season: Dict, now: Optional[int] = None) -> bool:
-    if not season.get("is_main_season"):
-        return False
-    if now is None:
-        now = int(time.time())
-
-    starts = season.get("starts", {}) or {}
-    ends = season.get("ends", {}) or {}
-    for region, start_iso in starts.items():
-        start_ts = iso_to_unix(start_iso)
-        if start_ts is None or start_ts > now:
-            continue
-        end_ts = iso_to_unix(ends.get(region))
-        if end_ts is None or end_ts > now:
-            return True
-    return False
-
-
-def build_lua_content(journal_instance_id: int, journal_instance_name: str, encounter_ids: List[int]) -> str:
-    enc_list = ", ".join(str(i) for i in encounter_ids)
-    content = (
-        f"-- Auto-generated. Do not edit manually.\n"
-        f"local addonName, private = ...\n"
-        f"private.Instances = private.Instances or {{}}\n"
-        f"-- {journal_instance_name.get("en_US", "")}\n"
-        f"private.Instances[{journal_instance_id}] = private.Instances[{journal_instance_id}] or {{}}\n"
-        f"private.Instances[{journal_instance_id}].encounters = {{ {enc_list} }}\n"
-    )
-    return content
-
-def register_xml_namespaces():
-    ns = "http://www.blizzard.com/wow/ui/"
-    xsi = "http://www.w3.org/2001/XMLSchema-instance"
-    ET.register_namespace("", ns)
-    ET.register_namespace("xsi", xsi)
-    return ns, xsi
-
-def pretty_write_tree(tree: ET.ElementTree, xml_path: str) -> None:
-    ET.indent(tree, space="  ")
-    tree.write(xml_path, encoding="utf-8", xml_declaration=True)
-
-
-def update_dungeons_xml(xml_path: str, script_paths: Iterable[str]) -> None:
-    ns, xsi = register_xml_namespaces()
-    script_tag = f"{{{ns}}}Script"
-    root_tag = f"{{{ns}}}Ui"
-
-    xml_dir = os.path.dirname(xml_path) or "."
-    ensure_dir(xml_dir)
-
-    root = ET.Element(root_tag)
-    schema_loc_key = f"{{{xsi}}}schemaLocation"
-    root.attrib[schema_loc_key] = "http://www.blizzard.com/wow/ui/ ..\\FrameXML\\UI.xsd"
-    tree = ET.ElementTree(root)
-
-    for file_attr in sorted(set(script_paths or [])):
-        ET.SubElement(root, script_tag, {"file": file_attr})
-
-    pretty_write_tree(tree, xml_path)
-
-
-def prune_stale_dungeon_files(output_dir: str, keep_instance_ids: set[int]) -> None:
-    if not os.path.isdir(output_dir):
-        return
-    for entry in os.listdir(output_dir):
-        if not entry.endswith(".lua"):
-            continue
-        stem = entry[:-len(".lua")]
-        instance_id = int_or_none(stem)
-        if instance_id is None:
-            log.warning("Skipping unexpected file in %s: %s", output_dir, entry)
-            continue
-        if instance_id not in keep_instance_ids:
-            stale_path = os.path.join(output_dir, entry)
-            try:
-                os.remove(stale_path)
-                log.info("Removed stale dungeon file %s", stale_path)
-            except OSError as e:
-                log.warning("Failed to remove stale dungeon file %s: %s", stale_path, e)
-
-
-
-# --- Main flow ---
-def main():
-    # validate required env
-    if not BLIZZARD_CLIENT_ID or not BLIZZARD_CLIENT_SECRET:
-        log.error("BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET must be set in environment.")
-        sys.exit(2)
-    expansion_id, wow_build = fetch_raidbots_metadata()
-    log.info("Fetching Raider.IO static data from %s%s", RAIDERIO_DUNGEON_API_URL, expansion_id)
-    try:
-        ri_data = fetch_json(f"{RAIDERIO_DUNGEON_API_URL}{expansion_id}")
-    except Exception as e:
-        log.error("Failed to fetch Raider.IO data: %s", e)
-        sys.exit(3)
-
-    # load Wago CSV once
-    log.info("Fetching Wago CSV from %s", WAGO_CSV_URL)
-    try:
-        csv_text = fetch_text(WAGO_CSV_URL)
-    except Exception as e:
-        log.error("Failed to fetch Wago CSV: %s", e)
-        sys.exit(4)
-
-    wago_rows = parse_wago_csv(csv_text)
-    # build map from JournalInstanceID -> list of DungeonEncounterID
-    jmap: Dict[int, List[int]] = {}
-    for row in wago_rows:
-        ji_raw = row.get("JournalInstanceID", "").strip()
-        de_raw = row.get("DungeonEncounterID", "").strip()
-        ji = int_or_none(ji_raw)
-        de = int_or_none(de_raw)
-        if ji is None or de is None:
-            continue
-        jmap.setdefault(ji, []).append(de)
-
-    # Get blizzard token
-    try:
-        token = get_blizzard_token(BLIZZARD_CLIENT_ID, BLIZZARD_CLIENT_SECRET, BLIZZARD_OAUTH_URL)
-    except BlizzardAuthError as e:
-        log.error("Blizzard authentication failed: %s", e)
-        sys.exit(5)
-
-    headers = {"Authorization": f"Bearer {token}"}
-
-    # iterate seasons
-    seasons = ri_data.get("seasons", [])
-    if not seasons:
-        log.warning("No seasons found in Raider.IO data.")
-    created_script_paths: set[str] = set()
-    current_instance_ids: set[int] = set()
-    seasons_collection: Dict[str, Dict] = {}
-    for season in seasons:
-        # choose directory name: prefer slug, fallback to name
-        season_slug = season.get("slug") or (season.get("short_name") or season.get("name") or "season")
-
-        # Only keep the main season(s) that are currently running. This drops
-        # expired seasons and non-main event seasons that Raider.IO still returns.
-        if not is_current_main_season(season):
-            log.info("Skipping season %s (not a currently running main season).", season_slug)
-            continue
-
-        season_dungeon_ids: List[int] = []
-
-        dungeons = season.get("dungeons", [])
-        if not dungeons:
-            log.info("Season %s contains no dungeons, skipping.", season_slug)
-            continue
-
-        for dungeon in dungeons:
-            challenge_mode_id = dungeon.get("challenge_mode_id")
-            if challenge_mode_id is None:
-                log.warning("Dungeon missing challenge_mode_id: %s", dungeon)
+    instances: Dict[int, Dict] = {}
+    encounters: Dict[int, Dict] = {}
+    for row in t["DungeonEncounter"]:
+        encounter_id = number(row["ID"])
+        journal = journal_of.get(encounter_id)
+        if journal:
+            journal_instance = journal_instances[journal["JournalInstanceID"]]
+            map_id = number(journal_instance["MapID"])
+            instance = instances.setdefault(map_id, {"name": journal_instance["Name_lang"]})
+            instance.setdefault("journalInstanceID", number(journal_instance["ID"]))
+        else:
+            map_row = maps.get(row["MapID"])
+            if not map_row or map_row["InstanceType"] not in (DUNGEON, RAID):
                 continue
-
-            # fetch from Blizzard
-            bliz_url = f"{BLIZZARD_API_BASE}/data/wow/mythic-keystone/dungeon/{challenge_mode_id}"
-            params = {"namespace": BLIZZARD_NAMESPACE}
-            log.info("Requesting Blizzard keystone info for challenge_mode_id=%s", challenge_mode_id)
-            try:
-                djson = fetch_json(bliz_url, params=params, headers=headers)
-            except Exception as e:
-                log.error("Failed to fetch Blizzard data for challenge_mode_id %s: %s", challenge_mode_id, e)
-                continue
-
-            # extract journal instance id (djson['dungeon']['id'])
-            dungeon_obj = djson.get("dungeon")
-            if not dungeon_obj:
-                log.warning("Blizzard response missing 'dungeon' field for challenge_mode_id %s", challenge_mode_id)
-                continue
-            journal_instance_id = dungeon_obj.get("id")
-            if journal_instance_id is None:
-                log.warning("Blizzard dungeon object missing 'id' for challenge_mode_id %s", challenge_mode_id)
-                continue
-            journal_instance_name = dungeon_obj.get("name", "unknown")
-            try:
-                journal_instance_id = int(journal_instance_id)
-            except Exception:
-                log.warning("Journal instance id not integer: %s", journal_instance_id)
-                continue
-
-            # lookup Wago CSV for encounters
-            encounter_ids = sorted(set(jmap.get(journal_instance_id, [])))
-            if not encounter_ids:
-                # Still create file with empty encounters to signal no matches
-                log.info("No encounters found in Wago CSV for JournalInstanceID=%s (dungeon: %s). Creating file with empty list.",
-                         journal_instance_id, dungeon.get("name"))
-            else:
-                log.info("Found %d encounters for JournalInstanceID=%s", len(encounter_ids), journal_instance_id)
-
-            lua_content = build_lua_content(journal_instance_id, journal_instance_name, encounter_ids)
-            out_path = os.path.join(OUTPUT_DIR, f"{journal_instance_id}.lua")
-            with open(out_path, "w", encoding="utf-8") as f:
-                f.write(lua_content)
-            log.info("Wrote %s", out_path)
-            created_script_paths.add(out_path.replace(os.sep, "/"))
-            current_instance_ids.add(journal_instance_id)
-            if journal_instance_id not in season_dungeon_ids:
-                season_dungeon_ids.append(journal_instance_id)
-
-        seasons_collection[season_slug] = {
-            "name": season.get("name", ""),
-            "short_name": season.get("short_name", ""),
-            "starts": season.get("starts", {}) or {},
-            "ends": season.get("ends", {}) or {},
-            "dungeons": sorted(set(season_dungeon_ids)),
+            map_id = number(row["MapID"])
+            instances.setdefault(map_id, {"name": map_row["MapName_lang"]})
+        encounters[encounter_id] = {
+            "name": row["Name_lang"],
+            "map": map_id,
+            "order": number(journal["OrderIndex"]) if journal else number(row["OrderIndex"]),
+            "difficulty": number(row["DifficultyID"]),
+            "journalEncounterID": number(journal["ID"]) if journal else None,
         }
-    # Remove dungeon files belonging to seasons that are no longer returned by
-    # Raider.IO, so they stop being registered and shown in the settings.
-    prune_stale_dungeon_files(OUTPUT_DIR, current_instance_ids)
+    # an instance without a journal entry of its own takes the one of the map, the name stays the journal's
+    for journal_instance in journal_instances.values():
+        instance = instances.get(number(journal_instance["MapID"]))
+        if instance and "journalInstanceID" not in instance:
+            instance["journalInstanceID"] = number(journal_instance["ID"])
+            instance["name"] = journal_instance["Name_lang"]
 
-    dungeons_xml_path = os.path.join("Data", "dungeons.xml")
-    update_dungeons_xml(dungeons_xml_path, created_script_paths)
-    log.info("Updated dungeons XML: %s", dungeons_xml_path)
+    current_maps: List[int] = []
+    season = [tier for tier in t["JournalTier"] if tier.get("Expansion") == CURRENT_SEASON_EXPANSION]
+    if season:
+        rows = sorted((row for row in t["JournalTierXInstance"] if row["JournalTierID"] == season[0]["ID"]),
+                      key=lambda row: (number(row["OrderIndex"]), number(row["ID"])))
+        for row in rows:
+            journal_instance = journal_instances.get(row["JournalInstanceID"])
+            map_id = journal_instance and number(journal_instance["MapID"])
+            # the season's pages about keystones and affixes are an instance of a map of no expansion
+            if number(maps.get(str(map_id), {}).get("ExpansionID")) == 0:
+                continue
+            if map_id and map_id not in current_maps:
+                current_maps.append(map_id)
+    else:
+        raids = {encounter["map"] for encounter in encounters.values()
+                 if maps.get(str(encounter["map"]), {}).get("InstanceType") == RAID}
+        newest = max((number(maps[str(m)]["ExpansionID"]) for m in raids), default=0)
+        current_maps = sorted(m for m in raids if number(maps[str(m)]["ExpansionID"]) == newest)
 
-    seasons_lines: List[str] = [
-        "-- Auto-generated. Do not edit manually.",
+    # the encounters of a current instance once per name: difficulties of old content have encounters of their own,
+    # the one of all difficulties wins, then the lowest id
+    current = []
+    for map_id in current_maps:
+        best: Dict[str, int] = {}
+        for encounter_id, encounter in encounters.items():
+            if encounter["map"] != map_id:
+                continue
+            other = best.get(encounter["name"])
+            rank = (encounter["difficulty"] != 0, encounter_id)
+            if other is None or rank < (encounters[other]["difficulty"] != 0, other):
+                best[encounter["name"]] = encounter_id
+        ids = sorted(best.values(), key=lambda i: (encounters[i]["order"], i))
+        if ids:
+            current.append((map_id, ids))
+
+    lines = [
+        "-- Auto-generated by .github/Scripts/encounterFetcher.py from the game data on wago.tools. Do not edit manually.",
+        f"-- {name}, build {build}; the toc loads it only on this game type",
         "local addonName, private = ...",
-        "private.Seasons = private.Seasons or {}",
-        "",
+        "-- instances by map id, the journal instance where the Adventure Guide has one",
+        "private.EncounterInstances = {",
     ]
-    for slug, s in seasons_collection.items():
-        # escape quotes in strings
-        name = s["name"].replace('"', '\\"')
-        short = s["short_name"].replace('"', '\\"')
-        starts_pairs = []
-        for k, v in s["starts"].items():
-            ts = iso_to_unix(v)
-            if ts is not None:
-                starts_pairs.append(f'{k} = {ts}')
-        starts_items = ", ".join(starts_pairs)
+    for map_id in sorted(instances):
+        instance = instances[map_id]
+        journal = f", journalInstanceID = {instance['journalInstanceID']}" if instance.get("journalInstanceID") else ""
+        lines.append(f"    [{map_id}] = {{ name = {lua_string(instance['name'])}{journal} }},")
+    lines += [
+        "}",
+        "-- dungeon encounter id -> its name, the map of its instance, its place in it, the journal encounter where the",
+        "-- Adventure Guide has one",
+        "private.Encounters = {",
+    ]
+    for encounter_id in sorted(encounters):
+        encounter = encounters[encounter_id]
+        journal = f", journalEncounterID = {encounter['journalEncounterID']}" if encounter["journalEncounterID"] else ""
+        lines.append(f"    [{encounter_id}] = {{ name = {lua_string(encounter['name'])}, map = {encounter['map']}, "
+                     f"order = {encounter['order']}{journal} }},")
+    lines += [
+        "}",
+        "-- the instances of the current content and their encounters, in order",
+        "private.CurrentInstances = {",
+    ]
+    for map_id, ids in current:
+        lines.append(f"    {{ map = {map_id}, encounters = {{ {', '.join(str(i) for i in ids)} }} }}, "
+                     f"-- {instances[map_id]['name']}")
+    lines.append("}")
+    with open(os.path.join(OUTPUT_DIR, f"{name}.lua"), "w", encoding="utf-8", newline="\n") as f:
+        f.write("\n".join(lines) + "\n")
+    return len(encounters), [instances[m]["name"] for m, _ in current]
 
-        ends_pairs = []
-        for k, v in s["ends"].items():
-            ts = iso_to_unix(v)
-            if ts is not None:
-                ends_pairs.append(f'{k} = {ts}')
-        ends_items = ", ".join(ends_pairs)
-        dungeons_list = ", ".join(str(i) for i in s["dungeons"])
 
-        seasons_lines.append(f'private.Seasons["{slug}"] = {{ \n  name = "{name}", \n  short_name = "{short}", \n  starts = {{ {starts_items} }}, \n  ends = {{ {ends_items} }}, \n  dungeons = {{ {dungeons_list} }} \n}}')
-        seasons_lines.append("")
-
-    seasons_content = "\n".join(seasons_lines) + "\n"
-    seasons_path = os.path.join(DATA_DIR, "seasons.lua")
-    with open(seasons_path, "w", encoding="utf-8") as fh:
-        fh.write(seasons_content)
-    log.info("Wrote seasons summary %s", seasons_path)
-
-    log.info("All done.")
+def main():
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    builds = latest_builds()
+    for name, product in GAME_TYPES.items():
+        build = builds.get(product)
+        if not build:
+            log.error("No build of %s on wago.tools for %s", product, name)
+            sys.exit(1)
+        count, current = build_file(name, build)
+        log.info("%s (%s %s): %d encounters, current: %s", name, product, build, count, ", ".join(current))
+        if count < MIN_ENCOUNTERS or not current:
+            log.error("Only %d encounters and %d current instances for %s, the tables may have changed", count,
+                      len(current), name)
+            sys.exit(1)
+    # files of game types no longer listed go, the toc lists the files of GAME_TYPES
+    for file_name in os.listdir(OUTPUT_DIR):
+        if file_name[:-4] not in GAME_TYPES:
+            os.remove(os.path.join(OUTPUT_DIR, file_name))
 
 
 if __name__ == "__main__":

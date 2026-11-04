@@ -205,6 +205,10 @@ local function SetMedia(self, preview, image)
     details.preview = preview
     details.Preview:SetShown(image ~= nil or preview ~= nil)
     details.Image:SetShown(image ~= nil)
+    -- a preview with atNoField stands on the details panel itself, e.g. a boss model
+    local field = not (preview and preview.atNoField)
+    details.Preview.AtFill:SetShown(field)
+    details.Preview.AtEdge:SetShown(field)
     details.Title:ClearAllPoints()
     if image then
         details.Image:SetTexture(image)

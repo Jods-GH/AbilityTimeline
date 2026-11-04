@@ -6,10 +6,11 @@ local L = private.getLocalisation
 
 -- the welcome tour: a callout walks through the settings window, Edit Mode, the Adventure Guide and the timings editor.
 -- Steps are { key, context (settings, editmode, journal or editor), page, prepare, target, targetOptional, anchor, side,
--- waitFor, advanceOn, isDone, skip, onShow, onLeave, onNext }, their texts the localisations Tour<key>Title and
--- Tour<key>Text. target returns a frame or a list of them. A step out of its context or with none of its targets shown
--- is passed over, unless targetOptional. A step with waitFor goes on once the player did what it asks and its Next
--- skips it, advanceOn (an event or a list of them) goes on as Next does
+-- waitFor, advanceOn, isDone, skip, skipsAhead, onShow, onLeave, onNext }, their texts the localisations Tour<key>Title
+-- and Tour<key>Text. target returns a frame or a list of them. A step out of its context or with none of its targets
+-- shown is passed over, unless targetOptional. A step with waitFor goes on once the player did what it asks and its Next
+-- skips it, advanceOn (an event or a list of them) goes on as Next does. Next reads "Skip Step" where it skips what the
+-- step asks for: a waitFor without an onNext doing it, or skipsAhead when the following steps need it done
 local active = false
 local paused = false
 -- the tour opens pages itself, those aren't the player's doing
@@ -96,13 +97,13 @@ end
 
 ---shows the first boss of the season's first instance in the Adventure Guide
 local openSeasonEncounter = function()
-    local instanceIDs = {}
-    for instanceID in pairs(private.Instances) do
-        table.insert(instanceIDs, instanceID)
+    for _, instance in ipairs(private.CurrentInstances or {}) do
+        local info = private.GetEncounterInfo(instance.encounters[1])
+        if info and info.journalInstanceID then
+            EncounterJournal_OpenJournal(nil, info.journalInstanceID, info.journalEncounterID)
+            return
+        end
     end
-    table.sort(instanceIDs)
-    local _, _, journalEncounterID = EJ_GetEncounterInfoByIndex(1, instanceIDs[1])
-    EncounterJournal_OpenJournal(nil, instanceIDs[1], journalEncounterID)
 end
 
 local steps = {
@@ -176,6 +177,8 @@ local steps = {
         end,
         waitFor = "bossWarnings",
         isDone = function() return private.ShowsEncounterEvents() end,
+        -- only retail has Boss Warnings; classic has the check box of the shared Edit Mode code, but nothing behind it
+        skip = function() return not private.isRetail end,
     },
     {
         key = "TimelineFrame",
@@ -231,6 +234,7 @@ local steps = {
         end,
         target = function() return AbilityTimelineEJAddButton end,
         advanceOn = { "editorOpen", "journalClosed" },
+        skipsAhead = true,
         onNext = function() HideUIPanel(EncounterJournal) end,
     },
     -- without the Adventure Guide the reminders are opened from their page
@@ -242,6 +246,7 @@ local steps = {
             return private.GetShownSettingsPage() == "Reminders" and private.GetFirstSettingButton()
         end,
         advanceOn = "editorOpen",
+        skipsAhead = true,
         skip = hasJournal,
     },
     -- only when the editor was opened: from what it shows to sharing reminders
@@ -263,7 +268,8 @@ local steps = {
         anchor = editorPart("undoButton"),
         side = "BOTTOM",
     },
-    { key = "EditorBossTimers", context = "editor", target = editorPart("rulesButton"), advanceOn = "bossTimersOpen" },
+    { key = "EditorBossTimers", context = "editor", target = editorPart("rulesButton"), advanceOn = "bossTimersOpen",
+        skipsAhead = true },
     -- only when the boss timers were opened
     {
         key = "EditorBackToStages",
@@ -274,7 +280,8 @@ local steps = {
         advanceOn = "stageOpen",
         skip = function() return private.TIMINGS_EDITOR_WINDOW.mode ~= "rules" end,
     },
-    { key = "EditorExport", context = "editor", target = editorPart("exportButton"), advanceOn = "exportOpen" },
+    { key = "EditorExport", context = "editor", target = editorPart("exportButton"), advanceOn = "exportOpen",
+        skipsAhead = true },
     -- only once the dialog is open, closing it goes on
     {
         key = "EditorExportDialog",
@@ -283,7 +290,8 @@ local steps = {
         advanceOn = "exportClosed",
         onNext = function() private.EXPORT_DIALOG_WINDOW.closeButton:Click() end,
     },
-    { key = "EditorImport", context = "editor", target = editorPart("importButton"), advanceOn = "importOpen" },
+    { key = "EditorImport", context = "editor", target = editorPart("importButton"), advanceOn = "importOpen",
+        skipsAhead = true },
     {
         key = "EditorImportDialog",
         context = "editor",
@@ -410,6 +418,8 @@ local present = function(step, targets)
     end
     local callout = private.GetTourCallout()
     local last = index == #steps
+    -- Next skips what the step asks for: the steps after it that need it done, or a wait Next doesn't do itself
+    local skips = step.skipsAhead or (isWaiting(step) and not step.onNext)
     callout:SetContent({
         title = L("Tour" .. step.key .. "Title"),
         text = L("Tour" .. step.key .. "Text"),
@@ -417,8 +427,8 @@ local present = function(step, targets)
         back = L("TourBack"),
         -- going back into or out of Edit Mode is left to the player
         backDisabled = index == 1 or steps[index - 1].context ~= step.context,
-        next = last and L("TourFinish") or isWaiting(step) and L("TourSkipStep") or L("TourNext"),
-        nextStyle = isWaiting(step) and "Plain" or "Primary",
+        next = last and L("TourFinish") or skips and L("TourSkipStep") or L("TourNext"),
+        nextStyle = skips and "Plain" or "Primary",
         onBack = back,
         onNext = last and finish or nextStep,
         onClose = finish,

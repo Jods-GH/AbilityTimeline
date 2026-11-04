@@ -151,6 +151,7 @@ local ask = function(question)
         (question.check and dialog.check.frame:GetHeight() + padding or 0) + variables.dialog.buttonHeight + padding)
     frame:Show()
 end
+private.AskQuestion = ask
 
 ---asks whether to keep key, tried on the theme page, and whether the changes made to the theme in use come along
 ---@param key string
@@ -500,9 +501,7 @@ local promptedThisSession = false
 private.checkThemePrompt = function()
     if promptedThisSession then return end
     local tourDue = private.IsTourDue()
-    -- in debug mode it opens once after every reload, to test it
-    if not tourDue and private.GetThemeSettings().promptVersion >= private.THEME_PROMPT_VERSION and
-        not private.db.profile.debugMode then
+    if not tourDue and private.GetThemeSettings().promptVersion >= private.THEME_PROMPT_VERSION then
         return
     end
     if not private.ACTIVE_EDITMODE_LAYOUT then
