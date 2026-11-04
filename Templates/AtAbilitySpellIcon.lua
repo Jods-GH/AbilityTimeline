@@ -116,7 +116,7 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 				margin
 		end
 	end
-	local thresholdTime = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].threshold_time
+	local thresholdTime = private.db.profile.timeline_settings.threshold_time
 	if not unclamped and not (remainingDuration < thresholdTime) then
 		-- We are out of range of the moving timeline
 		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then

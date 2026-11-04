@@ -9,17 +9,12 @@ local variables             = {
     otherSize = 50,
     travelSize = 500,
     inverse_travel_direction = false,
-    ticks_enabled = true,
     position = {
         point = 'CENTER',
         y = 110,
         x = 410,
     },
     IconMargin = 5,
-    thresholdTime = 10,
-    preventOverlap = true,
-    mergeTimers = true,
-    mergeWindow = 0.2,
     tickInterval = 5,
     minTickDistance = 40,
 }
@@ -49,9 +44,9 @@ end
 
 local function HandleTickVisibility(layoutName)
     for _, tick in ipairs(private.TIMELINE_FRAME.frame.Ticks) do
-        if private.db.global.timeline_frame[layoutName].ticks_enabled then
+        if private.db.profile.timeline_settings.ticks_enabled then
             tick:SetTick(private.TIMELINE_FRAME.frame, tick.tick, private.TIMELINE_FRAME:GetMoveSize(),
-                private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].threshold_time,
+                private.db.profile.timeline_settings.threshold_time,
                 private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction ==
                 private.TIMELINE_DIRECTIONS.HORIZONTAL)
             tick.frame:Show()
@@ -82,9 +77,6 @@ private.ModernizeTimelineFrame = function(layoutName)
     if private.db.global.timeline_frame[layoutName].enabled == nil then
         private.db.global.timeline_frame[layoutName].enabled = true
     end
-    if private.db.global.timeline_frame[layoutName].ticks_enabled == nil then
-        private.db.global.timeline_frame[layoutName].ticks_enabled = variables.ticks_enabled
-    end
     if not private.db.global.timeline_frame[layoutName].otherSize then
         private.db.global.timeline_frame[layoutName].otherSize = variables.otherSize
     end
@@ -99,22 +91,6 @@ private.ModernizeTimelineFrame = function(layoutName)
     end
     if not private.db.global.timeline_frame[layoutName].iconMargin then
         private.db.global.timeline_frame[layoutName].iconMargin = variables.IconMargin
-    end
-
-    if not private.db.global.timeline_frame[layoutName].threshold_time then
-        private.db.global.timeline_frame[layoutName].threshold_time = variables.thresholdTime
-    end
-
-    if private.db.global.timeline_frame[layoutName].prevent_overlap == nil then
-        private.db.global.timeline_frame[layoutName].prevent_overlap = variables.preventOverlap
-    end
-
-    if private.db.global.timeline_frame[layoutName].merge_timers == nil then
-        private.db.global.timeline_frame[layoutName].merge_timers = variables.mergeTimers
-    end
-
-    if not private.db.global.timeline_frame[layoutName].merge_window then
-        private.db.global.timeline_frame[layoutName].merge_window = variables.mergeWindow
     end
 end
 
@@ -149,24 +125,32 @@ end
 LibEditMode:RegisterCallback('layout', private.TimelineFrame.applyLayout)
 
 
+---the seconds the ticks of a timeline moveSize long are at, far enough apart to be read
+---@param moveSize number
+---@return number[]
+private.TimelineFrame.GetTickTimes = function(moveSize)
+    local thresholdTime = private.db.profile.timeline_settings.threshold_time
+    local minTickTime = variables.minTickDistance * thresholdTime / moveSize
+    local step = variables.tickInterval * math.max(math.ceil(minTickTime / variables.tickInterval), 1)
+    local times = {}
+    for tick = step, thresholdTime - 1, step do
+        table.insert(times, tick)
+    end
+    return times
+end
+
 local function HandleTicks(self)
     for i = 1, #self.frame.Ticks do
         self.frame.Ticks[i].frame:Hide()
         self.frame.Ticks[i]:Release()
     end
     self.frame.Ticks = {}
-    local thresholdTime = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].threshold_time
-    local minTickTime = variables.minTickDistance * thresholdTime / self:GetMoveSize()
-    local step = variables.tickInterval * math.max(math.ceil(minTickTime / variables.tickInterval), 1)
-    private.TIMELINE_TICKS = {}
-    for tick = step, thresholdTime - 1, step do
-        table.insert(private.TIMELINE_TICKS, tick)
-    end
+    local thresholdTime = private.db.profile.timeline_settings.threshold_time
+    private.TIMELINE_TICKS = private.TimelineFrame.GetTickTimes(self:GetMoveSize())
     for i, tick in ipairs(private.TIMELINE_TICKS) do
         local widget = AceGUI:Create("AtTimelineTicks")
         self.frame.Ticks[i] = widget
-        widget:SetTick(self.frame, tick, self:GetMoveSize(),
-            private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].threshold_time,
+        widget:SetTick(self.frame, tick, self:GetMoveSize(), thresholdTime,
             private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction ==
             private.TIMELINE_DIRECTIONS.HORIZONTAL)
         widget.frame:Show()
@@ -355,7 +339,7 @@ local function GetMoveSize(self)
     return self.frame:GetHeight()
 end
 
--- Edit Mode has what is saved per layout, the look of the timeline is on the settings window's Timeline page
+-- Edit Mode has where the timeline is and how it lies, its look and behaviour are on the settings window's Timeline page
 local function SetupEditModeSettings(frame)
     LibEditMode:AddFrame(frame, onPositionChanged, variables.position,
         "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Timeline")
@@ -455,36 +439,6 @@ local function SetupEditModeSettings(frame)
             valueStep = 1,
         },
         {
-            name = private.getLocalisation("TimelineWindow"),
-            desc = private.getLocalisation("TimelineWindowDescription"),
-            kind = LibEditMode.SettingType.Slider,
-            default = variables.thresholdTime,
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].threshold_time
-            end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].threshold_time = value
-                HandleTicks(private.TIMELINE_FRAME)
-                HandleTickVisibility(layoutName)
-            end,
-            minValue = 5,
-            maxValue = 60,
-            valueStep = 1,
-        },
-        {
-            name = private.getLocalisation("EnableTicks"),
-            desc = private.getLocalisation("EnableTicksDescription"),
-            kind = LibEditMode.SettingType.Checkbox,
-            default = true,
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].ticks_enabled
-            end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].ticks_enabled = value
-                HandleTickVisibility(layoutName)
-            end,
-        },
-        {
             name = private.getLocalisation("IconMargin"),
             desc = private.getLocalisation("IconMarginDescription"),
             kind = LibEditMode.SettingType.Slider,
@@ -499,51 +453,6 @@ local function SetupEditModeSettings(frame)
             minValue = 0,
             maxValue = 50,
             valueStep = 1,
-        },
-        {
-            name = private.getLocalisation("PreventOverlap"),
-            desc = private.getLocalisation("PreventOverlapDescription"),
-            kind = LibEditMode.SettingType.Checkbox,
-            default = variables.preventOverlap,
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].prevent_overlap
-            end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].prevent_overlap = value
-            end,
-        },
-        {
-            name = private.getLocalisation("MergeTimers"),
-            desc = private.getLocalisation("MergeTimersDescription"),
-            kind = LibEditMode.SettingType.Checkbox,
-            default = variables.mergeTimers,
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].merge_timers
-            end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].merge_timers = value
-            end,
-        },
-        {
-            name = private.getLocalisation("MergeWindow"),
-            desc = private.getLocalisation("MergeWindowDescription"),
-            kind = LibEditMode.SettingType.Slider,
-            default = variables.mergeWindow,
-            get = function(layoutName)
-                return private.db.global.timeline_frame[layoutName].merge_window
-            end,
-            set = function(layoutName, value)
-                private.db.global.timeline_frame[layoutName].merge_window = value
-            end,
-            minValue = 0,
-            maxValue = 2,
-            valueStep = 0.1,
-            formatter = function(value)
-                return string.format("%.1f", value)
-            end,
-            hidden = function(layoutName)
-                return not private.db.global.timeline_frame[layoutName].merge_timers
-            end,
         },
     }
     LibEditMode:AddFrameSettings(frame, settings)

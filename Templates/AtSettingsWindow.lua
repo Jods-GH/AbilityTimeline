@@ -71,6 +71,8 @@ local function ApplySettings(self)
     details.Preview.AtEdge:SetVertexColor(ThemeApply.Color("Edge"))
     ThemeApply.FontRole(details.Title, "Heading")
     ThemeApply.FontRole(details.Text, "Control")
+    ThemeApply.FontRole(details.Notice, "Control")
+    details.Notice:SetTextColor(ThemeApply.Color("Danger"))
     ThemeApply.FontRole(frame.SearchHint, "Muted")
     for _, button in ipairs({ details.Reset, details.ResetPage, frame.TestButton, frame.MoveButton }) do
         ThemedWidgets.DrawButton(button)
@@ -168,14 +170,21 @@ local function SelectPage(self, key)
     end
 end
 
----shows what the hovered row does, onReset offers to reset it to the theme
+---shows what the hovered row does, onReset offers to reset it to the theme, notice stands out above the text, e.g.
+---why the row is disabled
 ---@param self AtSettingsWindow
 ---@param title string
 ---@param text string|nil
 ---@param onReset function|nil
-local function ShowDetails(self, title, text, onReset)
+---@param notice string|nil
+local function ShowDetails(self, title, text, onReset, notice)
     local details = self.frame.Details
     details.Title:SetText(title)
+    details.Notice:SetShown(notice ~= nil)
+    details.Notice:SetFormattedText("|A:Professions_Icon_Warning:16:16|a %s", notice or "")
+    details.Text:ClearAllPoints()
+    details.Text:SetPoint("TOPLEFT", notice and details.Notice or details.Title, "BOTTOMLEFT", 0,
+        -variables.padding / 2)
     details.Text:SetText(text or "")
     details.Reset:SetShown(onReset ~= nil)
     details.Reset.onReset = onReset
@@ -397,6 +406,13 @@ local function Constructor()
     details.Image:SetAllPoints(details.Preview)
     details.Title = details:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     details.Title:SetJustifyH("LEFT")
+    details.Notice = details:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    details.Notice:SetPoint("TOPLEFT", details.Title, "BOTTOMLEFT", 0, -variables.padding / 2)
+    details.Notice:SetWidth(variables.detailsWidth - variables.padding * 2)
+    details.Notice:SetJustifyH("LEFT")
+    details.Notice:SetWordWrap(true)
+    details.Notice:SetSpacing(3)
+    details.Notice:Hide()
     details.Text = details:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     details.Text:SetPoint("TOPLEFT", details.Title, "BOTTOMLEFT", 0, -variables.padding / 2)
     details.Text:SetWidth(variables.detailsWidth - variables.padding * 2)

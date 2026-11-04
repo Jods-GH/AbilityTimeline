@@ -10,8 +10,8 @@ local bigIconGroup = private.DynamicGroup.Create(function()
    return {
       grow = settings.grow_direction,
       spacing = settings.margin,
-      limit = settings.limit,
-      sort = settings.sort,
+      limit = private.db.profile.big_icon_settings.limit,
+      sort = private.db.profile.big_icon_settings.sort,
    }
 end, function()
    return private.BIGICON_FRAME and private.BIGICON_FRAME.frame

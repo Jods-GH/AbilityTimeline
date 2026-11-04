@@ -68,6 +68,56 @@ local THEMED_LAYOUT_SETTINGS = {
     { "timeline_border_size", "Elements.Timeline.Backdrop.EdgeSize", 2 },
 }
 
+-- behaviour settings that were stored per edit mode layout and are now in the profile:
+-- { db.global key, key, db.profile table, default }
+local LAYOUT_TO_PROFILE = {
+    { "timeline_frame", "threshold_time", "timeline_settings", 10 },
+    { "timeline_frame", "ticks_enabled", "timeline_settings", true },
+    { "timeline_frame", "prevent_overlap", "timeline_settings", true },
+    { "timeline_frame", "merge_timers", "timeline_settings", true },
+    { "timeline_frame", "merge_window", "timeline_settings", 0.2 },
+    { "bigicon", "threshold_time", "big_icon_settings", 5 },
+    { "bigicon", "limit", "big_icon_settings", 0 },
+    { "bigicon", "sort", "big_icon_settings", "ascending" },
+    { "text_highlight", "threshold_time", "highlight_text_settings", 5 },
+    { "text_highlight", "limit", "highlight_text_settings", 0 },
+    { "text_highlight", "sort", "highlight_text_settings", "ascending" },
+    { "waiting_group", "limit", "waiting_group", 0 },
+    { "waiting_group", "sort", "waiting_group", "ascending" },
+    { "queued_group", "limit", "queued_group", 0 },
+    { "queued_group", "sort", "queued_group", "ascending" },
+    { "paused_group", "limit", "paused_group", 0 },
+    { "paused_group", "sort", "paused_group", "ascending" },
+}
+
+---the profiles that existed while these were saved per layout get the values of the active layout, once; the
+---old values stay untouched. A reset or new profile gets the defaults
+local migrateLayoutToProfile = function()
+    local global = private.db.global
+    if not global.layoutSettingsPending then
+        global.layoutSettingsPending = {}
+        for _, name in ipairs((private.db:GetProfiles())) do
+            global.layoutSettingsPending[name] = true
+        end
+    end
+    local profileName = private.db:GetCurrentProfile()
+    local fromLayout = global.layoutSettingsPending[profileName]
+    global.layoutSettingsPending[profileName] = nil
+    for _, setting in ipairs(LAYOUT_TO_PROFILE) do
+        local profileTable = private.db.profile[setting[3]] or {}
+        private.db.profile[setting[3]] = profileTable
+        if profileTable[setting[2]] == nil then
+            local layouts = fromLayout and global[setting[1]]
+            local layout = layouts and layouts[private.ACTIVE_EDITMODE_LAYOUT]
+            local value = layout and layout[setting[2]]
+            if value == nil then
+                value = setting[4]
+            end
+            profileTable[setting[2]] = value
+        end
+    end
+end
+
 ---copies a saved value without functions (colors from a color picker can be color objects)
 local function plainCopy(value)
     if type(value) ~= "table" then
@@ -364,6 +414,8 @@ private.modernize = function()
             private.db.profile.dispellTextColor = true
         end
     end
+
+    migrateLayoutToProfile()
 
     if not private.GetThemeSettings().migrated then
         migrateToThemes()

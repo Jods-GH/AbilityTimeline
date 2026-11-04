@@ -260,10 +260,11 @@ function groupMixin:Layout()
    local spacing = settings.spacing or 0
    local limit = settings.limit or 0
 
+   local getSortValue = self.getSortValue or private.manager.getEventRemainingTime
    for _, item in ipairs(self.items) do
       -- a held item's event is gone, it keeps its place in the order
       if not item.held then
-         item.sortValue = private.manager.getEventRemainingTime(item.id) or 0
+         item.sortValue = getSortValue(item.id) or 0
       end
    end
    table.sort(self.items, settings.sort == SORT.DESCENDING and compareDescending or compareAscending)
@@ -322,8 +323,10 @@ end
 ---@param getAnchor fun():Frame|nil -- returns the frame the items are attached to
 ---@param resolveGrow fun(grow:string):string|nil -- optional, resolves GROW.AUTO into a real grow direction
 ---@param shouldAnimate fun():boolean|nil -- optional, frames slide to their new position while this returns true, requires calling Animate every frame
+---@param getSortValue fun(id:number):number|nil -- optional, what the items are sorted by, the remaining time of
+---their event without it
 ---@return AtDynamicGroup
-private.DynamicGroup.Create = function(getSettings, getAnchor, resolveGrow, shouldAnimate)
+private.DynamicGroup.Create = function(getSettings, getAnchor, resolveGrow, shouldAnimate, getSortValue)
    local group = {
       items = {},
       index = {},
@@ -333,6 +336,7 @@ private.DynamicGroup.Create = function(getSettings, getAnchor, resolveGrow, shou
       getAnchor = getAnchor,
       resolveGrow = resolveGrow,
       shouldAnimate = shouldAnimate,
+      getSortValue = getSortValue,
    }
    for key, value in pairs(groupMixin) do
       group[key] = value
@@ -351,7 +355,7 @@ private.DynamicGroup.AppendSettings = function(target, source)
    return target
 end
 
----builds the shared edit mode settings (grow, spacing, limit, sort) of a dynamic group
+---builds the shared edit mode settings (grow, spacing) of a dynamic group, its limit and sort are in the settings window
 ---@param getDb fun(layoutName:string):table -- returns the settings table of the layout
 ---@param onChange fun(layoutName:string) -- called after any setting changed
 ---@param opts table -- growValues, allowAuto, defaults, hidden, growKey, spacingKey, noSpacing, growDescription, spacingName, spacingDescription
@@ -415,51 +419,5 @@ private.DynamicGroup.BuildEditModeSettings = function(getDb, onChange, opts)
          disabled = opts.disabled,
       })
    end
-   table.insert(settings, {
-      name = private.getLocalisation("GroupLimit"),
-      desc = private.getLocalisation("GroupLimitDescription"),
-      kind = LibEditMode.SettingType.Slider,
-      default = defaults.limit or 0,
-      get = function(layoutName)
-         return getDb(layoutName).limit
-      end,
-      set = function(layoutName, value)
-         getDb(layoutName).limit = value
-         onChange(layoutName)
-      end,
-      minValue = 0,
-      maxValue = 20,
-      valueStep = 1,
-      hidden = opts.hidden,
-      disabled = opts.disabled,
-   })
-   table.insert(settings, {
-      name = private.getLocalisation("GroupSort"),
-      desc = private.getLocalisation("GroupSortDescription"),
-      kind = LibEditMode.SettingType.Dropdown,
-      get = function(layoutName)
-         return getDb(layoutName).sort
-      end,
-      set = function(layoutName, value)
-         getDb(layoutName).sort = value
-         onChange(layoutName)
-      end,
-      default = defaults.sort or SORT.ASCENDING,
-      height = 50,
-      values = {
-         {
-            text = private.getLocalisation("GroupSortAscending"),
-            value = SORT.ASCENDING,
-            isRadio = true,
-         },
-         {
-            text = private.getLocalisation("GroupSortDescending"),
-            value = SORT.DESCENDING,
-            isRadio = true,
-         },
-      },
-      hidden = opts.hidden,
-      disabled = opts.disabled,
-   })
    return settings
 end

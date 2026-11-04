@@ -38,6 +38,10 @@ function AbilityTimeline:OnInitialize()
     local onProfileChanged = function()
         private.modernize()
         private.RestoreSavedTheme()
+        -- the profile has the timeline's time scale and how many icons each group shows
+        private.TimelineFrame.applyLayout(private.ACTIVE_EDITMODE_LAYOUT)
+        private.evaluateBigIconPositions()
+        private.evaluateTextPositions()
     end
     private.db.RegisterCallback(private, "OnProfileChanged", onProfileChanged)
     private.db.RegisterCallback(private, "OnProfileCopied", onProfileChanged)
@@ -90,7 +94,7 @@ function AbilityTimeline_AddonCompartmentFunction()
 end
 
 -- different icons so merged test events can be told apart
-local TEST_ICONS = { 135127, 136197, 135808, 132090, 136116, 237538 }
+private.TEST_ICONS = { 135127, 136197, 135808, 132090, 136116, 237538 }
 local testEventIDs = {}
 
 ---@param duration number
@@ -105,7 +109,7 @@ local function createTestBars(duration, queue)
         maxQueueDuration = queue or duration + 5,
         spellName = "Test Spell " .. index,
         spellID = spellId,
-        iconFileID = TEST_ICONS[(index - 1) % #TEST_ICONS + 1],
+        iconFileID = private.TEST_ICONS[(index - 1) % #private.TEST_ICONS + 1],
         severity = 1,
         paused = false
 

@@ -110,6 +110,17 @@ local function GetSettings(self, layoutName)
     return private.db.global[self.config.dbKey][layoutName or private.ACTIVE_EDITMODE_LAYOUT]
 end
 
+---the settings its dynamic group lays out with: grow and spacing of the layout, limit and sort of the profile
+---@param self AtGroupAnchorFrame
+---@return table
+local function GetGroupSettings(self)
+    local settings, profile = self:GetSettings(), private.db.profile[self.config.dbKey]
+    local groupSettings = self.groupSettings
+    groupSettings.grow, groupSettings.spacing = settings.grow, settings.spacing
+    groupSettings.limit, groupSettings.sort = profile.limit, profile.sort
+    return groupSettings
+end
+
 ---@param self AtGroupAnchorFrame
 ---@return number
 local function GetIconSize(self)
@@ -266,12 +277,6 @@ local function ApplyLayout(self, layoutName)
         -- the timeline icon margin was used to stack these icons before they became groups
         settings.spacing = private.db.global.timeline_frame[layoutName] and
             private.db.global.timeline_frame[layoutName].iconMargin or variables.spacing
-    end
-    if not settings.limit then
-        settings.limit = 0
-    end
-    if not settings.sort then
-        settings.sort = private.DynamicGroup.SORT.ASCENDING
     end
     if not settings.iconSize then
         settings.iconSize = 0
@@ -515,6 +520,7 @@ local function Constructor()
         count = count,
         frame = frame,
         config = {},
+        groupSettings = {},
         Setup = Setup,
         ApplyLayout = ApplyLayout,
         ApplyAnchor = ApplyAnchor,
@@ -522,6 +528,7 @@ local function Constructor()
         StoreFreePosition = StoreFreePosition,
         Refresh = Refresh,
         GetSettings = GetSettings,
+        GetGroupSettings = GetGroupSettings,
         GetIconSize = GetIconSize,
         IsActive = IsActive,
         ResolveAttach = ResolveAttach,

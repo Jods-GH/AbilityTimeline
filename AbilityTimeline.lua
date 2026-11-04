@@ -19,17 +19,21 @@ local getTimelineLayout = function()
    return private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT]
 end
 
+local getTimelineSettings = function()
+   return private.db.profile.timeline_settings
+end
+
 ---@type table<string, AtDynamicGroup>
 private.TimelineGroups                         = {
    [ZONES.WAITING] = private.DynamicGroup.Create(function()
-      return private.WAITING_FRAME:GetSettings()
+      return private.WAITING_FRAME:GetGroupSettings()
    end, function()
       return private.WAITING_FRAME and private.WAITING_FRAME.frame
    end, function(grow)
       return private.WAITING_FRAME:ResolveGrow(grow)
    end),
    [ZONES.QUEUED] = private.DynamicGroup.Create(function()
-      return private.QUEUED_FRAME:GetSettings()
+      return private.QUEUED_FRAME:GetGroupSettings()
    end, function()
       return private.QUEUED_FRAME and private.QUEUED_FRAME.frame
    end, function(grow)
@@ -38,7 +42,7 @@ private.TimelineGroups                         = {
       return private.QUEUED_FRAME:GetSettings().attached
    end),
    [ZONES.PAUSED] = private.DynamicGroup.Create(function()
-      return private.PAUSED_FRAME:GetSettings()
+      return private.PAUSED_FRAME:GetGroupSettings()
    end, function()
       return private.PAUSED_FRAME and private.PAUSED_FRAME.frame
    end, function(grow)
@@ -68,7 +72,7 @@ end
 ---@param positionRemaining number
 ---@return string
 local getZone                                  = function(state, positionRemaining)
-   local isWaiting = not (positionRemaining < getTimelineLayout().threshold_time)
+   local isWaiting = not (positionRemaining < getTimelineSettings().threshold_time)
    if state == private.ENCOUNTER_STATES.Queued then
       return ZONES.QUEUED
    elseif state == private.ENCOUNTER_STATES.Paused then
@@ -146,6 +150,7 @@ end
 ---@param elapsed number
 local resolveMovingCollisions                  = function(elapsed)
    local layout = getTimelineLayout()
+   local settings = getTimelineSettings()
    table.sort(movingIcons, compareMoving)
 
    -- events within the merge window of the first event of a cluster share one icon
@@ -153,8 +158,8 @@ local resolveMovingCollisions                  = function(elapsed)
    for _, widget in ipairs(movingIcons) do
       local remaining = widget.frame.positionRemaining
       local cluster = clusters[clusterCount]
-      if layout.merge_timers and cluster and #cluster.members < private.MAX_MERGED_TIMELINE_ICONS and
-          remaining - cluster.remaining <= layout.merge_window then
+      if settings.merge_timers and cluster and #cluster.members < private.MAX_MERGED_TIMELINE_ICONS and
+          remaining - cluster.remaining <= settings.merge_window then
          table.insert(cluster.members, widget)
       else
          clusterCount = clusterCount + 1
@@ -169,13 +174,13 @@ local resolveMovingCollisions                  = function(elapsed)
    -- the time one icon takes up on the timeline, later icons are pushed back by that much
    local moveSize = private.TIMELINE_FRAME:GetMoveSize()
    local iconTime = moveSize > 0 and
-       (private.GetElementStyle("SpellIcon").Size + layout.iconMargin) / moveSize * layout.threshold_time or 0
+       (private.GetElementStyle("SpellIcon").Size + layout.iconMargin) / moveSize * settings.threshold_time or 0
    local previous
    for i = 1, clusterCount do
       local members = clusters[i].members
       local host = members[1]
       local displayRemaining = clusters[i].remaining
-      if layout.prevent_overlap then
+      if settings.prevent_overlap then
          if previous then
             displayRemaining = math.max(displayRemaining, previous + iconTime)
          end
@@ -224,8 +229,9 @@ end
 ---@param elapsed number
 local resolveInlinePausedCollisions            = function(elapsed)
    local layout = getTimelineLayout()
+   local settings = getTimelineSettings()
    local moveSize = private.TIMELINE_FRAME:GetMoveSize()
-   if not layout.prevent_overlap or moveSize <= 0 then
+   if not settings.prevent_overlap or moveSize <= 0 then
       for _, widget in ipairs(inlinePausedIcons) do
          widget.frame.displayRemaining = widget.frame.positionRemaining
       end
@@ -240,10 +246,10 @@ local resolveInlinePausedCollisions            = function(elapsed)
       if visible > 0 then
          local extent = visible * private.QUEUED_FRAME:GetIconSize() +
              (visible - 1) * private.QUEUED_FRAME:GetSettings().spacing + layout.iconMargin
-         minimum = extent / moveSize * layout.threshold_time
+         minimum = extent / moveSize * settings.threshold_time
       end
    end
-   local iconTime = (private.GetElementStyle("SpellIcon").Size + layout.iconMargin) / moveSize * layout.threshold_time
+   local iconTime = (private.GetElementStyle("SpellIcon").Size + layout.iconMargin) / moveSize * settings.threshold_time
    local previous
    for _, widget in ipairs(inlinePausedIcons) do
       local frame = widget.frame
@@ -265,7 +271,7 @@ local driver                                  = CreateFrame("Frame")
 driver:Hide()
 local resortElapsed                            = 0
 driver:SetScript("OnUpdate", function(_, elapsed)
-   local threshold = getTimelineLayout().threshold_time
+   local threshold = getTimelineSettings().threshold_time
    local moveSize = private.TIMELINE_FRAME:GetMoveSize()
    local followsTimeline = waitingFollowsTimeline()
    -- space the icons that entered the timeline still take up in front of the waiting group

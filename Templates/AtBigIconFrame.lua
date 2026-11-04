@@ -12,7 +12,6 @@ local variables = {
     },
     size = 100,
     margin = 10,
-    thresholdTime = 5,
 }
 private.BigIcon = {}
 private.BigIcon.defaultPosition = {
@@ -93,18 +92,6 @@ private.BigIcon.applyLayout = function(layoutName)
         private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT].margin = variables.margin
     end
 
-    if not private.db.global.bigicon[layoutName].threshold_time then
-        private.db.global.bigicon[layoutName].threshold_time = variables.thresholdTime
-    end
-
-    if not private.db.global.bigicon[layoutName].limit then
-        private.db.global.bigicon[layoutName].limit = 0
-    end
-
-    if not private.db.global.bigicon[layoutName].sort then
-        private.db.global.bigicon[layoutName].sort = private.DynamicGroup.SORT.ASCENDING
-    end
-
     if layoutName == private.ACTIVE_EDITMODE_LAYOUT then
         -- the layout can have another big icon size
         private.RefreshTheme()
@@ -141,21 +128,6 @@ local function Constructor()
             end,
         },
         {
-            name = private.getLocalisation("BigIconThreshold"),
-            desc = private.getLocalisation("BigIconThresholdDescription"),
-            kind = LibEditMode.SettingType.Slider,
-            default = variables.thresholdTime,
-            get = function(layoutName)
-                return private.db.global.bigicon[layoutName].threshold_time
-            end,
-            set = function(layoutName, value)
-                private.db.global.bigicon[layoutName].threshold_time = value
-            end,
-            minValue = 1,
-            maxValue = 30,
-            valueStep = 1,
-        },
-        {
             name = private.getLocalisation("IconSize"),
             desc = private.getLocalisation("IconSizeDescription"),
             kind = LibEditMode.SettingType.Slider,
@@ -174,7 +146,7 @@ local function Constructor()
             valueStep = 1,
         },
     }
-    -- grow, spacing, limit and sort are shared with all other dynamic groups, listed after the enable checkbox
+    -- grow and spacing are shared with all other dynamic groups, listed after the enable checkbox
     local groupSettings = private.DynamicGroup.BuildEditModeSettings(function(layoutName)
         return private.db.global.bigicon[layoutName]
     end, function()

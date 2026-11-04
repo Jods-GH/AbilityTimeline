@@ -9,7 +9,6 @@ local variables = {
     width = 300,
     height = 20,
     margin = 5,
-    thresholdTime = 5,
 }
 
 private.TextHighlight = {}
@@ -61,17 +60,8 @@ private.TextHighlight.applyLayout = function(layoutName)
             margin = variables.margin,
         }
     end
-    if not private.db.global.text_highlight[layoutName].threshold_time then
-        private.db.global.text_highlight[layoutName].threshold_time = variables.thresholdTime
-    end
     if not private.db.global.text_highlight[layoutName].margin then
         private.db.global.text_highlight[layoutName].margin = variables.margin
-    end
-    if not private.db.global.text_highlight[layoutName].limit then
-        private.db.global.text_highlight[layoutName].limit = 0
-    end
-    if not private.db.global.text_highlight[layoutName].sort then
-        private.db.global.text_highlight[layoutName].sort = private.DynamicGroup.SORT.ASCENDING
     end
     if private.evaluateTextPositions and layoutName == private.ACTIVE_EDITMODE_LAYOUT then
         private.evaluateTextPositions()
@@ -109,23 +99,8 @@ local function Constructor()
                 private.db.global.text_highlight_enabled[layoutName] = value
             end,
         },
-        {
-            name = private.getLocalisation("TextHighlightThreshold"),
-            desc = private.getLocalisation("TextHighlightThresholdDescription"),
-            kind = LibEditMode.SettingType.Slider,
-            default = variables.thresholdTime,
-            get = function(layoutName)
-                return private.db.global.text_highlight[layoutName].threshold_time
-            end,
-            set = function(layoutName, value)
-                private.db.global.text_highlight[layoutName].threshold_time = value
-            end,
-            minValue = 1,
-            maxValue = 30,
-            valueStep = 1,
-        },
     }
-    -- grow, spacing, limit and sort are shared with all other dynamic groups, listed after the enable checkbox
+    -- grow and spacing are shared with all other dynamic groups, listed after the enable checkbox
     local groupSettings = private.DynamicGroup.BuildEditModeSettings(function(layoutName)
         return private.db.global.text_highlight[layoutName]
     end, function()

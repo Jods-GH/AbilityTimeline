@@ -5,12 +5,14 @@ local AceGUI = LibStub("AceGUI-3.0")
 local LibEditMode = LibStub("LibEditMode")
 local ThemeApply = private.ThemeApply
 
--- the pages of the settings window: { key, name, desc, order, rows, hidden, image, GetPreview, Render, OnShow, OnHide,
--- testTimers, pinned }. Render(scroll, header) adds content of its own, pinned keeps the rows above the scrolling
--- part, testTimers runs the test timers while the page is shown. Rows are written like Edit Mode settings with kind
+-- the pages of the settings window: { key, name, desc, order, rows, hidden, disabled, disabledReason, image, GetPreview,
+-- Render, OnShow, OnHide, testTimers, pinned }. Render(scroll, header) adds content of its own, pinned keeps the rows
+-- above the scrolling part, testTimers runs the test timers while the page is shown, disabled greys out all its rows
+-- and disabledReason tells why, as a row's own disabledReason does. Rows are written like Edit Mode settings with kind
 -- Heading, Checkbox, Slider, Dropdown, Color, Button or Media (a SharedMedia pick of its mediaType), and instead of
 -- get and set they can name themePath (a value of the current theme) or profileKey (a dotted path into db.profile).
--- A row's image (a screenshot, 512x256) is shown while it is hovered, in place of the page's live preview. A Dropdown
+-- A row's image (a screenshot, 512x256) is shown while it is hovered, in place of the page's live preview, as is the
+-- frame its preview function returns; preview false shows neither. A Dropdown
 -- with multiselect gets and sets a table of keys
 local variables = {
     -- typing renders the results once it paused this long
@@ -74,6 +76,22 @@ end
 
 local isHidden = function(item)
     return item.hidden ~= nil and item.hidden() == true
+end
+
+---@param item table -- a page or a row
+local isDisabled = function(item)
+    return item ~= nil and item.disabled ~= nil and item.disabled() == true
+end
+
+---why the row of entry is disabled, its own reason first, then its page's
+---@param entry table
+---@return string|nil
+local getDisabledReason = function(entry)
+    for _, item in ipairs({ entry.row, entry.page }) do
+        if isDisabled(item) and item.disabledReason then
+            return item.disabledReason()
+        end
+    end
 end
 
 ---@param path string -- dotted, e.g. "icon_settings.strata"
@@ -163,7 +181,7 @@ local refreshRows = function()
         end
     end
     for _, entry in ipairs(rendered) do
-        local disabled = entry.row.disabled ~= nil and entry.row.disabled() == true
+        local disabled = isDisabled(entry.row) or isDisabled(entry.page)
         if entry.disabled ~= disabled then
             entry.disabled = disabled
             entry.widget:SetDisabled(disabled)
@@ -315,13 +333,19 @@ showEntry = function(entry)
             rerender()
         end
     end
-    window:SetMedia(pagePreview, row.image)
+    local preview = pagePreview
+    if row.preview == false then
+        preview = nil
+    elseif row.preview then
+        preview = row.preview()
+    end
+    window:SetMedia(preview, row.image)
     if isNew(row) then
         markSeen(row)
         entry.widget:SetNew(false)
         setNavigation()
     end
-    window:ShowDetails(display(row.name), display(row.desc), onReset)
+    window:ShowDetails(display(row.name), display(row.desc), onReset, display(getDisabledReason(entry)))
 end
 
 ---shows rows (and headings) in the middle of the window
@@ -329,7 +353,8 @@ end
 ---@param statusKey string -- keeps the scroll position of each page
 ---@param custom function|nil -- adds content of its own below the rows
 ---@param pinned boolean|nil -- the rows stay above the scrolling part
-local render = function(rows, statusKey, custom, pinned)
+---@param getPage function -- returns the page of the row at an index
+local render = function(rows, statusKey, custom, pinned, getPage)
     local header, scroll = window.children[1], window.children[2]
     local parent = pinned and header or scroll
     hoveredEntry = nil
@@ -342,7 +367,7 @@ local render = function(rows, statusKey, custom, pinned)
     scroll:ReleaseChildren()
     header:PauseLayout()
     header:ReleaseChildren()
-    for _, row in ipairs(rows) do
+    for index, row in ipairs(rows) do
         if row.hidden then
             hiddenRows[row] = isHidden(row)
         end
@@ -356,7 +381,7 @@ local render = function(rows, statusKey, custom, pinned)
                 widget:SetLabel(display(row.name))
                 widget:SetNew(isNew(row))
                 local control = createControl(row)
-                local entry = { row = row, widget = widget }
+                local entry = { row = row, widget = widget, page = getPage(index) }
                 local onEnter = function()
                     showEntry(entry)
                 end
@@ -404,8 +429,9 @@ local showPage = function(key)
         end
         rerender()
     end or nil)
-    render(rows, page.key, page.Render, page.pinned)
-    window:ShowDetails(display(page.name), display(page.desc))
+    render(rows, page.key, page.Render, page.pinned, function() return page end)
+    window:ShowDetails(display(page.name), display(page.desc), nil,
+        display(isDisabled(page) and page.disabledReason and page.disabledReason() or nil))
 end
 
 ---lists the rows of every page whose name or description contain text
@@ -416,6 +442,8 @@ local showSearch = function(text)
         return value ~= nil and value:lower():find(query, 1, true) ~= nil
     end
     local rows = {}
+    -- a row can be on more than one page, so the page it was found on is kept next to it
+    local rowPages = {}
     for _, page in ipairs(pages) do
         if not isHidden(page) then
             local found = false
@@ -426,6 +454,7 @@ local showSearch = function(text)
                         found = true
                     end
                     table.insert(rows, row)
+                    rowPages[#rows] = page
                 end
             end
         end
@@ -438,7 +467,7 @@ local showSearch = function(text)
     pagePreview = nil
     window:SetMedia(nil)
     window:SetResetPage(nil)
-    render(rows, "search")
+    render(rows, "search", nil, nil, function(index) return rowPages[index] end)
     window:ShowDetails(display(private.getLocalisation("SettingsSearchResults")),
         display(private.getLocalisation("SettingsSearchResultsDescription")))
     private.OnTourEvent("search")

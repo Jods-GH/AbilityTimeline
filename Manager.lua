@@ -58,12 +58,12 @@ private.manager.displays = {
    bigIcon = function(event, remaining, state)
       local layoutName = private.ACTIVE_EDITMODE_LAYOUT
       return private.db.global.bigicon_enabled[layoutName] and
-         isHighlighted(remaining, state, private.db.global.bigicon[layoutName].threshold_time)
+         isHighlighted(remaining, state, private.db.profile.big_icon_settings.threshold_time)
    end,
    textHighlight = function(event, remaining, state)
       local layoutName = private.ACTIVE_EDITMODE_LAYOUT
       return private.db.global.text_highlight_enabled[layoutName] and
-         isHighlighted(remaining, state, private.db.global.text_highlight[layoutName].threshold_time)
+         isHighlighted(remaining, state, private.db.profile.highlight_text_settings.threshold_time)
    end,
    audio = function(event, remaining, state)
       return private.db.profile.useAudioCountdowns and

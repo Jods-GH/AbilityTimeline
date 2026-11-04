@@ -10,6 +10,18 @@ local variables = {
     dispelColor = { r = 0, g = 0.5019607843137255, b = 1 },
     bossModsColor = { r = 1, g = 20 / 255, b = 147 / 255, a = 1 },
     timelinePreview = { width = 200, height = 36 },
+    -- the ticks preview lies like the timeline, long along its travel direction
+    ticksPreview = { long = 220, short = 30 },
+    -- the elements of a group preview are this many seconds apart, one that ran out starts again behind the last
+    groupPreview = {
+        count = 5,
+        gap = 5,
+        iconSize = 24,
+        textWidth = 200,
+        textHeight = 16,
+        spacing = 4,
+        layoutInterval = 0.25,
+    },
     previewIcon = 237538,
     -- the index of the magic dispel type in private.dispellTypeList
     magicIndex = 3,
@@ -137,12 +149,12 @@ local createPreview = {
     BigIcon = function()
         local widget = AceGUI:Create("AtBigIcon")
         widget:SetEventInfo(previewEvent(), true)
-        widget.startTime = GetTime()
-        widget.duration = 5
-        widget.frame.Cooldown:SetCooldown(widget.startTime, widget.duration)
+        widget.startTime, widget.duration = 0, 0
         widget.frame:SetScript("OnUpdate", function()
-            if widget.startTime + widget.duration < GetTime() then
-                widget.startTime = GetTime()
+            -- counts down from the time big icons are shown at, from the start again once that changed
+            local threshold = private.db.profile.big_icon_settings.threshold_time
+            if widget.startTime + widget.duration < GetTime() or widget.duration ~= threshold then
+                widget.startTime, widget.duration = GetTime(), threshold
                 widget.frame.Cooldown:SetCooldown(widget.startTime, widget.duration)
             end
             widget.HandleCooldown(widget.frame, math.ceil((widget.startTime + widget.duration) - GetTime()))
@@ -153,11 +165,11 @@ local createPreview = {
         local widget = AceGUI:Create("AtTextHighlight")
         local eventInfo = previewEvent()
         widget:SetEventInfo(eventInfo, true)
-        widget.startTime = GetTime()
-        widget.duration = 5
+        widget.startTime, widget.duration = 0, 0
         widget.frame:SetScript("OnUpdate", function(self)
-            if widget.startTime + widget.duration < GetTime() then
-                widget.startTime = GetTime()
+            local threshold = private.db.profile.highlight_text_settings.threshold_time
+            if widget.startTime + widget.duration < GetTime() or widget.duration ~= threshold then
+                widget.startTime, widget.duration = GetTime(), threshold
             end
             local remainingDuration = (widget.startTime + widget.duration) - GetTime()
             local textColor = widget:GetTextColor(remainingDuration)
@@ -194,6 +206,117 @@ local createPreview = {
         return widget
     end,
 }
+
+-- the timeline bar with the ticks of its timeline window, lying like the timeline of the active layout
+createPreview.Ticks = function()
+    local widget = createPreview.Timeline()
+    local frame = widget.frame
+    local ticks = {}
+    local applySettings = widget.ApplySettings
+    widget.ApplySettings = function(self)
+        applySettings(self)
+        for _, tick in ipairs(ticks) do
+            tick.frame:Hide()
+            tick:Release()
+        end
+        wipe(ticks)
+        local layout = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT]
+        local isHorizontal = layout.travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL
+        local long, short = variables.ticksPreview.long, variables.ticksPreview.short
+        frame:SetSize(isHorizontal and long or short, isHorizontal and short or long)
+        local settings = private.db.profile.timeline_settings
+        if not settings.ticks_enabled then return end
+        for _, time in ipairs(private.TimelineFrame.GetTickTimes(long)) do
+            local tick = AceGUI:Create("AtTimelineTicks")
+            tick:SetTick(frame, time, long, settings.threshold_time, isHorizontal)
+            tick.frame:Show()
+            table.insert(ticks, tick)
+        end
+    end
+    widget:ApplySettings()
+    return widget
+end
+
+---icons, or texts, counting down and starting again, laid out by a dynamic group with the limit and sort of the
+---db.profile table at path, smaller than the real ones
+---@param path string
+---@param asText boolean|nil
+---@return table widget
+local createGroupPreview = function(path, asText)
+    local settings = variables.groupPreview
+    local count = settings.count
+    local cycle = count * settings.gap
+    local width = asText and settings.textWidth or settings.iconSize
+    local height = asText and settings.textHeight or settings.iconSize
+    local anchor = CreateFrame("Frame", nil, UIParent)
+    if asText then
+        anchor:SetSize(width, count * height + (count - 1) * settings.spacing)
+    else
+        anchor:SetSize(count * width + (count - 1) * settings.spacing, height)
+    end
+    local startTime = GetTime()
+    local remaining = function(id)
+        return cycle - (GetTime() - startTime + (id - 1) * settings.gap) % cycle
+    end
+    local groupSettings = {
+        grow = asText and private.DynamicGroup.GROW.DOWN or private.DynamicGroup.GROW.RIGHT,
+        spacing = settings.spacing,
+    }
+    local group = private.DynamicGroup.Create(function()
+        groupSettings.limit = private.db.profile[path].limit
+        groupSettings.sort = private.db.profile[path].sort
+        return groupSettings
+    end, function() return anchor end, nil, nil, remaining)
+    local items = {}
+    for id = 1, count do
+        local frame = CreateFrame("Frame", nil, anchor)
+        frame:SetSize(width, height)
+        local icon = private.TEST_ICONS[(id - 1) % #private.TEST_ICONS + 1]
+        local label = frame:CreateFontString(nil, "OVERLAY", asText and "GameFontHighlight" or "NumberFontNormal")
+        if asText then
+            label:SetAllPoints(frame)
+        else
+            local texture = frame:CreateTexture(nil, "ARTWORK")
+            texture:SetAllPoints(frame)
+            texture:SetTexture(icon)
+            label:SetPoint("CENTER")
+        end
+        items[id] = { label = label, icon = icon }
+        group:Add(id, frame)
+    end
+    local sinceLayout = settings.layoutInterval
+    anchor:SetScript("OnUpdate", function(_, elapsed)
+        for id, item in ipairs(items) do
+            local seconds = math.ceil(remaining(id))
+            if asText then
+                item.label:SetFormattedText("|T%d:0|t %s in %d", item.icon, L("TestIcon"), seconds)
+            else
+                item.label:SetText(seconds)
+            end
+        end
+        sinceLayout = sinceLayout + elapsed
+        if sinceLayout >= settings.layoutInterval then
+            sinceLayout = 0
+            group:Layout()
+        end
+    end)
+    local widget = { frame = anchor, ApplySettings = function() group:Layout() end }
+    table.insert(previews, widget)
+    return widget
+end
+
+local groupPreviews = {}
+
+---the preview of a group's rows, built the first time
+---@param path string
+---@param asText boolean|nil
+---@return function
+local groupPreview = function(path, asText)
+    return function()
+        groupPreviews[path] = groupPreviews[path] or createGroupPreview(path, asText)
+        return groupPreviews[path].frame
+    end
+end
 
 ---builds another preview of kind (SpellIcon, BigIcon, TextHighlight or Timeline), drawn in the theme getThemeKey
 ---returns when given, e.g. for the theme page
@@ -445,6 +568,58 @@ local join = function(...)
     return rows
 end
 
+local SORT = private.DynamicGroup.SORT
+
+---the rows of how many elements a group shows and in which order, kept in the db.profile table at path
+---@param path string
+---@param onChange function
+---@param asText boolean|nil -- its preview shows texts instead of icons
+---@param inactive function|nil -- greys the rows out while it returns true
+---@param inactiveReason string|nil
+---@return table[]
+local groupRows = function(path, onChange, asText, inactive, inactiveReason)
+    local reason = inactiveReason and function() return L(inactiveReason) end
+    local preview = groupPreview(path, asText)
+    local changed = function()
+        onChange()
+        refreshPreviews()
+    end
+    return {
+        row("Slider", "GroupLimit", {
+            profileKey = path .. ".limit", minValue = 0, maxValue = 20, valueStep = 1,
+            onChange = changed, disabled = inactive, disabledReason = reason, preview = preview,
+        }),
+        row("Dropdown", "GroupSort", {
+            profileKey = path .. ".sort",
+            values = { [SORT.ASCENDING] = L("GroupSortAscending"), [SORT.DESCENDING] = L("GroupSortDescending") },
+            sorting = { SORT.ASCENDING, SORT.DESCENDING },
+            onChange = changed, disabled = inactive, disabledReason = reason, preview = preview,
+        }),
+    }
+end
+
+---greys out a page while its display is turned off in the active Edit Mode layout, the reason is the localisation
+---of "Settings" .. page.key .. "Disabled" naming the layout and the Edit Mode checkbox of enableKey
+---@param page table
+---@param isEnabled function
+---@param enableKey string
+---@return table page
+local turnedOffInEditMode = function(page, isEnabled, enableKey)
+    page.disabled = function()
+        return not isEnabled()
+    end
+    page.disabledReason = function()
+        return L("Settings" .. page.key .. "Disabled"):format(private.ACTIVE_EDITMODE_LAYOUT, L(enableKey))
+    end
+    return page
+end
+
+---@param key string -- the db.global table of a setting saved per Edit Mode layout
+---@return any
+local layoutSettings = function(key)
+    return private.db.global[key] and private.db.global[key][private.ACTIVE_EDITMODE_LAYOUT]
+end
+
 local spellIconRows = join(
     iconRows("SpellIcon", "icon_settings", true),
     textRows("SpellIcon", { anchors = TEXT_ANCHORS[false], flags = true, eventColor = "text_settings" }),
@@ -470,16 +645,23 @@ local isBigIconTextVertical = function()
     return grow == "RIGHT" or grow == "LEFT" or grow == "HORIZONTAL"
 end
 
+local bigIconGeneralRows = join({
+    heading("SettingsSectionGeneral"),
+    row("Slider", "BigIconThreshold",
+        { profileKey = "big_icon_settings.threshold_time", minValue = 1, maxValue = 30, valueStep = 1 }),
+}, groupRows("big_icon_settings", function() private.evaluateBigIconPositions() end))
+
 local bigIconRows = {}
 for _, vertical in ipairs({ true, false }) do
     bigIconRows[vertical] = join(
+        bigIconGeneralRows,
         iconRows("BigIcon", "big_icon_settings", false),
         textRows("BigIcon",
             { anchors = TEXT_ANCHORS[vertical], flags = true, eventColor = "text_settings" }),
         markerRows("BigIcon", "big_icon_settings"))
 end
 
-private.RegisterSettingsPage({
+private.RegisterSettingsPage(turnedOffInEditMode({
     key = "BigIcon",
     order = 30,
     name = L("SettingsPageBigIcon"),
@@ -490,9 +672,9 @@ private.RegisterSettingsPage({
         alignTextAnchor("Elements.BigIcon.Text.Anchor", vertical)
         return bigIconRows[vertical]
     end,
-})
+}, function() return layoutSettings("bigicon_enabled") end, "EnableBigIcon"))
 
-private.RegisterSettingsPage({
+private.RegisterSettingsPage(turnedOffInEditMode({
     key = "TextHighlight",
     order = 40,
     name = L("SettingsPageTextHighlight"),
@@ -500,6 +682,9 @@ private.RegisterSettingsPage({
     GetPreview = getPreview("TextHighlight"),
     rows = join({
         heading("SettingsSectionGeneral"),
+        row("Slider", "TextHighlightThreshold",
+            { profileKey = "highlight_text_settings.threshold_time", minValue = 1, maxValue = 30, valueStep = 1 }),
+    }, groupRows("highlight_text_settings", function() private.evaluateTextPositions() end, true), {
         row("Dropdown", "Strata", {
             profileKey = "highlight_text_settings.strata",
             values = strataValues,
@@ -509,7 +694,7 @@ private.RegisterSettingsPage({
         profileToggle("TextDispellIcon", "highlight_text_settings.dispellIcons"),
         dispellTextColor,
     }, textRows("TextHighlight", {})),
-})
+}, function() return layoutSettings("text_highlight_enabled") end, "EnableTextHighlight"))
 
 ---hides a row while the SharedMedia texture or border at path is None, e.g. a border color without a border
 ---@param path string
@@ -520,13 +705,22 @@ local isNone = function(path)
     end
 end
 
-private.RegisterSettingsPage({
+local refreshTimeline = function()
+    private.TimelineFrame.applyLayout(private.ACTIVE_EDITMODE_LAYOUT)
+    refreshPreviews()
+end
+
+local refreshTimelineGroups = function()
+    private.refreshTimelineGroups()
+end
+
+private.RegisterSettingsPage(turnedOffInEditMode({
     key = "Timeline",
     order = 17,
     name = L("SettingsPageTimeline"),
     desc = L("SettingsPageTimelineDescription"),
     GetPreview = getPreview("Timeline"),
-    rows = {
+    rows = join({
         heading("SettingsSectionBackground"),
         row("Media", "TimelineTexture", { themePath = "Elements.Timeline.Backdrop.Background", mediaType = "background" }),
         row("Color", "TimelineTextureColor", {
@@ -548,6 +742,23 @@ private.RegisterSettingsPage({
             valueStep = 1,
             hidden = isNone("Elements.Timeline.Backdrop.Border"),
         }),
+        heading("SettingsSectionTimeScale"),
+        row("Slider", "TimelineWindow", {
+            profileKey = "timeline_settings.threshold_time", minValue = 5, maxValue = 60, valueStep = 1,
+            onChange = refreshTimeline, preview = false,
+        }),
+        heading("SettingsSectionTicks"),
+        row("Checkbox", "EnableTicks", {
+            profileKey = "timeline_settings.ticks_enabled", onChange = refreshTimeline, preview = getPreview("Ticks"),
+        }),
+        heading("SettingsSectionOverlap"),
+        row("Checkbox", "PreventOverlap", { profileKey = "timeline_settings.prevent_overlap", preview = false }),
+        row("Checkbox", "MergeTimers", { profileKey = "timeline_settings.merge_timers", preview = false }),
+        row("Slider", "MergeWindow", {
+            profileKey = "timeline_settings.merge_window", minValue = 0, maxValue = 2, valueStep = 0.1,
+            hidden = function() return not private.db.profile.timeline_settings.merge_timers end,
+            preview = false,
+        }),
         {
             kind = "Heading",
             name = L("SettingsSectionCountdowns"),
@@ -558,6 +769,7 @@ private.RegisterSettingsPage({
             name = COMBAT_WARNINGS_HIDE_QUEUED_COUNTDOWNS_LABEL,
             desc = COMBAT_WARNINGS_HIDE_QUEUED_COUNTDOWNS_TOOLTIP,
             hidden = function() return not private.isRetail end,
+            preview = false,
             get = function()
                 return C_CVar.GetCVar("encounterTimelineHideQueuedCountdowns") == "1"
             end,
@@ -565,8 +777,18 @@ private.RegisterSettingsPage({
                 C_CVar.SetCVar("encounterTimelineHideQueuedCountdowns", value and "1" or "0")
             end,
         },
-    },
-})
+        heading("SettingsSectionWaitingGroup"),
+    }, groupRows("waiting_group", refreshTimelineGroups),
+    { heading("SettingsSectionQueuedGroup") },
+    groupRows("queued_group", refreshTimelineGroups),
+    { heading("SettingsSectionPausedGroup") },
+    groupRows("paused_group", refreshTimelineGroups, false, function()
+        return private.PAUSED_FRAME ~= nil and not private.PAUSED_FRAME:IsActive()
+    end, "SettingsPausedGroupInactive")),
+}, function()
+    local layout = layoutSettings("timeline_frame")
+    return layout and layout.enabled
+end, "EnableTimeline"))
 
 local highlights = function()
     return private.db.profile.cooldown_settings.cooldown_highlight.highlights

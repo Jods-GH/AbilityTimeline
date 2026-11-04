@@ -10,8 +10,8 @@ local textHighlightGroup = private.DynamicGroup.Create(function()
    return {
       grow = settings.grow_direction,
       spacing = settings.margin,
-      limit = settings.limit,
-      sort = settings.sort,
+      limit = private.db.profile.highlight_text_settings.limit,
+      sort = private.db.profile.highlight_text_settings.sort,
    }
 end, function()
    return private.TEXT_HIGHLIGHT_FRAME and private.TEXT_HIGHLIGHT_FRAME.frame
