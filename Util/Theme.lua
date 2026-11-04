@@ -284,8 +284,8 @@ local findWeatherTheme = function(weather)
     end
 end
 
--- the automatic selections in the order they are listed, each picks the theme for the current character
-private.AUTO_THEMES = { "Spec", "Class" }
+-- the automatic selections in the order they are listed, each picks the theme for the current character. Disabled until all classes and specs have themes.
+private.AUTO_THEMES = {} -- "Spec", "Class" 
 local autoResolvers = {
     Spec = function()
         local _, class = UnitClass("player")

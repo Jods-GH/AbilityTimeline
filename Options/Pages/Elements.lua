@@ -183,21 +183,15 @@ local createPreview = {
         end)
         return setupPreview("TextHighlight", widget)
     end,
-    -- a piece of the timeline bar with its backdrop, background and edge
+    -- a piece of the timeline bar in the theme's look, its sparkles included, icons arriving at its left
     Timeline = function()
         local frame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
         frame:SetSize(variables.timelinePreview.width, variables.timelinePreview.height)
-        frame.Background = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
-        frame.Background:SetAllPoints(frame)
-        frame.Edge = frame:CreateTexture(nil, "BORDER")
-        frame.Edge:SetAllPoints(frame)
+        private.TimelineFrame.AddThemeLayers(frame)
         local widget = {
             frame = frame,
             ApplySettings = function()
-                local style = private.GetElementStyle("Timeline")
-                private.ThemeApply.Backdrop(frame, style.Backdrop)
-                frame.Background:SetShown(private.ThemeApply.Texture(frame.Background, style.Background))
-                frame.Edge:SetShown(private.ThemeApply.Texture(frame.Edge, style.Edge))
+                private.TimelineFrame.ApplyTheme(frame, "LEFT", true)
             end,
         }
         widget:ApplySettings()
@@ -212,9 +206,8 @@ createPreview.Ticks = function()
     local widget = createPreview.Timeline()
     local frame = widget.frame
     local ticks = {}
-    local applySettings = widget.ApplySettings
-    widget.ApplySettings = function(self)
-        applySettings(self)
+    widget.ApplySettings = function()
+        private.TimelineFrame.ApplyTheme(frame, private.TimelineFrame.GetArrivalPoint())
         for _, tick in ipairs(ticks) do
             tick.frame:Hide()
             tick:Release()
@@ -330,12 +323,14 @@ private.CreateSettingsPreview = function(kind, getThemeKey)
         widget.ApplySettings = function(self)
             private.DrawInTheme(getThemeKey(), applySettings, self)
         end
-        -- the countdown reads the theme's colors every frame
-        local onUpdate = widget.frame:GetScript("OnUpdate")
-        if onUpdate then
-            widget.frame:SetScript("OnUpdate", function(...)
-                private.DrawInTheme(getThemeKey(), onUpdate, ...)
-            end)
+        -- the countdown reads the theme's colors every frame, the timeline's sparkles as they spawn
+        for _, frame in ipairs({ widget.frame, widget.frame.Sparkles and widget.frame.Sparkles.driver }) do
+            local onUpdate = frame:GetScript("OnUpdate")
+            if onUpdate then
+                frame:SetScript("OnUpdate", function(...)
+                    private.DrawInTheme(getThemeKey(), onUpdate, ...)
+                end)
+            end
         end
         widget:ApplySettings()
     end

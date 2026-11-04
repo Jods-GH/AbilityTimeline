@@ -306,14 +306,15 @@ local function ApplyFlow(frame, flow, arrival, isHorizontal)
     end
 end
 
----@param self AtTimelineFrame
-local function ApplySettings(self)
-    local frame = self.frame
+---draws the current theme's look of the timeline on a frame made by AddThemeLayers, icons arriving at arrival
+---@param frame Frame
+---@param arrival string
+---@param isHorizontal boolean
+private.TimelineFrame.ApplyTheme = function(frame, arrival, isHorizontal)
     local style = private.GetElementStyle("Timeline")
     private.ThemeApply.Backdrop(frame, style.Backdrop)
     frame.Background:SetShown(private.ThemeApply.Texture(frame.Background, style.Background))
     frame.Edge:SetShown(private.ThemeApply.Texture(frame.Edge, style.Edge))
-    local arrival, isHorizontal = GetArrivalPoint()
     frame.arrival, frame.isHorizontal = arrival, isHorizontal
     ApplyWash(frame, style.Wash, arrival, isHorizontal)
     ApplyMark(frame, style.Mark, arrival, isHorizontal)
@@ -330,6 +331,13 @@ local function ApplySettings(self)
     end
     ApplyFlow(frame, style.Flow, arrival, isHorizontal)
     frame.Sparkles:Start(style.Sparkles)
+end
+
+private.TimelineFrame.GetArrivalPoint = GetArrivalPoint
+
+---@param self AtTimelineFrame
+local function ApplySettings(self)
+    private.TimelineFrame.ApplyTheme(self.frame, GetArrivalPoint())
 end
 
 local function GetMoveSize(self)
@@ -466,14 +474,9 @@ local function SetupEditModeSettings(frame)
     LibEditMode:AddFrameSettingsButtons(frame, buttons)
 end
 
-
-local function Constructor()
-    local count = AceGUI:GetNextWidgetNum(Type)
-    local frame = CreateFrame("Frame", "AbilityTimelineFrame", UIParent, "BackdropTemplate")
-    frame:SetWidth(variables.otherSize)
-    frame:SetHeight(variables.travelSize)
-
-    frame:SetFrameStrata("BACKGROUND")
+---creates the textures and sparkles a theme draws the timeline with on frame, e.g. for a preview of the timeline
+---@param frame Frame
+private.TimelineFrame.AddThemeLayers = function(frame)
     frame.Background = frame:CreateTexture(nil, "BACKGROUND")
     frame.Background:SetAllPoints(frame)
     frame.Edge = frame:CreateTexture(nil, "BORDER")
@@ -518,6 +521,16 @@ local function Constructor()
             particle.vy = frame.arrival == "BOTTOM" and particle.vy or -particle.vy
         end
     end)
+end
+
+local function Constructor()
+    local count = AceGUI:GetNextWidgetNum(Type)
+    local frame = CreateFrame("Frame", "AbilityTimelineFrame", UIParent, "BackdropTemplate")
+    frame:SetWidth(variables.otherSize)
+    frame:SetHeight(variables.travelSize)
+
+    frame:SetFrameStrata("BACKGROUND")
+    private.TimelineFrame.AddThemeLayers(frame)
     SetupEditModeSettings(frame)
     frame.Ticks = {}
     frame:Hide()
