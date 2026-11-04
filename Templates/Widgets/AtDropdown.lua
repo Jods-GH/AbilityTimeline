@@ -6,30 +6,52 @@ local ThemeApply = private.ThemeApply
 local ThemedWidgets = private.ThemedWidgets
 
 -- AceGUI's Dropdown in the theme: a rounded field with a chevron, opening a rounded menu. The menu is a pullout of
--- its own type: its items are AceGUI's shared item widgets, so they get their stock look back when released.
+-- its own type, its items are item types of our own as well: AceGUI's item pools are shared by every addon, an item
+-- drawn in the theme would go back to them with our fonts and one taken from them could carry another addon's
 local Type = "AtDropdown"
 local PulloutType = "AtDropdownPullout"
 local Version = 1
 local variables = {
     chevron = 12,
-    itemHighlight = 136810, -- Interface\\QuestFrame\\UI-QuestTitleHighlight
-    itemCheck = 130751,     -- Interface\\Buttons\\UI-CheckBox-Check
+}
+-- the stock items the stock dropdown makes and the types they are swapped for
+local ITEM_TYPES = {
+    ["Dropdown-Item-Toggle"] = "AtDropdownItemToggle",
+    ["Dropdown-Item-Execute"] = "AtDropdownItemExecute",
 }
 
----@param item table -- a Dropdown-Item widget
-local skinItem = function(item)
-    item.highlight:SetColorTexture(ThemeApply.Color("Highlight"))
-    item.check:SetTexture(ThemeApply.File("check"))
-    item.check:SetVertexColor(ThemeApply.Color("Accent"))
-    ThemeApply.FontRole(item.text, "MenuItem")
+---@param self table -- an AtDropdownItem widget
+local function ApplyItemSettings(self)
+    self.highlight:SetColorTexture(ThemeApply.Color("Highlight"))
+    self.check:SetTexture(ThemeApply.File("check"))
+    self.check:SetVertexColor(ThemeApply.Color("Accent"))
+    ThemeApply.FontRole(self.text, "MenuItem")
+    self.text:SetAlpha(self.disabled and 0.5 or 1)
 end
 
+for stockType, itemType in pairs(ITEM_TYPES) do
+    ThemedWidgets.Register(itemType, stockType, Version, function() end, ApplyItemSettings,
+        { "OnAcquire", "SetDisabled" })
+end
+
+---an item of our own in place of a stock one, with its text, data and callbacks; the stock one goes back untouched
 ---@param item table
-local unskinItem = function(item)
-    item.highlight:SetTexture(variables.itemHighlight)
-    item.check:SetTexture(variables.itemCheck)
-    item.check:SetVertexColor(1, 1, 1, 1)
-    item.text:SetFontObject(GameFontNormalSmall)
+---@return table
+local ownItem = function(item)
+    local itemType = ITEM_TYPES[item.type]
+    if not itemType then
+        return item
+    end
+    local own = AceGUI:Create(itemType)
+    own:SetText(item:GetText())
+    for key, value in pairs(item.userdata) do
+        own.userdata[key] = value
+    end
+    for name, func in pairs(item.events) do
+        own:SetCallback(name, func)
+    end
+    AceGUI:Release(item)
+    return own
 end
 
 ---@param self AtDropdownPullout
@@ -37,9 +59,6 @@ local function ApplyPulloutSettings(self)
     self.frame.AtFill:SetVertexColor(ThemeApply.Color("Body"))
     self.frame.AtEdge:SetVertexColor(ThemeApply.Color("Edge"))
     self.slider.AtDraw()
-    for _, item in ipairs(self.items) do
-        skinItem(item)
-    end
 end
 
 ---@param widget AtDropdownPullout
@@ -49,16 +68,9 @@ local function SkinPullout(widget)
     ThemeApply.CreatePanel(widget.frame)
     widget.slider:SetBackdrop(nil)
     ThemedWidgets.SkinScrollBar(widget.slider)
-    local stockAddItem, stockClear = widget.AddItem, widget.Clear
+    local stockAddItem = widget.AddItem
     widget.AddItem = function(self, item)
-        stockAddItem(self, item)
-        skinItem(item)
-    end
-    widget.Clear = function(self)
-        for _, item in ipairs(self.items) do
-            unskinItem(item)
-        end
-        stockClear(self)
+        stockAddItem(self, ownItem(item))
     end
 end
 

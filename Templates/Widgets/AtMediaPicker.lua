@@ -53,6 +53,8 @@ local refreshPopup = function()
             item.name = name
             item.selected = name == owner.value
             ThemeApply.FontRole(item.Text, "Control")
+            -- a font previewed in the row before stays over the font object, so the role's own font is set again
+            item.Text:SetFont(ThemeApply.FontObject("Control"):GetFont())
             item.Text:SetText(name)
             item.Preview:SetShown(owner.mediaType ~= "font")
             item.Preview.Texture:SetShown(owner.mediaType ~= "border")
