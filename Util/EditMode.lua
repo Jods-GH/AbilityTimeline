@@ -88,11 +88,11 @@ local removeTestEvents = function()
 end
 
 ---loops the events Edit Mode shows, as Edit Mode does: they have dispel, role and danger markers. Clients without
----them get our own test events
+---them get our own test events. Classic clients have the api too but their events never reach our timeline
 local queueTestEvents
 queueTestEvents = function()
     local loopDuration
-    if C_EncounterTimeline and C_EncounterTimeline.AddEditModeEvents then
+    if private.isRetail then
         loopDuration = C_EncounterTimeline.AddEditModeEvents()
     else
         private.addTestEvents()
