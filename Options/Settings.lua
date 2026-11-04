@@ -9,7 +9,8 @@ local ThemeApply = private.ThemeApply
 -- Render, OnShow, OnHide, testTimers, pinned }. Render(scroll, header) adds content of its own, pinned keeps the rows
 -- above the scrolling part, testTimers runs the test timers while the page is shown, disabled greys out all its rows
 -- and disabledReason tells why, as a row's own disabledReason does. Rows are written like Edit Mode settings with kind
--- Heading, Checkbox, Slider, Dropdown, Color, Button or Media (a SharedMedia pick of its mediaType), and instead of
+-- Heading, Checkbox, Slider, Dropdown, Color, Button, Input (set when enter is pressed) or Media (a SharedMedia pick
+-- of its mediaType), and instead of
 -- get and set they can name themePath (a value of the current theme) or profileKey (a dotted path into db.profile).
 -- A row's image (a screenshot, 512x256) is shown while it is hovered, in place of the page's live preview, as is the
 -- frame its preview function returns; preview false shows neither. A Dropdown
@@ -268,6 +269,14 @@ local createControl = function(row)
         control:SetColor(ThemeApply.Color(getValue(row)))
         control:SetCallback("OnValueChanged", function(_, _, r, g, b, a)
             setValue(row, { r = r, g = g, b = b, a = a })
+        end)
+        return control
+    elseif row.kind == "Input" then
+        control = AceGUI:Create("AtEditBox")
+        control:SetLabel("")
+        control:SetText(getValue(row) or "")
+        control:SetCallback("OnEnterPressed", function(_, _, value)
+            setValue(row, value)
         end)
         return control
     elseif row.kind == "Button" then

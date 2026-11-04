@@ -56,7 +56,6 @@ function AbilityTimeline:OnInitialize()
         end
     end
     local category = private.RegisterOptionsPage()
-    -- the settings window's Profiles page shows the same table
     AceConfig:RegisterOptionsTable(private.PROFILES_OPTIONS, AceDBOptions:GetOptionsTable(private.db))
     AceConfigDialog:AddToBlizOptions(private.PROFILES_OPTIONS, private.getLocalisation("SettingsPageProfiles"), category)
     self:RegisterChatCommand("at", "SlashCommand")
