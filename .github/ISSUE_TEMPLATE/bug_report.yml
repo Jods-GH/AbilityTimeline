@@ -21,8 +21,14 @@ body:
     description: What version of World of Warcraft are are you running?
     options:
       - Retail (Default)
-      - Beta (PTR)
-      - Classic
+      - Forever
+      - Mop Classic
+      - Tbc Anniversary
+      - Titan Reforged
+      - Vanilla/Sod/Hardcore
+      - a PTR version (please specify in the description)
+      
+
   validations:
     required: true
 
