@@ -610,9 +610,7 @@ end
 ---@return string key the theme shown
 private.SetTestPeriod = function(period)
     testPeriod = period
-    if not private.isThemePageShown() then
-        private.RefreshTheme(PERIOD_FADE)
-    end
+    private.RefreshTheme(PERIOD_FADE)
     return private.GetCurrentThemeKey()
 end
 
