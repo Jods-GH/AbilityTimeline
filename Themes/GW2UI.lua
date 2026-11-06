@@ -107,7 +107,7 @@ private.RegisterTheme({
         Accent = "$GWAccent", Accent2 = "$GWHeader",
         Line = { 1, 0.945, 0.8196, 0.25 },
         Field = { 0, 0, 0, 0.45 }, FieldHover = { 0.12, 0.1, 0.08, 0.65 },
-        FieldPressed = { 0.09, 0.045, 0.045, 1 }, Track = { 1, 1, 1, 0.12 },
+        FieldPressed = { 0.09, 0.045, 0.045, 1 }, Track = { 0.16, 0.14, 0.12, 1 },
         Muted = { 0.75, 0.75, 0.75, 1 }, Text = { 1, 1, 1, 1 },
         Card = { 0, 0, 0, 0.35 }, Edge = { 0, 0, 0, 1 },
         FooterFill = { 0, 0, 0, 0.35 }, Wash = { 0, 0, 0, 0 },
