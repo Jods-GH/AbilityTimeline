@@ -6,21 +6,23 @@ local SharedMedia = LibStub("LibSharedMedia-3.0")
 -- Refinement picks B5 E3 P1 X2 W3, 2026-11-06.
 private.RegisterThemeTextures("GW2UI", {}, { "gw2_brush", "gw2_ink" })
 local ART = "Interface\\AddOns\\GW2_UI\\Textures\\"
-SharedMedia:Register("background", private.MediaName("gw2_panel"), ART .. "uistuff\\settingspanelbg.png")
-SharedMedia:Register("background", private.MediaName("gw2_header"), ART .. "bag\\bagheader.png")
-for name, path in pairs({
-    gw2_world = "character\\worldmap-background.png",
-    gw2_menu = "character\\menu-hover.png",
-    gw2_checkbox = "uistuff\\checkbox.png",
-    gw2_checked = "uistuff\\checkboxchecked.png",
-    gw2_slider = "uistuff\\sliderhandle.png",
-    gw2_track = "uistuff\\sliderbg.png",
-    gw2_settings_icon = "character\\settings-window-icon.png",
-    gw2_white = "uistuff\\white.png",
-    gw2_border = "addonSkins\\border.png",
-    gw2_button = "uistuff\\button.png",
-}) do
-    SharedMedia:Register("background", private.MediaName(name), ART .. path)
+if GW2_ADDON then
+    SharedMedia:Register("background", private.MediaName("gw2_panel"), ART .. "uistuff\\settingspanelbg.png")
+    SharedMedia:Register("background", private.MediaName("gw2_header"), ART .. "bag\\bagheader.png")
+    for name, path in pairs({
+        gw2_world = "character\\worldmap-background.png",
+        gw2_menu = "character\\menu-hover.png",
+        gw2_checkbox = "uistuff\\checkbox.png",
+        gw2_checked = "uistuff\\checkboxchecked.png",
+        gw2_slider = "uistuff\\sliderhandle.png",
+        gw2_track = "uistuff\\sliderbg.png",
+        gw2_settings_icon = "character\\settings-window-icon.png",
+        gw2_white = "uistuff\\white.png",
+        gw2_border = "addonSkins\\border.png",
+        gw2_button = "uistuff\\button.png",
+    }) do
+        SharedMedia:Register("background", private.MediaName(name), ART .. path)
+    end
 end
 
 local providerColor = function(group, key, fallback)
