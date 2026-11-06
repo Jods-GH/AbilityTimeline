@@ -154,7 +154,7 @@ local createCallout = function()
             padding)
     end
 
-    ---@param info table -- { title, text, counter, back, backDisabled, next, nextStyle, onBack, onNext, onClose }
+    ---@param info table -- { title, text, counter, back, backDisabled, next, nextDisabled, nextStyle, onBack, onNext, onClose }
     callout.SetContent = function(self, info)
         self.info = info
         frame.Title:SetText(info.title)
@@ -162,6 +162,7 @@ local createCallout = function()
         frame.Counter:SetText(info.counter or "")
         self.back:SetText(info.back)
         self.back:SetDisabled(info.backDisabled == true)
+        self.next:SetDisabled(info.nextDisabled == true)
         self.next:SetText(info.next)
         self.next:SetStyle(info.nextStyle or "Primary")
         self:Layout()

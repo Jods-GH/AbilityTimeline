@@ -233,7 +233,7 @@ private.showExportDialog = function(encounterID)
     if not encounterID or private.EXPORT_DIALOG_WINDOW then return end
     local reminders = private.db.profile.reminders[encounterID] or {}
     local rules = private.db.profile.timerRules and private.db.profile.timerRules[encounterID]
-    if #reminders == 0 and not rules then
+    if #reminders == 0 and (not rules or #rules == 0) then
         return
     end
 

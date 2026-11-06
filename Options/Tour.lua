@@ -20,6 +20,25 @@ local shownStep
 local hookedWindow = false
 local hookedDialog = false
 local hookedFrames = false
+local exampleID = 0
+local tourExamples = {}
+local examplesUnlocked = false
+local examplesConfirmed = false
+
+private.MarkTourReminder = function(reminder)
+    if not active or examplesConfirmed then return end
+    exampleID = exampleID + 1
+    reminder.atTourExample = exampleID
+    tourExamples[exampleID] = true
+end
+
+private.IsTourExample = function(reminder)
+    return active and tourExamples[reminder.atTourExample] == true
+end
+
+private.IsTourReminderProtected = function(reminder)
+    return not examplesUnlocked and private.IsTourExample(reminder)
+end
 
 ---@return Frame|nil
 local getWindowFrame = function()
@@ -258,7 +277,14 @@ local steps = {
         anchor = editorPart("tabStrip"),
         side = "BOTTOM",
     },
-    { key = "EditorAdd", context = "editor", target = editorPart("addButton"), advanceOn = "reminderAdded" },
+    { key = "EditorAdd", context = "editor", target = editorPart("addButton"), waitFor = "reminderAdded",
+        isDone = function()
+            for _, reminder in ipairs(private.TIMINGS_EDITOR_WINDOW.reminders) do
+                if private.IsTourExample(reminder) then return true end
+            end
+            return false
+        end,
+        onNext = function() end },
     { key = "EditorPanel", context = "editor", target = editorPart("inspectorPanel") },
     { key = "EditorTimeline", context = "editor", target = editorPart("board"), advanceOn = "reminderMoved" },
     {
@@ -281,7 +307,7 @@ local steps = {
         skip = function() return private.TIMINGS_EDITOR_WINDOW.mode ~= "rules" end,
     },
     { key = "EditorExport", context = "editor", target = editorPart("exportButton"), advanceOn = "exportOpen",
-        skipsAhead = true },
+        waitFor = "exportOpen", onNext = function() end },
     -- only once the dialog is open, closing it goes on
     {
         key = "EditorExportDialog",
@@ -290,14 +316,20 @@ local steps = {
         advanceOn = "exportClosed",
         onNext = function() private.EXPORT_DIALOG_WINDOW.closeButton:Click() end,
     },
-    { key = "EditorImport", context = "editor", target = editorPart("importButton"), advanceOn = "importOpen",
-        skipsAhead = true },
+    { key = "EditorImport", context = "editor", target = editorPart("importButton"),
+        waitFor = "importOpen", onNext = function() end },
     {
         key = "EditorImportDialog",
         context = "editor",
         target = dialogFrame("IMPORT_DIALOG_WINDOW"),
         advanceOn = "importClosed",
         onNext = function() private.IMPORT_DIALOG_WINDOW.closeButton:Click() end,
+    },
+    {
+        key = "EditorCleanup",
+        context = "editor",
+        target = editorPart("frame"),
+        onShow = function() examplesUnlocked = true end,
     },
     {
         key = "EditorClose",
@@ -397,6 +429,21 @@ end
 local nextStep = function()
     local step = steps[index]
     local before = index
+    if step.key == "EditorAdd" and isWaiting(step) then
+        examplesConfirmed = true
+        showing = true
+        private.closeTimingsEditor()
+        showing = false
+        for nextIndex = index + 1, #steps do
+            if steps[nextIndex].key == "Search" then
+                showStep(nextIndex, 1)
+                return
+            end
+        end
+    end
+    if step.key == "EditorCleanup" then
+        examplesConfirmed = true
+    end
     if step.onNext then
         step.onNext()
     end
@@ -424,12 +471,20 @@ local present = function(step, targets)
         title = L("Tour" .. step.key .. "Title"),
         text = L("Tour" .. step.key .. "Text"),
         counter = ("%d / %d"):format(index, #steps),
-        back = L("TourBack"),
+        back = step.key == "EditorCleanup" and L("TourDeleteExamples") or L("TourBack"),
         -- going back into or out of Edit Mode is left to the player
         backDisabled = index == 1 or steps[index - 1].context ~= step.context,
-        next = last and L("TourFinish") or skips and L("TourSkipStep") or L("TourNext"),
+        next = step.key == "EditorAdd" and isWaiting(step) and L("TourSkipReminders") or
+            step.key == "EditorCleanup" and L("TourKeepExamples") or
+            last and L("TourFinish") or skips and L("TourSkipStep") or L("TourNext"),
+        nextDisabled = (step.key == "EditorExport" or step.key == "EditorImport") and
+            isWaiting(step),
         nextStyle = skips and "Plain" or "Primary",
-        onBack = back,
+        onBack = step.key == "EditorCleanup" and function()
+            private.TIMINGS_EDITOR_WINDOW:DeleteTourExamples()
+            examplesConfirmed = true
+            showStep(index + 1, 1)
+        end or back,
         onNext = last and finish or nextStep,
         onClose = finish,
     })
@@ -496,6 +551,10 @@ end
 ---reminderMoved, bossTimersOpen, stageOpen, exportOpen, exportClosed, importOpen or importClosed
 private.OnTourEvent = function(event)
     if not active or paused or showing then return end
+    if event == "editorClosed" and not examplesConfirmed then
+        finish()
+        return
+    end
     if advancesOn(steps[index], event) then
         showStep(index + 1, 1)
     end
@@ -580,6 +639,8 @@ private.StartTour = function()
         HideUIPanel(EditModeManagerFrame)
     end
     hookFrames()
+    tourExamples = {}
+    examplesUnlocked, examplesConfirmed = false, false
     active, paused = true, false
     showStep(1, 1)
 end

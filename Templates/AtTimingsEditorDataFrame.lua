@@ -390,6 +390,7 @@ local function SaveReminders(self)
     local copy = {}
     for _, reminder in ipairs(self.reminders) do
         local stored = copyReminder(reminder)
+        stored.atTourExample = nil
         -- the journal ids restore the encounter on the reminders page
         stored.journalEncounterID = self.journalEncounterID
         stored.journalInstanceID = self.journalInstanceID
@@ -547,6 +548,15 @@ local Select
 ---@param self AtTimingsEditorDataFrame
 ---@param state table
 local restore = function(self, state)
+    for _, reminder in ipairs(self.reminders) do
+        if private.IsTourReminderProtected(reminder) then
+            local found = false
+            for _, restored in ipairs(state.reminders) do
+                if restored.atTourExample == reminder.atTourExample then found = true end
+            end
+            if not found then table.insert(state.reminders, copyReminder(reminder)) end
+        end
+    end
     self.reminders = state.reminders
     self.rules = state.rules
     self.mode = state.mode
@@ -630,6 +640,7 @@ local addReminder = function(self, time, tag)
         phase = self.stage,
         tag = tag ~= "everyone" and tag or nil,
     }
+    private.MarkTourReminder(reminder)
     table.insert(self.reminders, reminder)
     SaveReminders(self)
     self.inspectorTab = "basics"
@@ -663,6 +674,8 @@ local duplicateSelected = function(self)
         table.insert(self.rules, copy)
     else
         copy.CombatTime = (copy.CombatTime or 0) + 5
+        copy.atTourExample = nil
+        private.MarkTourReminder(copy)
         table.insert(self.reminders, copy)
     end
     SaveReminders(self)
@@ -671,7 +684,7 @@ end
 
 ---@param self AtTimingsEditorDataFrame
 local deleteSelected = function(self)
-    if not self.selected then return end
+    if not self.selected or private.IsTourReminderProtected(self.selected) then return end
     record(self)
     tDeleteItem(self.mode == "rules" and self.rules or self.reminders, self.selected)
     SaveReminders(self)
@@ -698,6 +711,9 @@ end
 ---@param self AtTimingsEditorDataFrame
 ---@param stage number
 local deleteStage = function(self, stage)
+    for _, reminder in ipairs(self.reminders) do
+        if stageOf(reminder) == stage and private.IsTourReminderProtected(reminder) then return end
+    end
     record(self)
     for i = #self.reminders, 1, -1 do
         if stageOf(self.reminders[i]) == stage then
@@ -1088,6 +1104,7 @@ local createTab = function(self)
         end
         local selected = self.mode ~= "rules" and self.selected
         self.mode = "stages"
+        GameTooltip:Hide()
         self.stage = tab.stage
         Select(self, selected and stageOf(selected) == tab.stage and selected or nil)
         private.OnTourEvent("stageOpen")
@@ -1114,8 +1131,17 @@ local createTab = function(self)
         GameTooltip:Hide()
         drawTab(tab)
     end)
-    tab:HookScript("OnEnter", function() drawTab(tab) end)
-    tab:HookScript("OnLeave", function() drawTab(tab) end)
+    tab:HookScript("OnEnter", function()
+        drawTab(tab)
+        if self.mode ~= "rules" then return end
+        GameTooltip:SetOwner(tab, "ANCHOR_TOP")
+        GameTooltip:AddLine(L("EditorBackToRemindersDescription"), 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    tab:HookScript("OnLeave", function()
+        drawTab(tab)
+        GameTooltip:Hide()
+    end)
     return tab
 end
 
@@ -1890,14 +1916,34 @@ end
 ---@param self AtTimingsEditorDataFrame
 ---@param encounterID number
 local function LoadReminders(self, encounterID)
+    local examples = {}
+    local protected = {}
+    if self.loadedEncounterID == encounterID then
+        for _, reminder in ipairs(self.reminders) do
+            if private.IsTourExample(reminder) then
+                local key = private.ImportUtil.GetReminderKey(reminder)
+                examples[key] = reminder.atTourExample
+                if private.IsTourReminderProtected(reminder) then protected[key] = reminder end
+            end
+        end
+    end
     self.reminders = {}
     for _, reminder in ipairs(private.db.profile.reminders[encounterID] or {}) do
-        table.insert(self.reminders, copyReminder(reminder))
+        local copy = copyReminder(reminder)
+        local key = private.ImportUtil.GetReminderKey(reminder)
+        copy.atTourExample = examples[key]
+        protected[key] = nil
+        table.insert(self.reminders, copy)
     end
     self.rules = {}
     for _, rule in ipairs(private.db.profile.timerRules and private.db.profile.timerRules[encounterID] or {}) do
         table.insert(self.rules, copyReminder(rule))
     end
+    for _, reminder in pairs(protected) do
+        table.insert(self.reminders, copyReminder(reminder))
+    end
+    self.loadedEncounterID = encounterID
+    if next(protected) then SaveReminders(self) end
     self.spellCandidates = nil
 end
 
@@ -1971,6 +2017,14 @@ local function Constructor()
         RefreshTabs = RefreshTabs,
         SaveReminders = SaveReminders,
         RecordUndo = RecordUndo,
+        DeleteTourExamples = function(self)
+            record(self)
+            for i = #self.reminders, 1, -1 do
+                if private.IsTourExample(self.reminders[i]) then table.remove(self.reminders, i) end
+            end
+            SaveReminders(self)
+            self:RefreshReminders()
+        end,
         frame = container.frame,
         content = main,
         container = container,
@@ -2119,12 +2173,14 @@ local function Constructor()
     widget.tabPrev:SetPoint("LEFT", tabBar, "LEFT")
     widget.rulesButton = createButton(tabBar, L("EditorBossTimers"), function()
         widget.mode = "rules"
+        GameTooltip:Hide()
         Select(widget, nil)
         private.OnTourEvent("bossTimersOpen")
     end)
     widget.rulesButton:SetHeight(variables.tabHeight)
     widget.rulesButton:SetPoint("RIGHT", tabBar, "RIGHT")
     widget.rulesButton:HookScript("OnEnter", function(button)
+        if widget.mode == "rules" then return end
         GameTooltip:SetOwner(button, "ANCHOR_TOP")
         GameTooltip:AddLine(L("EditorBossTimersDescription"), 1, 1, 1, true)
         GameTooltip:Show()
