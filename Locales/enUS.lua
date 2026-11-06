@@ -20,6 +20,7 @@ if L then
     L["CurrentlyBusyInEncounter"] = "[BetterTimeline] Currently busy fighting %s <%s>!"
 
     --options
+    L["DropdownMultiple"] = "Multiple"
     L['EditTimingsForEncounter'] = "Edit Timings for Encounter"
     L['TimingsEditorTitle'] = "Timings Editor for: "
     L['useTimelineModule'] = "Use Better Timeline's Timeline"

@@ -10,7 +10,7 @@ local ThemedWidgets = private.ThemedWidgets
 -- drawn in the theme would go back to them with our fonts and one taken from them could carry another addon's
 local Type = "AtDropdown"
 local PulloutType = "AtDropdownPullout"
-local Version = 1
+local Version = 2
 local variables = {
     chevron = 12,
 }
@@ -77,9 +77,27 @@ end
 ThemedWidgets.Register(PulloutType, "Dropdown-Pullout", Version, SkinPullout, ApplyPulloutSettings)
 
 ---@param self AtDropdown
+local function UpdateMultiText(self)
+    if not self.multiselect or not self.pullout then
+        return
+    end
+    local selected = {}
+    for _, item in self.pullout:IterateItems() do
+        if item.type == "AtDropdownItemToggle" and item:GetValue() then
+            selected[#selected + 1] = item:GetText()
+        end
+    end
+    self.text:SetText(table.concat(selected, ", "))
+    if #selected > 1 and self.text:GetStringWidth() > self.text:GetWidth() then
+        self.text:SetText(private.getLocalisation("DropdownMultiple"))
+    end
+end
+
+---@param self AtDropdown
 local function ApplySettings(self)
     ThemeApply.FontRole(self.label, "Label")
     ThemeApply.FontRole(self.text, "Control")
+    UpdateMultiText(self)
     self.frame.AtDraw()
     self.frame:SetAlpha(self.disabled and 0.5 or 1)
 end
@@ -99,6 +117,17 @@ local function Skin(widget)
     widget.text:SetPoint("LEFT", widget.button_cover, "LEFT", 10, 0)
     widget.text:SetPoint("RIGHT", frame.AtChevron, "LEFT", -6, 0)
     widget.text:SetJustifyH("LEFT")
+    local stockSetText = widget.SetText
+    widget.SetText = function(self, text)
+        if self.multiselect and self.pullout then
+            UpdateMultiText(self)
+        else
+            stockSetText(self, text)
+        end
+    end
+    widget.button_cover:HookScript("OnSizeChanged", function()
+        UpdateMultiText(widget)
+    end)
     frame.AtDraw = function()
         ThemedWidgets.DrawField(field)
         frame.AtChevron:SetVertexColor(ThemeApply.MixColor("Muted", "Text", field.hover or 0))
