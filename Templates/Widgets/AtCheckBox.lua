@@ -19,6 +19,19 @@ local variables = {
 
 ---@param frame Frame
 local drawState = function(frame)
+    local style = ThemeApply.ControlStyle("CheckBox")
+    if style and not frame.atRadio then
+        frame.AtOff:SetTexture(ThemeApply.File(style.Box))
+        frame.AtOff:SetVertexColor(1, 1, 1, 1)
+        frame.AtOn:SetTexture(ThemeApply.File(style.Check))
+        frame.AtOn:SetVertexColor(1, 1, 1, (frame.atProgress or 0) >= 0.5 and 1 or 0)
+        frame.AtHover:SetColorTexture(1, 1, 1, 0.08 * (frame.atHover or 0))
+        frame.AtKnob:Hide()
+        for _, line in ipairs(frame.AtEdges) do line:Hide() end
+        return
+    end
+    frame.AtKnob:Show()
+    for _, line in ipairs(frame.AtEdges) do line:Show() end
     local switch = variables.switch
     local progress, hover = frame.atProgress or 0, frame.atHover or 0
     frame.AtOff:SetColorTexture(ThemeApply.Color("Track"))
@@ -41,6 +54,10 @@ end
 local function ApplySettings(self)
     local frame = self.frame
     local isRadio = self.atRadio
+    frame.atRadio = isRadio
+    local style = ThemeApply.ControlStyle("CheckBox")
+    frame.AtSwitch:SetSize(style and not isRadio and style.Size or variables.switch.width,
+        style and not isRadio and style.Size or variables.switch.height)
     frame.AtSwitch:SetShown(not isRadio)
     frame.AtRing:SetShown(isRadio)
     frame.AtDot:SetShown(isRadio)

@@ -14,12 +14,19 @@ local variables = {
 
 ---@param self AtSlider
 local function ApplySettings(self)
+    local style = ThemeApply.ControlStyle("Slider")
+    local thumb = self.slider:GetThumbTexture()
+    thumb:SetTexture(ThemeApply.File(style and style.Thumb or "circle"))
+    thumb:SetSize(style and style.Size or variables.thumb, style and style.Size or variables.thumb)
+    self.slider.AtTrack:SetTexture(style and ThemeApply.File(style.Track) or "Interface\\Buttons\\WHITE8X8")
+    self.slider.AtTrack:SetHeight(style and style.Height or variables.track)
+    self.slider.AtFillBar:SetShown(not style or style.Fill ~= false)
     ThemeApply.FontRole(self.label, "Label")
     ThemeApply.FontRole(self.lowtext, "Muted")
     ThemeApply.FontRole(self.hightext, "Muted")
     self.editbox:SetFontObject(ThemeApply.FontObject("Control"))
     self.editbox:SetTextColor(ThemeApply.FontObject("Control"):GetTextColor())
-    self.slider.AtTrack:SetVertexColor(ThemeApply.Color("Track"))
+    self.slider.AtTrack:SetVertexColor(ThemeApply.Color(style and "White" or "Track"))
     self.slider.AtFillBar:SetVertexColor(ThemeApply.Color("Accent"))
     self.slider.AtDraw()
     ThemedWidgets.DrawField(self.editbox.AtField)
@@ -48,7 +55,12 @@ local function Skin(widget)
 
     local state = {}
     local draw = function(progress)
-        thumb:SetVertexColor(ThemeApply.MixColor("Text", "Accent", progress))
+        local style = ThemeApply.ControlStyle("Slider")
+        if style then
+            thumb:SetVertexColor(ThemeApply.Color(style.Color))
+        else
+            thumb:SetVertexColor(ThemeApply.MixColor("Text", "Accent", progress))
+        end
     end
     ThemedWidgets.HookHover(slider, state, draw)
     slider.AtDraw = function()

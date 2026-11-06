@@ -314,6 +314,10 @@ private.TimelineFrame.ApplyTheme = function(frame, arrival, isHorizontal)
     local style = private.GetElementStyle("Timeline")
     private.ThemeApply.Backdrop(frame, style.Backdrop)
     frame.Background:SetShown(private.ThemeApply.Texture(frame.Background, style.Background))
+    frame.Header:SetShown(private.ThemeApply.Texture(frame.Header, style.Header))
+    if style.Header then
+        frame.Header:SetHeight(math.min(style.Header.Height or 18, frame:GetHeight()))
+    end
     frame.Edge:SetShown(private.ThemeApply.Texture(frame.Edge, style.Edge))
     frame.arrival, frame.isHorizontal = arrival, isHorizontal
     ApplyWash(frame, style.Wash, arrival, isHorizontal)
@@ -479,6 +483,10 @@ end
 private.TimelineFrame.AddThemeLayers = function(frame)
     frame.Background = frame:CreateTexture(nil, "BACKGROUND")
     frame.Background:SetAllPoints(frame)
+    frame.Header = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+    frame.Header:SetPoint("TOPLEFT")
+    frame.Header:SetPoint("TOPRIGHT")
+    frame.Header:Hide()
     frame.Edge = frame:CreateTexture(nil, "BORDER")
     frame.Edge:SetAllPoints(frame)
     frame.Wash = frame:CreateTexture(nil, "BACKGROUND", nil, 1)

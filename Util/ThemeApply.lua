@@ -178,7 +178,24 @@ ThemeApply.CreateSliced = function(parent, file, layer, subLevel, margin)
     return texture
 end
 
----gives a frame a rounded fill and edge (frame.AtFill, frame.AtEdge) behind its content
+---optional control specifications; themes without these retain the standard widgets
+ThemeApply.ControlStyle = function(name)
+    local controls = private.GetCurrentTheme().Controls
+    return controls and controls[name]
+end
+
+ThemeApply.PanelStyle = function(fill, edge)
+    local style = ThemeApply.ControlStyle("Panel")
+    for i, texture in ipairs({ fill, edge }) do
+        texture:SetTexture(ThemeApply.File(style and (i == 1 and style.Fill or style.Edge) or
+            (i == 1 and "panel" or "panel_edge")))
+        local margin = style and style.Slice or 8
+        texture:SetTextureSliceMargins(margin, margin, margin, margin)
+        texture:SetTextureSliceMode(Enum.UITextureSliceMode.Stretched)
+    end
+end
+
+---gives a frame a fill and edge (frame.AtFill, frame.AtEdge) behind its content
 ---@param frame Frame
 ---@return Texture fill, Texture edge
 ThemeApply.CreatePanel = function(frame)
@@ -188,6 +205,7 @@ ThemeApply.CreatePanel = function(frame)
         frame.AtEdge = ThemeApply.CreateSliced(frame, "panel_edge", "BORDER", 1)
         frame.AtEdge:SetAllPoints(frame)
     end
+    ThemeApply.PanelStyle(frame.AtFill, frame.AtEdge)
     return frame.AtFill, frame.AtEdge
 end
 
@@ -227,6 +245,8 @@ ThemeApply.AddShowAnimation = function(frame, scale)
         local time = private.GetMotion("Open")
         fade:SetDuration(time)
         grow:SetDuration(time)
+        local showScale = frame.atWindowStyle and frame.atWindowStyle.ShowScale or scale or 0.96
+        grow:SetScaleFrom(showScale, showScale)
         group:Play()
     end)
 end
@@ -625,6 +645,9 @@ ThemeApply.Window = function(frame, style, closeButton, title)
         shell.Fill:SetAllPoints(shell)
         shell.Grain = shell:CreateTexture(nil, "BACKGROUND", nil, -6)
         shell.Grain:SetAllPoints(shell)
+        shell.HeaderArt = shell:CreateTexture(nil, "BACKGROUND", nil, -5)
+        shell.HeaderArt:SetPoint("TOPLEFT")
+        shell.HeaderArt:SetPoint("TOPRIGHT")
         shell.Wash = shell:CreateTexture(nil, "BACKGROUND", nil, -5)
         shell.Wash:SetTexture(ThemeApply.File("gradient"))
         shell.Wash:SetPoint("TOPLEFT", 1, -1)
@@ -643,7 +666,7 @@ ThemeApply.Window = function(frame, style, closeButton, title)
         end)
         -- not when only a parent hid it, like UIParent while the interface is hidden
         frame:HookScript("OnHide", function()
-            if not frame:IsShown() then
+            if not frame:IsShown() and not frame.atWindowFadeComplete then
                 ThemeApply.PlayExit(frame, frame.atWindowStyle.Exit)
             end
         end)
@@ -660,6 +683,8 @@ ThemeApply.Window = function(frame, style, closeButton, title)
     shell.Fill:SetVertexColor(ThemeApply.Color(style.Fill))
     shell.Edge:SetVertexColor(ThemeApply.Color(style.Edge))
     shell.Grain:SetShown(ThemeApply.Texture(shell.Grain, style.Grain))
+    shell.HeaderArt:SetShown(ThemeApply.Texture(shell.HeaderArt, style.HeaderArt))
+    if style.HeaderArt then shell.HeaderArt:SetHeight(style.HeaderArt.Height or 40) end
     shell.EdgeArt:SetShown(ThemeApply.Texture(shell.EdgeArt, style.EdgeArt))
     shell.Edge:SetShown(not style.EdgeArt)
     applyDecor(shell, style.Decor)

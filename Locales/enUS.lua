@@ -322,6 +322,7 @@ if L then
     L["ResetThemeModificationsDescription"] = "Removes all your changes to the current theme."
     L["ThemeClassicDescription"] = "The original Ability Timeline look with modern settings windows, no effects."
     L["ThemeElvUIDescription"] = "Follows your active ElvUI profile's backdrop, border, accent colors and font. Quiet fades, flat panels and a faint white tick highlight. Requires ElvUI."
+    L["ThemeGW2UIDescription"] = "Painted GW2 UI panels, cream headings and your client's accent and fonts. Brush reveals, a cream tick highlight and soft icon fades. Requires GW2 UI."
     L["ThemePapercraftDescription"] = "Cream paper, ink and coloured pencil: icons are sketched in pencil before they show and torn off when they leave, with washi tape, doodles and a little confetti."
     L["ThemeMageArcaneDescription"] = "Deep indigo and arcane pink: glyphs drifting over the timeline, and everything appears out of spiralling glyphs and disintegrates into specks."
     L["ThemeMageFireDescription"] = "Charcoal, fire and gold: small flames rising on the timeline, and everything appears out of fire and burns away."

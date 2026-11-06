@@ -102,6 +102,7 @@ end
 ---draws a field idle (0) to hovered (1), focused fields get the accent edge
 ---@param field table
 ThemedWidgets.DrawField = function(field)
+    ThemeApply.PanelStyle(field.Fill, field.Edge)
     field.Fill:SetVertexColor(ThemeApply.MixColor("Field", "FieldHover", field.hover or 0))
     local focus = math.max(field.focus or 0, (field.hover or 0) * 0.3)
     field.Edge:SetVertexColor(ThemeApply.MixColor("Edge", "Accent", focus, nil, 0.8))
@@ -116,8 +117,17 @@ local BUTTON_FONTS = {
 ---draws a UIPanelButtonTemplate button in its style (button.atStyle: Plain, Primary or Danger)
 ---@param button Button
 ThemedWidgets.DrawButton = function(button)
+    ThemeApply.PanelStyle(button.AtFill, button.AtEdge)
     local hover = button.atHover or 0
-    if button.atStyle == "Primary" then
+    local style = ThemeApply.ControlStyle("Button")
+    if style and button.atStyle ~= "Danger" then
+        if style.File then
+            button.AtFill:SetTexture(ThemeApply.File(style.File))
+            button.AtFill:ClearTextureSlice()
+        end
+        button.AtFill:SetVertexColor(ThemeApply.Color(style.Fill, 0.85 + 0.15 * hover))
+        button.AtEdge:SetVertexColor(ThemeApply.Color(style.Edge))
+    elseif button.atStyle == "Primary" then
         button.AtFill:SetVertexColor(ThemeApply.Color("Accent", 0.85 + 0.15 * hover))
         button.AtEdge:SetVertexColor(ThemeApply.Color("Accent"))
     else

@@ -33,6 +33,15 @@ local variables = {
 local drawNavButton = function(button)
     local selected, hover = button.atSelectedProgress or 0, button.atHover or 0
     local r, g, b, a = ThemeApply.Color("Highlight")
+    local style = ThemeApply.ControlStyle("Navigation")
+    button.AtFill:SetTexture(ThemeApply.File(style and style.File or "panel"))
+    if style then
+        button.AtFill:ClearTextureSlice()
+        r, g, b, a = ThemeApply.Color(style.Color, 0.4)
+    else
+        button.AtFill:SetTextureSliceMargins(8, 8, 8, 8)
+        button.AtFill:SetTextureSliceMode(Enum.UITextureSliceMode.Stretched)
+    end
     button.AtFill:SetVertexColor(r, g, b, a * math.max(selected * 0.6, hover))
     r, g, b = ThemeApply.Color("Accent")
     button.AtMarker:SetVertexColor(r, g, b, selected)
@@ -58,9 +67,11 @@ local function ApplySettings(self)
     ThemeApply.Window(frame, style, frame.CloseButton, frame.Title)
     private.DrawFooterLinks(frame.Footer, style)
     for _, panel in ipairs({ frame.Nav, frame.Details }) do
+        ThemeApply.PanelStyle(panel.AtFill, panel.AtEdge)
         panel.AtFill:SetVertexColor(ThemeApply.Color("Card"))
         panel.AtEdge:SetVertexColor(ThemeApply.Color("Edge"))
     end
+    frame.Title:SetPoint("TOPLEFT", frame, "TOPLEFT", style.HeaderArt and 44 or variables.padding + 4, -10)
     for _, button in ipairs(frame.Nav.Buttons) do
         drawNavButton(button)
         ThemeApply.FontRole(button.New, "Label")
@@ -355,6 +366,41 @@ local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
     local frame = CreateFrame("Frame", "AbilityTimelineSettingsFrame", UIParent)
     frame:Hide()
+    -- This settings frame is retained by Options/Settings.lua, so its real contents can fade before hiding.
+    local hide, show = frame.Hide, frame.Show
+    local fadeKey = {}
+    frame.Hide = function(self)
+        local style = self.atWindowStyle
+        if not (style and style.FadeOut and self:IsShown() and private.AmbientEffectsEnabled()) then
+            if self.atClosing then
+                private.StopTween(fadeKey)
+                self.atClosing = nil
+                self:SetAlpha(1)
+            end
+            hide(self)
+            return
+        end
+        if self.atClosing then return end
+        self.atClosing = true
+        local alpha = self:GetAlpha()
+        private.Tween(fadeKey, alpha, 0, style.FadeOut, "linear", function(value)
+            self:SetAlpha(value)
+        end, function()
+            self.atClosing = nil
+            self.atWindowFadeComplete = true
+            hide(self)
+            self.atWindowFadeComplete = nil
+            self:SetAlpha(alpha)
+        end)
+    end
+    frame.Show = function(self)
+        if self.atClosing then
+            private.StopTween(fadeKey)
+            self.atClosing = nil
+            self:SetAlpha(1)
+        end
+        show(self)
+    end
     frame:SetFrameStrata("DIALOG")
     frame:SetSize(variables.width, variables.height)
     frame:SetPoint("CENTER", UIParent, "CENTER")
