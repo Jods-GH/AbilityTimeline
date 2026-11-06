@@ -109,18 +109,32 @@ local describeImport = function(encounterID, reminders, rules)
     return table.concat(lines, "\n")
 end
 
+local closeImportDialog = function()
+    local dialog = private.IMPORT_DIALOG_WINDOW
+    if not dialog then return end
+    private.IMPORT_DIALOG_WINDOW = nil
+    dialog:Release()
+    private.OnTourEvent("importClosed")
+end
+
+local closeExportDialog = function()
+    local dialog = private.EXPORT_DIALOG_WINDOW
+    if not dialog then return end
+    private.EXPORT_DIALOG_WINDOW = nil
+    dialog:Release()
+    private.OnTourEvent("exportClosed")
+end
+
 private.createImportDialog = function(editorWindow, encounterID, initialImportText)
+    if private.IMPORT_DIALOG_WINDOW then return private.IMPORT_DIALOG_WINDOW end
+    closeExportDialog()
     local dialog = AceGUI:Create("AtImportDialog")
     dialog:SetTitle(L("ImportDialogTitle"))
     dialog:SetNote(L("ImportDialogFreeOfCharge"))
     dialog:SetAutoAdjustHeight(true)
     private.IMPORT_DIALOG_WINDOW = dialog
 
-    local close = function()
-        dialog:Release()
-        private.IMPORT_DIALOG_WINDOW = nil
-        private.OnTourEvent("importClosed")
-    end
+    local close = closeImportDialog
     dialog.closeButton:SetScript("OnClick", close)
 
     local importText = AceGUI:Create("AtMultiLineEditBox")
@@ -216,23 +230,21 @@ private.showImportDialog = function(encounterID, editorWindow, initialImportText
 end
 
 private.showExportDialog = function(encounterID)
-    if not encounterID then return end
+    if not encounterID or private.EXPORT_DIALOG_WINDOW then return end
     local reminders = private.db.profile.reminders[encounterID] or {}
     local rules = private.db.profile.timerRules and private.db.profile.timerRules[encounterID]
     if #reminders == 0 and not rules then
         return
     end
 
+    closeImportDialog()
+
     local dialog = AceGUI:Create("AtImportDialog")
     dialog:SetTitle(L("ExportDialogTitle"))
     dialog:SetAutoAdjustHeight(true)
     private.EXPORT_DIALOG_WINDOW = dialog
     dialog.atEncounterID = encounterID
-    local close = function()
-        dialog:Release()
-        private.EXPORT_DIALOG_WINDOW = nil
-        private.OnTourEvent("exportClosed")
-    end
+    local close = closeExportDialog
     dialog.closeButton:SetScript("OnClick", close)
 
     local formatGroup = AceGUI:Create("SimpleGroup")
