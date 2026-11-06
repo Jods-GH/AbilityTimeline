@@ -214,9 +214,16 @@ end
 ---@param frame Frame a BackdropTemplate frame
 ---@param spec table
 ThemeApply.Backdrop = function(frame, spec)
+    local bgFile, edgeFile = spec.BgFile, spec.EdgeFile
+    if spec.Background then
+        bgFile = SharedMedia:Fetch("background", spec.Background)
+    end
+    if spec.Border then
+        edgeFile = SharedMedia:Fetch("border", spec.Border)
+    end
     frame:SetBackdrop({
-        bgFile = spec.Background and SharedMedia:Fetch("background", spec.Background) or spec.BgFile,
-        edgeFile = spec.Border and SharedMedia:Fetch("border", spec.Border) or spec.EdgeFile,
+        bgFile = bgFile,
+        edgeFile = edgeFile,
         tile = true,
         tileSize = spec.TileSize or 32,
         edgeSize = spec.EdgeSize or 1,
