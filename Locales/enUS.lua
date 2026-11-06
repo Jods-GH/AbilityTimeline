@@ -21,6 +21,9 @@ if L then
 
     --options
     L["DropdownMultiple"] = "Multiple"
+    L["DropdownSearch"] = "Search..."
+    L["DropdownNoResults"] = "No matches"
+    L["DropdownPreviewSound"] = "Preview sound"
     L['EditTimingsForEncounter'] = "Edit Timings for Encounter"
     L['TimingsEditorTitle'] = "Timings Editor for: "
     L['useTimelineModule'] = "Use Better Timeline's Timeline"

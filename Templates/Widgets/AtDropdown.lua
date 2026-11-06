@@ -10,15 +10,28 @@ local ThemedWidgets = private.ThemedWidgets
 -- drawn in the theme would go back to them with our fonts and one taken from them could carry another addon's
 local Type = "AtDropdown"
 local PulloutType = "AtDropdownPullout"
-local Version = 2
+local Version = 4
 local variables = {
     chevron = 12,
+    searchThreshold = 12,
+    searchHeight = 32,
+    searchMaxHeight = 320,
 }
 -- the stock items the stock dropdown makes and the types they are swapped for
 local ITEM_TYPES = {
     ["Dropdown-Item-Toggle"] = "AtDropdownItemToggle",
     ["Dropdown-Item-Execute"] = "AtDropdownItemExecute",
 }
+
+local function UpdateItemPreview(self)
+    if not self.previewButton then
+        return
+    end
+    local enabled = self.userdata.atPreview ~= nil
+    self.previewButton:SetShown(enabled)
+    self.previewButton:SetEnabled(not self.disabled)
+    self.text:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", enabled and -28 or -8, 0)
+end
 
 ---@param self table -- an AtDropdownItem widget
 local function ApplyItemSettings(self)
@@ -27,6 +40,7 @@ local function ApplyItemSettings(self)
     self.check:SetVertexColor(ThemeApply.Color("Accent"))
     ThemeApply.FontRole(self.text, "MenuItem")
     self.text:SetAlpha(self.disabled and 0.5 or 1)
+    UpdateItemPreview(self)
 end
 
 for stockType, itemType in pairs(ITEM_TYPES) do
@@ -59,6 +73,37 @@ local function ApplyPulloutSettings(self)
     self.frame.AtFill:SetVertexColor(ThemeApply.Color("Body"))
     self.frame.AtEdge:SetVertexColor(ThemeApply.Color("Edge"))
     self.slider.AtDraw()
+    self.search:SetFontObject(ThemeApply.FontObject("Control"))
+    self.search:SetTextColor(ThemeApply.FontObject("Control"):GetTextColor())
+    ThemeApply.FontRole(self.searchHint, "Muted")
+    ThemeApply.FontRole(self.noResults, "Muted")
+    ThemedWidgets.DrawField(self.search.AtField)
+end
+
+local function FilterItems(self)
+    if not self.searchEnabled then
+        return
+    end
+    local query = self.search:GetText():lower()
+    self.searchHint:SetShown(query == "")
+    local visible = 0
+    for _, item in self:IterateItems() do
+        local matches = item.type == "AtDropdownItemExecute" or
+            item:GetText():lower():find(query, 1, true) ~= nil
+        item.frame:SetShown(matches)
+        if matches then
+            item:SetPoint("TOP", self.itemFrame, "TOP", 0, -2 - visible * 16)
+            visible = visible + 1
+        end
+    end
+    self.noResults:SetShown(visible == 0)
+    local height = math.max(visible, 1) * 16 + 8
+    self.itemFrame:SetHeight(height)
+    self.frame:SetHeight(math.min(height + 34 + variables.searchHeight,
+        self.maxHeight, variables.searchMaxHeight))
+    self.slider:SetValue(0)
+    self:SetScroll(0)
+    self:FixScroll()
 end
 
 ---@param widget AtDropdownPullout
@@ -68,6 +113,50 @@ local function SkinPullout(widget)
     ThemeApply.CreatePanel(widget.frame)
     widget.slider:SetBackdrop(nil)
     ThemedWidgets.SkinScrollBar(widget.slider)
+
+    local search = CreateFrame("EditBox", nil, widget.frame)
+    widget.search = search
+    search:SetAutoFocus(false)
+    search:SetHeight(24)
+    search:SetPoint("TOPLEFT", widget.frame, "TOPLEFT", 8, -8)
+    search:SetPoint("TOPRIGHT", widget.frame, "TOPRIGHT", -8, -8)
+    search:SetTextInsets(6, 6, 0, 0)
+    search.AtField = ThemedWidgets.CreateField(search, search, 0, 0, 0, 0)
+    widget.searchHint = search:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    widget.searchHint:SetPoint("LEFT", search, "LEFT", 6, 0)
+    widget.searchHint:SetText(private.getLocalisation("DropdownSearch"))
+    widget.noResults = widget.scrollFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    widget.noResults:SetPoint("TOPLEFT", widget.scrollFrame, "TOPLEFT", 6, -2)
+    widget.noResults:SetPoint("RIGHT", widget.scrollFrame, "RIGHT", -6, 0)
+    widget.noResults:SetText(private.getLocalisation("DropdownNoResults"))
+    widget.noResults:Hide()
+    search:SetScript("OnTextChanged", function()
+        FilterItems(widget)
+    end)
+    search:SetScript("OnEscapePressed", function()
+        widget:Close()
+    end)
+    search:SetScript("OnEnterPressed", function()
+        search:ClearFocus()
+    end)
+    widget.frame:HookScript("OnHide", function()
+        search:ClearFocus()
+    end)
+
+    local stockOpen = widget.Open
+    widget.Open = function(self, ...)
+        self.searchEnabled = #self.items > variables.searchThreshold
+        search:SetShown(self.searchEnabled)
+        self.noResults:Hide()
+        self.scrollFrame:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 6,
+            -12 - (self.searchEnabled and variables.searchHeight or 0))
+        search:SetText("")
+        stockOpen(self, ...)
+        FilterItems(self)
+        if self.searchEnabled then
+            search:SetFocus()
+        end
+    end
     local stockAddItem = widget.AddItem
     widget.AddItem = function(self, item)
         stockAddItem(self, ownItem(item))
@@ -105,6 +194,42 @@ end
 ---@param widget AtDropdown
 local function Skin(widget)
     local frame, dropdown = widget.frame, widget.dropdown
+    widget.SetItemPreview = function(self, callback, excludedValue)
+        for _, item in self.pullout:IterateItems() do
+            local enabled = callback and item.userdata.value ~= excludedValue and
+                item.type == "AtDropdownItemToggle"
+            item.userdata.atPreview = enabled and callback or nil
+            if enabled and not item.previewButton then
+                local button = CreateFrame("Button", nil, item.frame)
+                item.previewButton = button
+                button:SetSize(18, 16)
+                button:SetPoint("RIGHT", item.frame, "RIGHT", -6, 0)
+                button:SetNormalTexture("Interface\\Common\\VoiceChat-Speaker")
+                button:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+                button:SetScript("OnClick", function()
+                    local preview = item.userdata.atPreview
+                    if preview then
+                        preview(item.userdata.value)
+                    end
+                end)
+                button:SetScript("OnEnter", function()
+                    GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
+                    GameTooltip:SetText(private.getLocalisation("DropdownPreviewSound"))
+                    GameTooltip:Show()
+                    GameTooltip:SetFrameLevel(math.max(GameTooltip:GetFrameLevel(), button:GetFrameLevel() + 1))
+                end)
+                button:SetScript("OnLeave", function()
+                    GameTooltip:Hide()
+                end)
+                button:SetScript("OnHide", function()
+                    if GameTooltip:IsOwned(button) then
+                        GameTooltip:Hide()
+                    end
+                end)
+            end
+            UpdateItemPreview(item)
+        end
+    end
     ThemedWidgets.DiscardTextures(dropdown)
     ThemedWidgets.DiscardTextures(widget.button)
 

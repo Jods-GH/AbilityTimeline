@@ -1588,6 +1588,21 @@ local addLook = function(self, reminder, isRule)
     end)
 end
 
+local soundPreviewHandle
+local previewSound = function(value)
+    if soundPreviewHandle then
+        StopSound(soundPreviewHandle)
+        soundPreviewHandle = nil
+    end
+    if value ~= NONE then
+        local soundFile = SharedMedia:Fetch("sound", value, true)
+        if soundFile then
+            local _, handle = PlaySoundFile(soundFile, "Master")
+            soundPreviewHandle = handle
+        end
+    end
+end
+
 ---@param self AtTimingsEditorDataFrame
 ---@param reminder table
 local addSound = function(self, reminder)
@@ -1628,8 +1643,10 @@ local addSound = function(self, reminder)
         table.insert(soundOrder, name)
     end
     local sound = addDropdown(self, "EditorSound", soundList, soundOrder)
+    sound:SetItemPreview(previewSound, NONE)
     sound:SetValue(reminder.sound and soundList[reminder.sound] and reminder.sound or NONE)
     sound:SetCallback("OnValueChanged", function(_, _, value)
+        previewSound(value)
         local hadSound = reminder.sound ~= nil
         update(self, nil, function(r) r.sound = value ~= NONE and value or nil end)
         if hadSound ~= (reminder.sound ~= nil) then
