@@ -261,7 +261,12 @@ local createControl = function(row)
     elseif row.kind == "Media" then
         control = AceGUI:Create("AtMediaPicker")
         control:SetMediaType(row.mediaType)
-        control:SetValue(getValue(row))
+        if row.mediaType == "font" and row.themePath then
+            local font = private.GetThemeValue(row.themePath:gsub("%.Media$", ""))
+            control:SetValue(font.Media or font.Path or font.Object)
+        else
+            control:SetValue(getValue(row))
+        end
     elseif row.kind == "Color" then
         control = AceGUI:Create("AtColorPicker")
         control:SetLabel("")

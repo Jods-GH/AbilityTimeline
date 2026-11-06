@@ -268,6 +268,10 @@ private.modernize = function()
         private.db.profile.big_icon_settings = {}
     end
 
+    if private.db.profile.big_icon_settings.strata == nil then
+        private.db.profile.big_icon_settings.strata = UIParent:GetFrameStrata()
+    end
+
     if private.db.profile.big_icon_settings.border == nil then
         if private.db.profile.big_icon_settings.dispellBorders == true then
             private.db.profile.big_icon_settings.border = private.IconBorderSettings.dispell

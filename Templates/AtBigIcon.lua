@@ -79,6 +79,7 @@ local function ApplySettings(self)
 	local frame = self.frame
 	local style = private.GetElementStyle("BigIcon")
 	local iconSettings = private.db.profile.big_icon_settings
+	frame:SetFrameStrata(iconSettings.strata)
 	local size = private.GetBigIconSize()
 	frame:SetSize(size, size)
 	handleAnchors(frame)
