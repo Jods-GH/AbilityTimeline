@@ -6,7 +6,7 @@
 ## Author: Jods
 ## X-Curse-Project-ID: 1365171
 ## X-Wago-ID: qGYMWpGg
-## OptionalDeps: Ace3, DevTool, CustomNames, ElvUI, GW2_UI, DBM-Core, BigWigs, LibEditMode, Masque
+## OptionalDeps: Ace3, DevTool, CustomNames, ElvUI, GW2_UI, EllesmereUI, EllesmereUIMinimap, DBM-Core, BigWigs, LibEditMode, Masque
 ## AddonCompartmentFunc: AbilityTimeline_AddonCompartmentFunction
 ## IconTexture: Interface\AddOns\AbilityTimeline\Media\Textures\logo_transparent.tga
 ## Category-enUS: Dungeons & Raids

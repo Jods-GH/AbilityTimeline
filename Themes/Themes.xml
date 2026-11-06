@@ -2,6 +2,7 @@
 ..\..\FrameXML\UI.xsd">
   <Script file="Classic.lua"/>
   <Script file="ElvUI.lua"/>
+  <Script file="EllesmereUI.lua"/>
   <Script file="GW2UI.lua"/>
   <Script file="Papercraft.lua"/>
   <Script file="WeatherClear.lua"/>

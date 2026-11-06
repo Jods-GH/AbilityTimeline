@@ -635,7 +635,7 @@ ThemeApply.Window = function(frame, style, closeButton, title)
     frame.atWindowStyle = style
     local shell = frame.AtShell
     if not shell then
-        shell = CreateFrame("Frame", nil, frame)
+        shell = CreateFrame("Frame", nil, frame, "BackdropTemplate")
         shell:SetAllPoints(frame)
         shell:SetFrameLevel(frame:GetFrameLevel())
         shell.Shadow = ThemeApply.CreateSliced(shell, "shadow", "BACKGROUND", -8, 24)
@@ -680,13 +680,19 @@ ThemeApply.Window = function(frame, style, closeButton, title)
         end)
     end
     shell.Shadow:SetVertexColor(ThemeApply.Color("Shadow"))
+    if style.Backdrop then
+        ThemeApply.Backdrop(shell, style.Backdrop)
+    else
+        shell:SetBackdrop(nil)
+    end
+    shell.Fill:SetShown(not style.Backdrop)
     shell.Fill:SetVertexColor(ThemeApply.Color(style.Fill))
     shell.Edge:SetVertexColor(ThemeApply.Color(style.Edge))
     shell.Grain:SetShown(ThemeApply.Texture(shell.Grain, style.Grain))
     shell.HeaderArt:SetShown(ThemeApply.Texture(shell.HeaderArt, style.HeaderArt))
     if style.HeaderArt then shell.HeaderArt:SetHeight(style.HeaderArt.Height or 40) end
     shell.EdgeArt:SetShown(ThemeApply.Texture(shell.EdgeArt, style.EdgeArt))
-    shell.Edge:SetShown(not style.EdgeArt)
+    shell.Edge:SetShown(not style.EdgeArt and not style.Backdrop)
     applyDecor(shell, style.Decor)
     shell.Wash:SetHeight(style.WashHeight or 120)
     shell.Wash:SetVertexColor(ThemeApply.Color(style.Wash))

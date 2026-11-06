@@ -71,7 +71,13 @@ local function ApplySettings(self)
         panel.AtFill:SetVertexColor(ThemeApply.Color("Card"))
         panel.AtEdge:SetVertexColor(ThemeApply.Color("Edge"))
     end
-    frame.Title:SetPoint("TOPLEFT", frame, "TOPLEFT", style.HeaderArt and 44 or variables.padding + 4, -10)
+    local headerHeight = style.HeaderHeight or variables.headerHeight
+    local headerOffset = math.max(0, headerHeight - variables.headerHeight)
+    frame.Title:SetPoint("TOPLEFT", frame, "TOPLEFT", style.HeaderArt and 44 or variables.padding + 4, -10 - headerOffset)
+    frame.TestButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -40, -6 - headerOffset)
+    frame.CloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -8, -6 - headerOffset)
+    frame.Nav:SetPoint("TOPLEFT", frame, "TOPLEFT", variables.padding, -headerHeight - variables.padding)
+    frame.Details:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -variables.padding, -headerHeight - variables.padding)
     for _, button in ipairs(frame.Nav.Buttons) do
         drawNavButton(button)
         ThemeApply.FontRole(button.New, "Label")
