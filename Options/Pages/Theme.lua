@@ -208,14 +208,17 @@ local getGroups = function()
     for _, theme in ipairs(private.GetSelectableThemes()) do
         local group = groups[#groups]
         local weather = theme.Weather ~= nil
-        if #groups == 1 or group.Class ~= theme.Class or group.Weather ~= weather then
+        local addon = theme.Addon ~= nil
+        if #groups == 1 or group.Class ~= theme.Class or group.Weather ~= weather or group.Addon ~= addon then
             local name = L("ThemeGroupGeneral")
-            if theme.Class then
+            if addon then
+                name = L("ThemeGroupAddons")
+            elseif theme.Class then
                 name = private.GetClassName(theme.Class)
             elseif weather then
                 name = L("ThemeGroupWeather")
             end
-            group = { Name = name, Class = theme.Class, Weather = weather, Themes = {} }
+            group = { Name = name, Class = theme.Class, Weather = weather, Addon = addon, Themes = {} }
             table.insert(groups, group)
         end
         table.insert(group.Themes, theme)
@@ -376,6 +379,7 @@ local fillList = function(list, query)
                 card:SetDisabled(not private.IsThemeAvailable(theme.Name))
                 card:SetSelected(theme.Name == selectedKey)
                 card:SetCallback("OnClick", function()
+                    if not private.IsThemeAvailable(theme.Name) then return end
                     selectedKey = theme.Name
                     for key, other in pairs(cards) do
                         other:SetSelected(key == selectedKey)
@@ -388,6 +392,7 @@ local fillList = function(list, query)
                     end)
                 end)
                 card:SetCallback("OnEnter", function()
+                    if not private.IsThemeAvailable(theme.Name) then return end
                     showTheme(theme)
                 end)
                 cards[theme.Name] = card
@@ -443,8 +448,6 @@ private.RegisterSettingsPage({
     Render = render,
     OnShow = function()
         isShown = true
-        -- the prompt after an update shows this page once
-        private.GetThemeSettings().promptVersion = private.THEME_PROMPT_VERSION
     end,
     -- a theme still previewed is used or reverted as the player answers
     OnHide = function()
@@ -494,14 +497,12 @@ private.RegisterSettingsPage({
     },
 })
 
----opens the theme page once per profile (again whenever THEME_PROMPT_VERSION is raised), not during combat or
----encounters, call it again once they ended. The welcome tour goes first, it shows the theme page itself
+---shows the welcome tour when due, not during combat or encounters; call it again once they ended
 local promptedThisSession = false
 
 private.checkThemePrompt = function()
     if promptedThisSession then return end
-    local tourDue = private.IsTourDue()
-    if not tourDue and private.GetThemeSettings().promptVersion >= private.THEME_PROMPT_VERSION then
+    if not private.IsTourDue() then
         return
     end
     if not private.ACTIVE_EDITMODE_LAYOUT then
@@ -510,9 +511,5 @@ private.checkThemePrompt = function()
     end
     if InCombatLockdown() or IsEncounterInProgress() then return end
     promptedThisSession = true
-    if tourDue then
-        private.ShowTourWelcome()
-    else
-        private.openSettings("Theme")
-    end
+    private.ShowTourWelcome()
 end

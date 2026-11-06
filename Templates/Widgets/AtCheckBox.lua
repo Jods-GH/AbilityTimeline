@@ -8,7 +8,7 @@ local ThemedWidgets = private.ThemedWidgets
 -- it turns on, a one pixel edge and a square knob sliding to the end it is at; a ring with a dot for
 -- SetType("radio")
 local Type = "AtCheckBox"
-local Version = 1
+local Version = 2
 local variables = {
     switch = { width = 36, height = 18, knob = 12, inset = 3 },
     radio = { size = 16, dot = 8 },
@@ -118,6 +118,20 @@ local function Skin(widget)
         frame.atHover = progress
         drawState(frame)
     end)
+
+    -- Stock setters desaturate the discarded check texture through a legacy global.
+    -- Our switch draws its own state, so only retain the value and button interaction.
+    widget.SetValue = function(self, value)
+        self.checked = value
+    end
+    widget.SetDisabled = function(self, disabled)
+        self.disabled = disabled
+        if disabled then
+            self.frame:Disable()
+        else
+            self.frame:Enable()
+        end
+    end
 
     local stockToggleChecked = widget.ToggleChecked
     widget.ToggleChecked = function(self)

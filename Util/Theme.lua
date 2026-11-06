@@ -12,7 +12,6 @@ local SharedMedia = LibStub("LibSharedMedia-3.0")
 -- TimeOfDay overrides a theme per period of the realm's day (GetGameTime), faded in as the period changes.
 
 private.DEFAULT_THEME = "Classic"
-private.THEME_PROMPT_VERSION = 7
 private.Themes = {}
 
 local META_KEYS = {
@@ -25,6 +24,7 @@ local META_KEYS = {
     Clients = true,
     SharedMedia = true,
     Class = true,
+    Addon = true,
     Spec = true,
     Weather = true,
     TimeOfDay = true,
@@ -192,7 +192,7 @@ end
 ---@return table
 private.GetThemeSettings = function()
     if not private.db.profile.theme then
-        private.db.profile.theme = { key = private.DEFAULT_THEME, promptVersion = 0, modifications = {} }
+        private.db.profile.theme = { key = "Default", modifications = {} }
     end
     return private.db.profile.theme
 end
@@ -223,7 +223,7 @@ end
 ---@return string
 local resolveClassTheme = function()
     local _, class = UnitClass("player")
-    return findClassTheme(class) or private.DEFAULT_THEME
+    return findClassTheme(class) or private.GetDefaultThemeKey()
 end
 
 -- the weather types in the order their themes are listed, as named in Enum.WeatherType
@@ -284,9 +284,12 @@ local findWeatherTheme = function(weather)
     end
 end
 
--- the automatic selections in the order they are listed, each picks the theme for the current character. Disabled until all classes and specs have themes.
-private.AUTO_THEMES = {} -- "Spec", "Class" 
+-- Automatic selections in display order. Class/spec selections stay disabled until all have themes.
+private.AUTO_THEMES = { "Default" } -- "Spec", "Class"
 local autoResolvers = {
+    Default = function()
+        return private.GetDefaultThemeKey()
+    end,
     Spec = function()
         local _, class = UnitClass("player")
         local spec = C_SpecializationInfo.GetSpecialization()
@@ -301,7 +304,7 @@ if C_Weather then
     table.insert(private.AUTO_THEMES, "Weather")
     autoResolvers.Weather = function()
         local weather = private.UpdateWeather()
-        return weather and findWeatherTheme(weather) or findWeatherTheme("Clear") or private.DEFAULT_THEME
+        return weather and findWeatherTheme(weather) or findWeatherTheme("Clear") or private.GetDefaultThemeKey()
     end
 end
 
@@ -337,6 +340,18 @@ private.IsThemeAvailable = function(key)
     return theme.Available ~= false
 end
 
+---the available addon theme with the first key alphabetically, or Classic without one
+---@return string
+private.GetDefaultThemeKey = function()
+    local selected
+    for key, theme in pairs(private.Themes) do
+        if theme.Addon and private.IsThemeAvailable(key) and (not selected or key < selected) then
+            selected = key
+        end
+    end
+    return selected or private.DEFAULT_THEME
+end
+
 ---the localized name of a class file name such as "MAGE", the name of its class theme on clients without the class
 ---@param class string
 ---@return string
@@ -356,6 +371,9 @@ end
 ---@param theme table
 ---@return number
 local groupOrder = function(theme)
+    if theme.Addon then
+        return 3
+    end
     if theme.Class then
         return 2
     end
@@ -418,17 +436,17 @@ end
 ---what the player chose, a theme or an automatic selection
 ---@return string
 private.GetThemeSelection = function()
-    return private.GetThemeSettings().key
+    return private.GetThemeSettings().key or "Default"
 end
 
----the saved theme, the one an automatic selection picks, or Classic while it is unavailable (the saved choice is kept)
+---the saved theme, the one an automatic selection picks, or the default while unavailable (the saved choice is kept)
 ---@return string
 private.GetSavedThemeKey = function()
     local key = private.ResolveThemeKey(private.GetThemeSelection())
     if private.IsThemeAvailable(key) then
         return key
     end
-    return private.DEFAULT_THEME
+    return private.GetDefaultThemeKey()
 end
 
 ---@return string
@@ -567,7 +585,7 @@ private.ApplyTheme = function(key, save)
         private.GetThemeSettings().key = key
     end
     key = private.ResolveThemeKey(key)
-    currentKey = private.IsThemeAvailable(key) and key or private.DEFAULT_THEME
+    currentKey = private.IsThemeAvailable(key) and key or private.GetDefaultThemeKey()
     private.RefreshTheme()
 end
 
@@ -597,7 +615,7 @@ private.SetTestWeather = function(weather)
     testWeather = weather
     private.UpdateWeather()
     if testWeather and not private.isThemePageShown() then
-        currentKey = findWeatherTheme(testWeather) or findWeatherTheme("Clear") or private.DEFAULT_THEME
+        currentKey = findWeatherTheme(testWeather) or findWeatherTheme("Clear") or private.GetDefaultThemeKey()
         private.RefreshTheme(WEATHER_FADE)
     else
         private.RestoreSavedTheme(WEATHER_FADE)

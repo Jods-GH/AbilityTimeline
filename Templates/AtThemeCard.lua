@@ -6,7 +6,7 @@ local ThemeApply = private.ThemeApply
 
 -- a theme in the theme selection: its name, description, palette and whether it animates
 local Type = "AtThemeCard"
-local Version = 1
+local Version = 2
 local variables = {
     gap = 3,
     -- the height of a line of text to its font size
@@ -18,12 +18,15 @@ local variables = {
     swatchColors = { "Body", "Field", "Accent2", "Accent", "Text" },
 }
 
----a color of a theme's palette, Classic's where the theme leaves it out
----@param theme table
----@param name string
----@return table
-local getPaletteColor = function(theme, name)
-    return theme.Palette and theme.Palette[name] or private.Themes[private.DEFAULT_THEME].Palette[name]
+---@param self AtThemeCard
+local updateSwatches = function(self)
+    if not self.theme then return end
+    local key = private.IsThemeAvailable(self.theme.Name) and self.theme.Name or private.DEFAULT_THEME
+    private.DrawInTheme(key, function()
+        for i, swatch in ipairs(self.frame.Swatches) do
+            swatch:SetVertexColor(ThemeApply.Color(variables.swatchColors[i], 1))
+        end
+    end)
 end
 
 ---@param frame Button
@@ -69,6 +72,7 @@ local function ApplySettings(self)
     end
     draw(frame)
     frame:SetAlpha(self.disabled and 0.5 or 1)
+    updateSwatches(self)
     updateHeight(self)
 end
 
@@ -83,6 +87,7 @@ end
 
 ---@param self AtThemeCard
 local function OnRelease(self)
+    self.theme = nil
     self.frame:ClearAllPoints()
     self.frame:Hide()
 end
@@ -90,14 +95,13 @@ end
 ---@param self AtThemeCard
 ---@param theme table
 local function SetTheme(self, theme)
+    self.theme = theme
     local frame = self.frame
     frame.Title:SetText(theme.DisplayName or theme.Name)
     frame.Description:SetText(private.IsThemeAvailable(theme.Name) and theme.Description or
         private.getLocalisation("ThemeUnavailable"))
     frame.Badge:SetText(private.getLocalisation(theme.Effects and "ThemeAnimated" or "ThemeStatic"))
-    for i, swatch in ipairs(frame.Swatches) do
-        swatch:SetVertexColor(ThemeApply.Color(getPaletteColor(theme, variables.swatchColors[i]), 1))
-    end
+    updateSwatches(self)
 end
 
 ---@param self AtThemeCard
