@@ -723,3 +723,11 @@ private.toggleLongSettingsLabels = function()
         rerender()
     end
 end
+
+private.RegisterWindowState("settings", function()
+    if window and window.frame:IsShown() then
+        return { page = currentPage and currentPage.key }
+    end
+end, function(state)
+    private.openSettings(state.page)
+end)

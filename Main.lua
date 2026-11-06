@@ -43,6 +43,9 @@ function AbilityTimeline:OnInitialize()
         private.evaluateBigIconPositions()
         private.evaluateTextPositions()
     end
+    private.db.RegisterCallback(private, "OnDatabaseShutdown", function()
+        private.saveOpenWindows()
+    end)
     private.db.RegisterCallback(private, "OnProfileChanged", onProfileChanged)
     private.db.RegisterCallback(private, "OnProfileCopied", onProfileChanged)
     private.db.RegisterCallback(private, "OnProfileReset", onProfileChanged)
@@ -337,6 +340,10 @@ function AbilityTimeline:PLAYER_ENTERING_WORLD(event, isInitialLogin, isReloadin
     -- the Reminders page reads the encounters from the journal
     if not C_AddOns.IsAddOnLoaded("Blizzard_EncounterJournal") then
         C_AddOns.LoadAddOn("Blizzard_EncounterJournal")
+    end
+    if isInitialLogin or isReloadingUi then
+        -- Blizzard closes Escape-dismissable windows during PLAYER_ENTERING_WORLD.
+        C_Timer.After(0, private.restoreOpenWindows)
     end
 end
 

@@ -201,3 +201,9 @@ private.RegisterSettingsPage({
         return rows
     end,
 })
+
+private.RegisterWindowState("picker", function()
+    return private.IsEncounterPickerShown() and {} or nil
+end, function()
+    private.ShowEncounterPicker(openEncounter)
+end)

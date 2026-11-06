@@ -541,3 +541,12 @@ local function Constructor()
 end
 
 AceGUI:RegisterWidgetType(Type, Constructor, Version)
+
+private.RegisterWindowState("copyLink", function()
+    local window = private.TextCopyFrame
+    if window and window.frame:IsShown() then
+        return { text = window.EditBox:GetText() }
+    end
+end, function(state)
+    private.ShowCopyLink(state.text)
+end)

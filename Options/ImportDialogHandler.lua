@@ -124,6 +124,8 @@ private.createImportDialog = function(editorWindow, encounterID, initialImportTe
     dialog.closeButton:SetScript("OnClick", close)
 
     local importText = AceGUI:Create("AtMultiLineEditBox")
+    dialog.atEncounterID = encounterID
+    dialog.atImportText = importText
     importText:SetLabel(L("ImportTextPlaceholder"))
     importText:SetFullWidth(true)
     importText:SetNumLines(variables.importLines)
@@ -225,6 +227,7 @@ private.showExportDialog = function(encounterID)
     dialog:SetTitle(L("ExportDialogTitle"))
     dialog:SetAutoAdjustHeight(true)
     private.EXPORT_DIALOG_WINDOW = dialog
+    dialog.atEncounterID = encounterID
     local close = function()
         dialog:Release()
         private.EXPORT_DIALOG_WINDOW = nil
@@ -282,3 +285,21 @@ private.showExportDialog = function(encounterID)
     show(tContains(EXPORT_FORMATS, private.db.profile.exportFormat) and private.db.profile.exportFormat or "encoded")
     private.OnTourEvent("exportOpen")
 end
+
+private.RegisterWindowState("import", function()
+    local dialog = private.IMPORT_DIALOG_WINDOW
+    if dialog and dialog.frame:IsShown() then
+        return { encounterID = dialog.atEncounterID, text = dialog.atImportText:GetText() }
+    end
+end, function(state)
+    private.showImportDialog(state.encounterID, private.TIMINGS_EDITOR_WINDOW, state.text)
+end)
+
+private.RegisterWindowState("export", function()
+    local dialog = private.EXPORT_DIALOG_WINDOW
+    if dialog and dialog.frame:IsShown() then
+        return { encounterID = dialog.atEncounterID }
+    end
+end, function(state)
+    private.showExportDialog(state.encounterID)
+end)

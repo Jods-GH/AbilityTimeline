@@ -182,3 +182,7 @@ private.ShowEncounterPicker = function(onPick)
     picker.frame:Show()
     picker.box:SetFocus()
 end
+
+private.IsEncounterPickerShown = function()
+    return picker and picker.frame:IsShown()
+end

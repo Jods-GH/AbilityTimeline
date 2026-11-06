@@ -49,6 +49,7 @@ Util\Particles.lua
 Util\ThemeApply.lua
 Util\Transitions.lua
 Util\Debug.lua
+Options\WindowState.lua
 Util\EditMode.lua
 Util\ModernizeSettings.lua
 Util\Tooltip.lua

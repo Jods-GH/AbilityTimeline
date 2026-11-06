@@ -55,3 +55,23 @@ private.getTimingsEditorFrame = function()
     private.Debug("Returning existing Timings Editor Frame")
     return private.TIMINGS_EDITOR_WINDOW
 end
+
+private.RegisterWindowState("editor", function()
+    local frame = private.TIMINGS_EDITOR_WINDOW
+    if not (frame and frame.frame:IsShown()) then return end
+    return {
+        dungeonEncounterID = frame.encounterID,
+        journalEncounterID = frame.journalEncounterID,
+        journalInstanceID = frame.journalInstanceID,
+        instanceName = frame.instanceName,
+        name = frame.encounterName,
+        mode = frame.mode,
+        stage = frame.stage,
+    }
+end, function(state)
+    private.openTimingsEditor(state)
+    local frame = private.TIMINGS_EDITOR_WINDOW
+    frame.mode = state.mode or "stages"
+    frame.stage = state.stage or 1
+    frame:RefreshReminders()
+end)
