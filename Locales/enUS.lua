@@ -638,7 +638,7 @@ if L then
     L["EditorAddRule"] = "+ Boss timer"
     L["EditorRulesEmpty"] = "No boss timers changed yet. Use + Boss timer to change a BigWigs or DBM bar of this boss, found by its spell or a part of its text."
     L["EditorRulesSelectHint"] = "Select a boss timer to edit it."
-    L["EditorRulesNoBossMod"] = "Boss timers need BigWigs or DBM"
+    L["EditorRulesNoBossMod"] = "Boss timers need BigWigs or DBM installed in order to work"
     L["EditorRuleEdit"] = "Edit"
     L["EditorRuleWhere"] = "BigWigs / DBM bar"
     L["EditorRuleSpellTarget"] = "%s (%d)"

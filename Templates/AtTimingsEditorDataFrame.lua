@@ -1187,6 +1187,15 @@ local function RefreshTabs(self)
     -- stages and boss timer rules both come from the boss mods
     local usesStages = #stages > 1 or stages[1] ~= 1
     local noBossMod = not C_AddOns.IsAddOnLoaded("BigWigs") and not C_AddOns.IsAddOnLoaded("DBM-Core")
+    self.noBossMod:ClearAllPoints()
+    if self.mode == "rules" then
+        self.noBossMod:SetPoint("LEFT", self.board, "LEFT", variables.padding, 0)
+        self.noBossMod:SetPoint("RIGHT", self.board, "RIGHT", -variables.padding, 0)
+    else
+        self.noBossMod:SetPoint("BOTTOMRIGHT", self.board, "BOTTOMRIGHT", -variables.padding, 5)
+    end
+    ThemeApply.FontRole(self.noBossMod, self.mode == "rules" and "Title" or "Control")
+    self.noBossMod:SetTextColor(ThemeApply.Color("Danger"))
     self.noBossMod:SetText(L(self.mode == "rules" and "EditorRulesNoBossMod" or "EditorNoBossMod"))
     self.noBossMod:SetShown(noBossMod and (usesStages or self.mode == "rules"))
 end
@@ -1768,7 +1777,7 @@ end
 local refreshRules = function(self)
     local list = self.ruleList
     list:ReleaseChildren()
-    self.rulesView.Empty:SetShown(#self.rules == 0)
+    self.rulesView.Empty:SetShown(#self.rules == 0 and not self.noBossMod:IsShown())
     list:PauseLayout()
     for _, rule in ipairs(self.rules) do
         local row = AceGUI:Create("AtSettingRow")
@@ -1799,6 +1808,8 @@ refreshView = function(self)
         part:SetShown(not rules)
     end
     self.rulesView:SetShown(rules)
+    setButtonEnabled(self.addButton, not rules or C_AddOns.IsAddOnLoaded("BigWigs") or
+        C_AddOns.IsAddOnLoaded("DBM-Core"))
     self.addButton:SetText(L(rules and "EditorAddRule" or "EditorAddReminder"))
     self.addButton:SetWidth(self.addButton:GetFontString():GetStringWidth() + 28)
     if rules then
@@ -2017,6 +2028,15 @@ local function Constructor()
             selected and tagOf(selected))
     end, "Primary")
     widget.addButton:SetPoint("LEFT", toolbar, "LEFT")
+    widget.addButton:SetMotionScriptsWhileDisabled(true)
+    widget.addButton:HookScript("OnEnter", function(button)
+        if not button:IsEnabled() then
+            GameTooltip:SetOwner(button, "ANCHOR_TOP")
+            GameTooltip:AddLine(L("EditorRulesNoBossMod"), 1, 1, 1, true)
+            GameTooltip:Show()
+        end
+    end)
+    widget.addButton:HookScript("OnLeave", function() GameTooltip:Hide() end)
     widget.undoButton = createIconButton(toolbar, false, function() undo(widget) end)
     widget.undoButton:SetPoint("LEFT", widget.addButton, "RIGHT", variables.groupGap, 0)
     widget.redoButton = createIconButton(toolbar, true, function() redo(widget) end)
@@ -2231,6 +2251,7 @@ local function Constructor()
     widget.help:SetText(L("EditorHelp"))
     widget.noBossMod = board:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     widget.noBossMod:SetPoint("BOTTOMRIGHT", board, "BOTTOMRIGHT", -padding, 5)
+    widget.noBossMod:SetJustifyH("CENTER")
     widget.noBossMod:SetText(L("EditorNoBossMod"))
     widget.timelineParts = { labels, canvas, widget.scrollX, widget.scrollY, widget.help }
 
