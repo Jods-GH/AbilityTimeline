@@ -35,7 +35,7 @@ local handleRoleIconAnchors = function(self, isStopped)
 	if not anchor then return end
 	local offset = roleIcons.Offset or { x = 0, y = 0 }
 	local size = roleIcons.Size or variables.ExtraIcons.IconSize
-	local xOffset = offset.x
+	local xOffset, yOffset = offset.x, offset.y
 	local stackDir = 1
 	-- only left/right aligned anchors follow the spell name when it swaps sides while queued
 	if isStopped and (anchor == "LEFT" or anchor == "RIGHT") then
@@ -43,9 +43,18 @@ local handleRoleIconAnchors = function(self, isStopped)
 		xOffset = -offset.x
 		stackDir = -1
 	end
+	local layout = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT]
+	if layout.travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL and (anchor == "LEFT" or anchor == "RIGHT") then
+		anchor = anchor == "RIGHT" and "BOTTOM" or "TOP"
+		xOffset, yOffset = offset.y, -xOffset
+	end
+	local xStep, yStep = stackDir * size, 0
+	if anchor == "BOTTOM" or anchor == "TOP" then
+		xStep, yStep = 0, anchor == "BOTTOM" and -size or size
+	end
 	for i, texture in ipairs(self.RoleIcons) do
 		texture:ClearAllPoints()
-		texture:SetPoint(anchor, self, anchor, xOffset + stackDir * (i - 1) * size, offset.y)
+		texture:SetPoint(anchor, self, anchor, xOffset + (i - 1) * xStep, yOffset + (i - 1) * yStep)
 	end
 end
 ---handles the Text anchoring depending on the selected text anchor
@@ -87,6 +96,7 @@ local handleAnchors      = function(self, isStopped)
 	else -- BOTTOM
 		xOffset, yOffset = -offset.y, offset.x
 	end
+	self.atSpellNameAnchor = { relPos, anchorPos, xOffset, yOffset }
 	self.SpellName:SetPoint(relPos, self, anchorPos, xOffset, yOffset)
 	for _, texture in pairs(self.DangerIcon) do
 		texture:ClearAllPoints()
