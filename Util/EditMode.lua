@@ -61,30 +61,47 @@ LibEditMode:RegisterCallback('delete', function(layoutName)
     end
 end)
 
-local TEST_EVENT_DURATIONS = { 8, 15, 25 }
+local TEST_EVENTS = {
+    { spellID = 1265377, iconFileID = 1043573, classicIconFileID = 135846, duration = 6, maxQueueDuration = 0, icons = 0 },
+    { spellID = 1265388, iconFileID = 136050, duration = 12, maxQueueDuration = 5, icons = 264 },
+    { spellID = 1265390, iconFileID = 135846, duration = 14, maxQueueDuration = 5, icons = 0 },
+    { spellID = 1265392, iconFileID = 136051, duration = 18, maxQueueDuration = 0, icons = 1 },
+    { spellID = 1265394, iconFileID = 136186, duration = 22, maxQueueDuration = 0, icons = 4 },
+    { spellID = 1265396, iconFileID = 319458, duration = 26, maxQueueDuration = 0, icons = 448 },
+}
+local TEST_LOOP_DURATION = 24
+local testEventIDs = {}
 local testEventTimer
 
 ---adds our own test events where blizzard has no edit mode events
 private.addTestEvents = function()
-    for index, duration in ipairs(TEST_EVENT_DURATIONS) do
-        private.manager.addEvent({
+    for eventID in pairs(testEventIDs) do
+        if not private.manager.getEventInfo(eventID) then
+            testEventIDs[eventID] = nil
+        end
+    end
+    for index, event in ipairs(TEST_EVENTS) do
+        local eventID = private.manager.addEvent({
             source = private.manager.SOURCES.Addon,
-            sourceID = "test" .. index,
-            duration = duration,
-            spellName = "Test Spell",
-            spellID = 376864,
-            iconFileID = 135127,
+            duration = event.duration,
+            maxQueueDuration = event.maxQueueDuration,
+            spellName = string.format(private.getLocalisation("EditModePreviewSpell"), index),
+            spellID = event.spellID,
+            iconFileID = not private.isRetail and event.classicIconFileID or event.iconFileID,
+            icons = event.icons,
+            severity = 1,
+            isApproximate = false,
+            paused = false,
         })
+        testEventIDs[eventID] = true
     end
 end
 
 local removeTestEvents = function()
-    for index in ipairs(TEST_EVENT_DURATIONS) do
-        local eventID = private.manager.getEventIDFromSource(private.manager.SOURCES.Addon, "test" .. index)
-        if eventID then
-            private.manager.removeEvent(eventID)
-        end
+    for eventID in pairs(testEventIDs) do
+        private.manager.removeEvent(eventID)
     end
+    wipe(testEventIDs)
 end
 
 ---loops the events Edit Mode shows, as Edit Mode does: they have dispel, role and danger markers. Clients without
@@ -96,7 +113,7 @@ queueTestEvents = function()
         loopDuration = C_EncounterTimeline.AddEditModeEvents()
     else
         private.addTestEvents()
-        loopDuration = TEST_EVENT_DURATIONS[#TEST_EVENT_DURATIONS]
+        loopDuration = TEST_LOOP_DURATION
     end
     testEventTimer = C_Timer.NewTimer(loopDuration, queueTestEvents)
 end
@@ -122,8 +139,8 @@ private.stopTestEvents = function()
     if testEventTimer then
         testEventTimer:Cancel()
         testEventTimer = nil
-        removeTestEvents()
     end
+    removeTestEvents()
     if not private.manager.hasVisibleEvents() then
         private.handleFrame(false)
     end

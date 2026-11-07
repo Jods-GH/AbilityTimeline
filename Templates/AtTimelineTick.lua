@@ -25,7 +25,15 @@ local function SetTick(self, relativeTo, tick, totalSize, threshhold, isHorizont
     local style = private.GetElementStyle("Tick")
     local textOffset = style.Text.Offset
     self.frame.tickText:SetText(tick .. "s")
+    self.frame.tickText:SetShown(style.Text.Show ~= false)
     local tickPosition = (tick / threshhold) * totalSize
+    local arrival = relativeTo.arrival or (isHorizontal and "LEFT" or "BOTTOM")
+    if private.TIMELINE_FRAME and relativeTo == private.TIMELINE_FRAME.frame then
+        arrival = private.TimelineFrame.GetArrivalPoint()
+    end
+    if arrival == "RIGHT" or arrival == "TOP" then
+        tickPosition = totalSize - tickPosition
+    end
     self.frame:ClearAllPoints()
     self.frame.tickLine:ClearAllPoints()
     self.frame.tickText:ClearAllPoints()
@@ -35,13 +43,22 @@ local function SetTick(self, relativeTo, tick, totalSize, threshhold, isHorizont
         self.frame:SetPoint("BOTTOMLEFT", relativeTo, "BOTTOMLEFT", tickPosition, 0)
         self.frame.tickLine:SetPoint("TOP", self.frame, "TOP", 0, 0)
         self.frame.tickLine:SetPoint("BOTTOM", self.frame, "BOTTOM", 0, 0)
+        self.frame.tickLine:SetWidth(style.Line.Thickness or 1)
         self.frame.tickText:SetPoint("BOTTOM", self.frame.tickLine, "TOP", textOffset.y, textOffset.x)
     else
         self.frame:SetPoint("LEFT", relativeTo, "BOTTOMLEFT", 0, tickPosition)
         self.frame:SetPoint("RIGHT", relativeTo, "BOTTOMRIGHT", 0, tickPosition)
         self.frame.tickLine:SetPoint("LEFT", self.frame, "LEFT", 0, 0)
         self.frame.tickLine:SetPoint("RIGHT", self.frame, "RIGHT", 0, 0)
+        self.frame.tickLine:SetHeight(style.Line.Thickness or 1)
         self.frame.tickText:SetPoint("LEFT", self.frame.tickLine, "RIGHT", textOffset.x, textOffset.y)
+    end
+    if style.Line.Width then
+        self.frame.tickLine:ClearAllPoints()
+        self.frame.tickLine:SetPoint("CENTER")
+        self.frame.tickLine:SetSize(isHorizontal and style.Line.Width or style.Line.Height,
+            isHorizontal and style.Line.Height or style.Line.Width)
+        private.ThemeApply.OrientedTexture(self.frame.tickLine, style.Line, arrival)
     end
     self.frame:SetParent(relativeTo)
 end

@@ -362,7 +362,8 @@ private.removeAtIconFrame                      = function(eventID)
       local exitTime = 0
       if frame.frame:IsVisible() then
          exitTime = private.ThemeApply.PlayExit(frame.frame, private.GetElementStyle("SpellIcon").Exit,
-            frame.frame.SpellIcon, frame.frame.eventInfo and frame.frame.eventInfo.iconFileID)
+            frame.frame.SpellIcon, frame.frame.eventInfo and frame.frame.eventInfo.iconFileID, nil,
+            private.manager.getEventState(eventID))
       end
       -- a group keeps the icon's place free until it finished shattering
       if groups[frame.frame.zone] then

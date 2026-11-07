@@ -94,19 +94,27 @@ local function ApplySettings(self)
 	end
 	-- the swipe takes the shape of the icon's mask
 	local mask = frame.iconMasked and style.Mask
-	frame.Cooldown:SetSwipeTexture(mask and mask.File and private.ThemeApply.File(mask.File) or
+	local atlas = mask and mask.Atlas and private.ThemeApply.AtlasInfo(mask.Atlas)
+	frame.Cooldown:SetSwipeTexture(atlas and (atlas.file or atlas.filename) or
+		mask and mask.File and private.ThemeApply.File(mask.File) or
 		"Interface\\Buttons\\WHITE8X8", 0, 0, 0, 0.64)
 
 	local borderWidth = style.BorderWidth
-	frame.BossModsBorderEdges[1]:SetHeight(borderWidth)
-	frame.BossModsBorderEdges[2]:SetHeight(borderWidth)
-	frame.BossModsBorderEdges[3]:SetWidth(borderWidth)
-	frame.BossModsBorderEdges[4]:SetWidth(borderWidth)
-	for _, edges in ipairs(frame.DispellTypeBorderEdges) do
-		edges[1]:SetHeight(borderWidth)
-		edges[2]:SetHeight(borderWidth)
-		edges[3]:SetWidth(borderWidth)
-		edges[4]:SetWidth(borderWidth)
+	if not style.Border.File then
+		frame.BossModsBorderEdges[1]:SetHeight(borderWidth)
+		frame.BossModsBorderEdges[2]:SetHeight(borderWidth)
+		frame.BossModsBorderEdges[3]:SetWidth(borderWidth)
+		frame.BossModsBorderEdges[4]:SetWidth(borderWidth)
+	end
+	local eventID = frame.eventID
+	for i, edges in ipairs(frame.DispellTypeBorderEdges) do
+		private.ThemeApply.DispelBorder(frame, i, style.Border, eventID)
+		if not style.Border.File then
+			edges[1]:SetHeight(borderWidth)
+			edges[2]:SetHeight(borderWidth)
+			edges[3]:SetWidth(borderWidth)
+			edges[4]:SetWidth(borderWidth)
+		end
 		for _, edgeTexture in ipairs(edges) do
 			edgeTexture:SetShown(iconSettings.border == private.IconBorderSettings.dispell)
 		end
@@ -115,9 +123,8 @@ local function ApplySettings(self)
 		frame.BorderGlows[i]:SetShown(iconSettings.border == private.IconBorderSettings.dispell and style.Border.Glow and true or false)
 	end
 
-	if iconSettings.border ~= private.IconBorderSettings.bossmods then
-		private.ThemeApply.BossModsBorder(frame, style.Border, nil)
-	end
+	private.ThemeApply.BossModsBorder(frame, style.Border,
+		iconSettings.border == private.IconBorderSettings.bossmods and private.manager.getEventBorderColor(eventID) or nil)
 
 	local dispelIcon = style.DispelIcon
 	for _, texture in ipairs(frame.DispellTypeIcons) do
@@ -160,6 +167,7 @@ end
 
 ---@param self AtBigIcon
 local function OnRelease(self)
+	private.ThemeApply.IconState(self.frame, nil, nil)
 	self.frame.SpellIcon:SetTexture(nil)
 	self.frame.SpellName:SetText("")
 	self.frame.eventInfo = nil
@@ -177,6 +185,7 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 			eventInfo.iconFileID)
 		widget.frame.Cooldown:SetCooldown(GetTime(), private.manager.getEventRemainingTime(eventInfo.id))
 		widget.frame:SetScript("OnUpdate", function(self)
+			private.ThemeApply.IconState(self, private.manager.getEventState(eventInfo.id), eventInfo)
 			local remaining = private.manager.getEventRemainingTime(eventInfo.id)
 			if remaining and remaining > 0 then
 				HandleCooldown(self, remaining)
@@ -207,6 +216,7 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 	widget.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
 	widget.frame.SpellName:SetText(eventInfo.spellName)
 	widget.frame.eventID = eventInfo.id
+	private.ThemeApply.IconState(widget.frame, nil, eventInfo)
 	applyEventColor(widget.frame)
 	widget.frame:Show()
 	if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.useTooltip and private.db.profile.big_icon_settings.useTooltip ~= Enum.EncounterEventsTooltipAnchor.Hidden then

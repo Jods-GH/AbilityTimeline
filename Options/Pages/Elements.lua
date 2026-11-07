@@ -79,17 +79,17 @@ end
 ---@param frame Frame
 local showMarkers = function(frame)
     local dispelIcon = (frame.dispellTypeIcons or frame.DispellTypeIcons)[1]
-    dispelIcon:SetAtlas("icons_16x16_magic")
+    private.ThemeApply.Texture(dispelIcon, private.manager.getEventIconArt(8))
     dispelIcon:SetAlpha(1)
     for i, texture in ipairs(frame.RoleIcons) do
         if i == 1 then
-            texture:SetAtlas("icons_16x16_heal")
+            private.ThemeApply.Texture(texture, private.manager.getEventIconArt(256))
         else
             texture:SetTexture(nil)
         end
         texture:SetAlpha(1)
     end
-    frame.DangerIcon[1]:SetAtlas("icons_16x16_deadly")
+    private.ThemeApply.Texture(frame.DangerIcon[1], private.manager.getEventIconArt(1))
     frame.DangerIcon[1]:SetAlpha(1)
     -- only the magic border of the dispel borders
     for i, edges in ipairs(frame.DispellTypeBorderEdges) do
@@ -141,8 +141,12 @@ local createPreview = {
         widget.frame:SetScript("OnUpdate", function()
             if widget.startTime + widget.duration < GetTime() then
                 widget.startTime = GetTime()
+                private.ThemeApply.EnterTimelineMotion(widget.frame, widget.duration)
             end
-            widget.HandleCooldown(widget.frame, math.ceil((widget.startTime + widget.duration) - GetTime()))
+            local remaining = (widget.startTime + widget.duration) - GetTime()
+            widget.HandleCooldown(widget.frame, math.ceil(remaining))
+            private.ThemeApply.UpdateTimelineMotion(widget.frame, private.manager.STATES.Active, remaining, remaining,
+                private.TIMELINE_ZONES.MOVING)
         end)
         return setupPreview("SpellIcon", widget, "icon_settings")
     end,
@@ -174,8 +178,16 @@ local createPreview = {
             local remainingDuration = (widget.startTime + widget.duration) - GetTime()
             local textColor = widget:GetTextColor(remainingDuration)
             if private.db.profile.highlight_text_settings.dispellIcons then
-                self.SpellName:SetFormattedText("|A:%s:20:20|a %s in |c%s%i|r", "icons_16x16_magic",
-                    eventInfo.spellName, textColor, math.ceil(remainingDuration))
+                local art = private.manager.getEventIconArt(8)
+                local icon
+                if art.Atlas then
+                    icon = string.format("|A:%s:20:20|a", art.Atlas)
+                else
+                    icon = string.format("|T%s:20:20:0:0:512:256:%d:%d:%d:%d|t", private.ThemeApply.File(art.File),
+                        art[1], art[2], art[3], art[4])
+                end
+                self.SpellName:SetFormattedText("%s %s in |c%s%i|r", icon, eventInfo.spellName, textColor,
+                    math.ceil(remainingDuration))
             else
                 self.SpellName:SetFormattedText("%s in |c%s%i|r", eventInfo.spellName, textColor,
                     math.ceil(remainingDuration))

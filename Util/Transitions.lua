@@ -57,14 +57,18 @@ end
 ---masks texture with file, a texture of Media/Textures/Theme over all of holder, or takes the mask away without one
 ---@param holder Frame
 ---@param texture Texture
----@param file string|nil
+---@param file string|table|nil
 local setShape = function(holder, texture, file)
     if file then
         if not holder.AtShape then
             holder.AtShape = holder:CreateMaskTexture()
             holder.AtShape:SetAllPoints(holder)
         end
-        holder.AtShape:SetTexture(ThemeApply.File(file), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+        if type(file) == "table" then
+            ThemeApply.Mask(holder.AtShape, file)
+        else
+            holder.AtShape:SetTexture(ThemeApply.File(file), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+        end
     end
     if (file ~= nil) ~= (texture.atShaped or false) then
         if file then
@@ -138,6 +142,7 @@ end
 local hosts = {}
 
 local releaseHost = function(host)
+    if host.GhostScale then host.GhostScale:Stop() end
     host.Burst:Stop()
     for _, piece in ipairs(host.Shards) do
         piece:Hide()
@@ -184,12 +189,34 @@ end
 ---@param ghost table
 ---@param progress number
 local stepGhost = function(host, ghost, progress)
-    local scale = lerp(ghost.Scale, progress * progress, 1)
+    local scale = ghost.NativeScale and 1 or lerp(ghost.Scale, progress * progress, 1)
     host.Ghost:SetSize(math.max(host:GetWidth() * scale, 0.01), math.max(host:GetHeight() * scale, 0.01))
     local rise = ghost.Rise
     host.Ghost:SetPoint("CENTER", host, "CENTER", 0, type(rise) == "table" and lerp(rise, progress) or (rise or 0) * progress)
     host.Ghost:SetAlpha(lerp(ghost.Fade, progress, ghost.Dissolve and 1 or 1 - progress))
-    host.GhostFlash:SetAlpha(math.sin(math.pi * progress))
+    host.GhostFlash:SetAlpha(ghost.FlashAlpha and ghost.FlashAlpha * (1 - progress) or math.sin(math.pi * progress))
+    if ghost.Flash and ghost.Flash.Offsets then
+        local offsets = ghost.Flash.Offsets
+        local factor = scale * (ghost.Flash.ReferenceSize and host:GetWidth() / ghost.Flash.ReferenceSize or 1)
+        host.GhostFlash:ClearAllPoints()
+        host.GhostFlash:SetPoint("TOPLEFT", host.Ghost, "TOPLEFT", offsets.left * factor, offsets.top * factor)
+        host.GhostFlash:SetPoint("BOTTOMRIGHT", host.Ghost, "BOTTOMRIGHT", offsets.right * factor, offsets.bottom * factor)
+    end
+    if host.GhostOverlay then
+        local offsets = ghost.Overlay and ghost.Overlay.Offsets or {}
+        local reference = ghost.Overlay and ghost.Overlay.ReferenceSize
+        local factor = scale * (reference and host:GetWidth() / reference or 1)
+        host.GhostOverlay:ClearAllPoints()
+        host.GhostOverlay:SetPoint("TOPLEFT", host.Ghost, "TOPLEFT", (offsets.left or 0) * factor, (offsets.top or 0) * factor)
+        host.GhostOverlay:SetPoint("BOTTOMRIGHT", host.Ghost, "BOTTOMRIGHT", (offsets.right or 0) * factor, (offsets.bottom or 0) * factor)
+        host.GhostOverlay:SetAlpha(1 - progress)
+    end
+    if ghost.CrossAxis and host.exitX then
+        local offset = ghost.CrossAxis.Distance * math.min(progress * ghost.Time / ghost.CrossAxis.Time, 1)
+        host:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", host.exitX + (host.exitHorizontal and 0 or offset),
+            host.exitY + (host.exitHorizontal and offset or 0))
+    end
+    for _, label in ipairs(host.ExitLabels or {}) do label:SetAlpha(1 - progress) end
     local sketch = ghost.Sketch
     if sketch then
         -- drawn in stroke by stroke, the dissolve's masks backwards, then the drawing and its sheet fade together or
@@ -379,7 +406,9 @@ local acquireHost = function(frame, attach)
         local scale = frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
         host:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", left * scale, bottom * scale)
         host:SetSize(width * scale, height * scale)
+        host.exitX, host.exitY = left * scale, bottom * scale
     end
+    host.exitHorizontal = frame.timelineMotion and select(2, private.TimelineFrame.GetArrivalPoint())
     host:SetFrameStrata(frame:GetFrameStrata())
     host:SetFrameLevel(math.min(frame:GetFrameLevel() + 10, 9000))
     return host
@@ -449,7 +478,7 @@ end
 ---@param ghost table
 ---@param icon Texture|nil
 ---@param iconFile any
-local setupGhost = function(host, ghost, icon, iconFile)
+local setupGhost = function(host, ghost, icon, iconFile, frame)
     local texture = host.Ghost
     local sketch = ghost.Sketch
     if ghost.Source == "Icon" and icon then
@@ -461,7 +490,6 @@ local setupGhost = function(host, ghost, icon, iconFile)
         texture:SetTexCoord(icon:GetTexCoord())
     else
         ThemeApply.Texture(texture, ghost)
-        texture:SetTexCoord(0, 1, 0, 1)
     end
     texture:SetDesaturated(sketch ~= nil and ghost.Source == "Icon")
     host.GhostBack:SetShown(sketch and sketch.Back and true or false)
@@ -480,13 +508,68 @@ local setupGhost = function(host, ghost, icon, iconFile)
     end
     texture:ClearAllPoints()
     host.GhostFlash:SetShown(ghost.Flash and ThemeApply.Texture(host.GhostFlash, ghost.Flash) or false)
-    if ghost.Mask then
-        host.GhostShape:SetTexture(ThemeApply.File(ghost.Mask), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    local shaped = ghost.Mask and ThemeApply.Mask(host.GhostShape,
+        type(ghost.Mask) == "table" and ghost.Mask or { File = ghost.Mask }) or false
+    if ghost.Overlay and not host.GhostOverlay then
+        host.GhostOverlay = host:CreateTexture(nil, "OVERLAY")
+    end
+    if host.GhostOverlay then
+        host.GhostOverlay:SetShown(ThemeApply.Texture(host.GhostOverlay, ghost.Overlay))
+    end
+    if host.GhostScale then host.GhostScale:Stop() end
+    if ghost.NativeScale and not host.GhostArt then
+        host.GhostArt = CreateFrame("Frame", nil, host)
+        host.GhostArt:SetAllPoints(host)
+        host.GhostScale = host.GhostArt:CreateAnimationGroup()
+        host.GhostScale.Grow = host.GhostScale:CreateAnimation("Scale")
+        host.GhostScale.Grow:SetOrigin("CENTER", 0, 0)
+        host.GhostScale.Grow:SetSmoothing("OUT")
+    end
+    for _, key in ipairs({ "Ghost", "GhostFlash", "GhostBack", "GhostOutline", "GhostEdge", "GhostShape",
+        "GhostDissolve", "GhostOutlineMask", "GhostFill", "GhostHatch", "GhostOverlay" }) do
+        if host[key] then host[key]:SetParent(ghost.NativeScale and host.GhostArt or host) end
+    end
+    if host.GhostArt then
+        host.GhostArt:SetFrameLevel(host:GetFrameLevel() + 1)
+        host.GhostArt:SetShown(ghost.NativeScale and true or false)
+    end
+    if ghost.NativeScale then
+        host.GhostScale.Grow:SetDuration(ghost.Time)
+        host.GhostScale.Grow:SetScaleFrom(ghost.Scale[1], ghost.Scale[1])
+        host.GhostScale.Grow:SetScaleTo(ghost.Scale[2], ghost.Scale[2])
+        host.GhostScale:Play()
+    end
+    host.ExitLabels = host.ExitLabels or {}
+    for _, label in ipairs(host.ExitLabels) do label:Hide() end
+    if ghost.Labels then
+        if not host.ExitLabelLayer then
+            host.ExitLabelLayer = CreateFrame("Frame", nil, host)
+            host.ExitLabelLayer:SetAllPoints(host)
+        end
+        host.ExitLabelLayer:SetFrameLevel(host:GetFrameLevel() + 2)
+        local cx, cy = frame:GetCenter()
+        local scale = frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
+        for index, source in ipairs({ frame.SpellName, frame.Cooldown }) do
+            local label = host.ExitLabels[index]
+            if not label then
+                label = host.ExitLabelLayer:CreateFontString(nil, "OVERLAY")
+                host.ExitLabels[index] = label
+            end
+            local x, y = source:GetCenter()
+            if x and cx then
+                label:SetFont(source:GetFont())
+                label:SetText(source:GetText())
+                label:SetTextColor(source:GetTextColor())
+                label:ClearAllPoints()
+                label:SetPoint("CENTER", host, "CENTER", (x - cx) * scale, (y - cy) * scale)
+                label:Show()
+            end
+        end
     end
     local dissolve = ghost.Dissolve
     host.GhostEdge:SetShown(dissolve and dissolve.Edge and ThemeApply.Texture(host.GhostEdge, dissolve.Edge) or false)
     for _, layer in ipairs({ texture, host.GhostFlash, host.GhostEdge, host.GhostBack, host.GhostOutline }) do
-        setMask(layer, host.GhostShape, ghost.Mask ~= nil)
+        setMask(layer, host.GhostShape, shaped and (layer ~= host.GhostFlash or ghost.FlashMask ~= false))
     end
     setMask(texture, host.GhostDissolve, dissolve ~= nil or sketch ~= nil)
     setMask(host.GhostFlash, host.GhostDissolve, dissolve ~= nil)
@@ -528,7 +611,10 @@ end
 ---@param iconFile any -- the file icon shows
 ---@param attach boolean|nil -- follows frame, for effects of a frame that stays
 ---@return number -- how long the exit plays, 0 when it doesn't
-ThemeApply.PlayExit = function(frame, exit, icon, iconFile, attach)
+ThemeApply.PlayExit = function(frame, exit, icon, iconFile, attach, state)
+    if exit and exit.Finished then
+        exit = (state == nil or state == private.manager.STATES.Finished) and exit.Finished or exit.Canceled
+    end
     if not exit or not private.AmbientEffectsEnabled() then return 0 end
     local host = acquireHost(frame, attach)
     if not host then return 0 end
@@ -546,12 +632,14 @@ ThemeApply.PlayExit = function(frame, exit, icon, iconFile, attach)
     setShape(host, host.Crack, exit.Crack and exit.Crack.Mask)
     host.Ghost:SetShown(exit.Ghost ~= nil)
     if exit.Ghost then
-        setupGhost(host, exit.Ghost, icon, iconFile)
+        setupGhost(host, exit.Ghost, icon, iconFile, frame)
     else
         host.GhostFlash:Hide()
         host.GhostEdge:Hide()
         host.GhostBack:Hide()
         host.GhostOutline:Hide()
+        if host.GhostOverlay then host.GhostOverlay:Hide() end
+        for _, label in ipairs(host.ExitLabels or {}) do label:Hide() end
     end
     host.Flare:SetShown(exit.Flare and ThemeApply.Texture(host.Flare, exit.Flare) or false)
     if exit.Flare then

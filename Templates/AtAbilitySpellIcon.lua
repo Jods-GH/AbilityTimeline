@@ -211,6 +211,9 @@ end
 ---@param zone string -- zone of the icon
 local UpdateTimeline = function(self, state, timeRemaining, positionRemaining, zone)
 	local frame = self.frame
+	private.ThemeApply.IconPriority(frame, zone == ZONES.MOVING and state == private.manager.STATES.Active)
+	private.ThemeApply.IconState(frame, state, frame.eventInfo)
+	positionRemaining = private.ThemeApply.UpdateTimelineMotion(frame, state, timeRemaining, positionRemaining, zone) or positionRemaining
 	local isStopped = zone == ZONES.QUEUED or zone == ZONES.PAUSED or zone == ZONES.INLINE_PAUSED
 	local changed = state ~= frame.state or isStopped ~= frame.isStopped
 	if changed then
@@ -234,6 +237,7 @@ local UpdateTimeline = function(self, state, timeRemaining, positionRemaining, z
 	else
 		frame.frameIsMoving = false
 	end
+	private.ThemeApply.UpdateIconTrail(frame, frame.frameIsMoving and state == private.manager.STATES.Active)
 end
 
 ---Sets the spell name text of the icon and its color
@@ -344,6 +348,7 @@ end
 local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	self:ApplySettings()
 	self.frame.eventInfo = eventInfo
+	private.ThemeApply.IconState(self.frame, nil, eventInfo)
 	self.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
 	private.Debug("============================")
 	ApplySpellName(self, disableOnUpdate)
@@ -352,6 +357,7 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	if not disableOnUpdate then
 		private.ThemeApply.PlayEnter(self.frame, private.GetElementStyle("SpellIcon").Enter, true, self.frame.SpellIcon,
 			eventInfo.iconFileID)
+		private.ThemeApply.EnterTimelineMotion(self.frame)
 		private.Debug("Setting event info for eventID: " .. eventInfo.id .. " with spell name: " .. eventInfo.spellName)
 		if private.db.profile.icon_settings.dispellIcons then
 			private.manager.SetEventIconTextures(eventInfo.id, 126, self.frame.dispellTypeIcons)
@@ -404,15 +410,21 @@ local function ApplySettings(self)
 	end
 
 	local borderWidth = style.BorderWidth
-	frame.BossModsBorderEdges[1]:SetHeight(borderWidth)
-	frame.BossModsBorderEdges[2]:SetHeight(borderWidth)
-	frame.BossModsBorderEdges[3]:SetWidth(borderWidth)
-	frame.BossModsBorderEdges[4]:SetWidth(borderWidth)
-	for _, edges in ipairs(frame.DispellTypeBorderEdges) do
-		edges[1]:SetHeight(borderWidth)
-		edges[2]:SetHeight(borderWidth)
-		edges[3]:SetWidth(borderWidth)
-		edges[4]:SetWidth(borderWidth)
+	if not style.Border.File then
+		frame.BossModsBorderEdges[1]:SetHeight(borderWidth)
+		frame.BossModsBorderEdges[2]:SetHeight(borderWidth)
+		frame.BossModsBorderEdges[3]:SetWidth(borderWidth)
+		frame.BossModsBorderEdges[4]:SetWidth(borderWidth)
+	end
+	local eventID = frame.eventInfo and frame.eventInfo.id
+	for i, edges in ipairs(frame.DispellTypeBorderEdges) do
+		private.ThemeApply.DispelBorder(frame, i, style.Border, eventID)
+		if not style.Border.File then
+			edges[1]:SetHeight(borderWidth)
+			edges[2]:SetHeight(borderWidth)
+			edges[3]:SetWidth(borderWidth)
+			edges[4]:SetWidth(borderWidth)
+		end
 		for _, edgeTexture in ipairs(edges) do
 			edgeTexture:SetShown(iconSettings.border == private.IconBorderSettings.dispell)
 		end
@@ -421,9 +433,8 @@ local function ApplySettings(self)
 		frame.BorderGlows[i]:SetShown(iconSettings.border == private.IconBorderSettings.dispell and style.Border.Glow and true or false)
 	end
 
-	if iconSettings.border ~= private.IconBorderSettings.bossmods then
-		private.ThemeApply.BossModsBorder(frame, style.Border, nil)
-	end
+	private.ThemeApply.BossModsBorder(frame, style.Border,
+		iconSettings.border == private.IconBorderSettings.bossmods and private.manager.getEventBorderColor(eventID) or nil)
 
 	local dispelIcon = style.DispelIcon
 	for _, texture in ipairs(frame.dispellTypeIcons) do
@@ -458,6 +469,7 @@ local function ApplySettings(self)
 	if frame.eventInfo and not frame.mergeKey then
 		ApplySpellName(self, true)
 	end
+	private.ThemeApply.ConfigureTimelineMotion(frame, style)
 end
 
 ---@param self AtAbilitySpellIcon
@@ -469,6 +481,10 @@ end
 
 ---@param self AtAbilitySpellIcon
 local function OnRelease(self)
+	private.ThemeApply.IconPriority(self.frame, false)
+	private.ThemeApply.UpdateIconTrail(self.frame, false)
+	private.ThemeApply.StopTimelineMotion(self.frame)
+	private.ThemeApply.IconState(self.frame, nil, nil)
 	self.frame.eventInfo = nil
 	self.frame.SpellIcon:SetTexture(nil)
 	self.frame.SpellName:SetText("")

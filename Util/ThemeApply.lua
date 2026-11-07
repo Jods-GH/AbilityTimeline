@@ -135,14 +135,18 @@ ThemeApply.Texture = function(texture, spec)
         texture:SetTexture(nil)
         return false
     end
-    if spec.Atlas and C_Texture.GetAtlasInfo(spec.Atlas) then
+    if spec.Atlas and ThemeApply.AtlasInfo(spec.Atlas) then
         texture:SetAtlas(spec.Atlas)
+        texture:SetTexCoord(0, 1, 0, 1)
     elseif spec.Media then
         texture:SetTexture(SharedMedia:Fetch("background", spec.Media))
+        texture:SetTexCoord(0, 1, 0, 1)
     elseif spec.File then
         texture:SetTexture(ThemeApply.File(spec.File))
+        texture:SetTexCoord(unpack(spec.Coords or { 0, 1, 0, 1 }))
     elseif spec.Texture then
         texture:SetTexture(spec.Texture)
+        texture:SetTexCoord(0, 1, 0, 1)
     elseif spec.Color then
         texture:SetColorTexture(ThemeApply.Color(spec.Color, spec.Alpha))
         texture:SetVertexColor(1, 1, 1, 1)
@@ -160,6 +164,62 @@ ThemeApply.Texture = function(texture, spec)
     texture:SetBlendMode(spec.BlendMode or "BLEND")
     texture:SetVertexColor(ThemeApply.Color(spec.Color, spec.Alpha))
     return true
+end
+
+---returns native atlas metadata when the client supports it
+ThemeApply.AtlasInfo = function(atlas)
+    return C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas)
+end
+
+---orients artwork using Blizzard's track orientation (arrival is its END point)
+ThemeApply.OrientedTexture = function(texture, spec, arrival)
+    if not ThemeApply.Texture(texture, spec) then return false end
+    local left, right, top, bottom = 0, 1, 0, 1
+    if spec.Coords and not (spec.Atlas and ThemeApply.AtlasInfo(spec.Atlas)) then
+        left, right, top, bottom = unpack(spec.Coords)
+    end
+    if arrival == "LEFT" then
+        texture:SetTexCoord(right, top, right, bottom, left, top, left, bottom)
+    elseif arrival == "BOTTOM" then
+        texture:SetTexCoord(left, top, right, top, left, bottom, right, bottom)
+    elseif arrival == "TOP" then
+        texture:SetTexCoord(right, top, left, top, right, bottom, left, bottom)
+    else
+        texture:SetTexCoord(left, right, top, bottom)
+    end
+    return true
+end
+
+ThemeApply.ConfigureIconTrail = function(frame, spec)
+    frame.iconTrailSpec, frame.iconTrailArrival = spec, nil
+    if not spec and not frame.IconTrail then return end
+    if not frame.IconTrail then
+        frame.IconTrail = frame:CreateTexture(nil, "OVERLAY", nil, -1)
+        frame:HookScript("OnHide", function() frame.IconTrail:Hide() end)
+    end
+    frame.IconTrail:Hide()
+end
+
+---the trail follows the icon's anchors; only a direction change needs layout work
+ThemeApply.UpdateIconTrail = function(frame, moving)
+    local spec = frame.iconTrailSpec
+    if not frame.IconTrail then return end
+    if not spec or not moving or not frame:IsShown() or not private.AmbientEffectsEnabled() then
+        frame.IconTrail:Hide()
+        return
+    end
+    local arrival, horizontal = private.TimelineFrame.GetArrivalPoint()
+    if arrival ~= frame.iconTrailArrival then
+        local start = ({ LEFT = "RIGHT", RIGHT = "LEFT", TOP = "BOTTOM", BOTTOM = "TOP" })[arrival]
+        local offset = (arrival == "RIGHT" or arrival == "TOP") and (spec.Offset or 10) or -(spec.Offset or 10)
+        frame.IconTrail:ClearAllPoints()
+        frame.IconTrail:SetPoint(arrival, frame.SpellIcon, start, horizontal and offset or 0, horizontal and 0 or offset)
+        local length, thickness = spec.Length or 32, spec.Thickness or 2
+        frame.IconTrail:SetSize(horizontal and length or thickness, horizontal and thickness or length)
+        ThemeApply.OrientedTexture(frame.IconTrail, spec, arrival)
+        frame.iconTrailArrival = arrival
+    end
+    frame.IconTrail:Show()
 end
 
 ---creates a nine-sliced texture of Media/Textures/Theme
@@ -262,15 +322,15 @@ end
 ---@param maskTexture MaskTexture
 ---@param mask table|false
 ---@return boolean -- whether the mask has a shape
-local setMask = function(maskTexture, mask)
+ThemeApply.Mask = function(maskTexture, mask)
     if not mask then
         return false
-    elseif mask.Atlas and C_Texture.GetAtlasInfo(mask.Atlas) then
+    elseif mask.Atlas and ThemeApply.AtlasInfo(mask.Atlas) then
         maskTexture:SetAtlas(mask.Atlas)
         return true
     elseif mask.File or mask.Texture then
-        maskTexture:SetTexture(mask.File and ThemeApply.File(mask.File) or mask.Texture, "CLAMPTOBLACKADDITIVE",
-            "CLAMPTOBLACKADDITIVE")
+        local wrap = mask.WrapMode or "CLAMPTOBLACKADDITIVE"
+        maskTexture:SetTexture(mask.File and ThemeApply.File(mask.File) or mask.Texture, wrap, wrap)
         return true
     end
     return false
@@ -298,7 +358,7 @@ local layoutBorderEdges = function(frame, whole)
             edge.atLayer = edge.atLayer or edge:GetDrawLayer()
             edge:ClearAllPoints()
             if whole then
-                edge:SetAllPoints(parent)
+                edge:SetAllPoints(frame.SpellIcon)
                 edge:SetDrawLayer("OVERLAY", 7 - group)
             else
                 for _, point in ipairs(EDGE_POINTS[index]) do
@@ -311,12 +371,48 @@ local layoutBorderEdges = function(frame, whole)
     frame.edgesWhole = whole
 end
 
+---keeps native overlay padding proportional to the icon, including big/group icon resizes
+ThemeApply.LayoutIconArt = function(frame)
+    local style = frame.atIconStyle
+    if not style or frame.atIconSkinned then return end
+    local place = function(texture, offsets, referenceSize)
+        local factor = referenceSize and frame:GetWidth() / referenceSize or 1
+        texture:ClearAllPoints()
+        texture:SetPoint("TOPLEFT", frame.SpellIcon, "TOPLEFT", (offsets.left or 0) * factor, (offsets.top or 0) * factor)
+        texture:SetPoint("BOTTOMRIGHT", frame.SpellIcon, "BOTTOMRIGHT", (offsets.right or 0) * factor, (offsets.bottom or 0) * factor)
+    end
+    local overlay = style.Overlay
+    if overlay and frame.IconOverlay then
+        place(frame.IconOverlay, overlay.Offsets or {}, overlay.ReferenceSize)
+    end
+    local stateArt = style.StateArt
+    if stateArt and frame.StateOverlay then
+        local offsets = overlay and overlay.Offsets or { left = -7, top = 6, right = 7, bottom = -7 }
+        place(frame.StateOverlay, offsets, stateArt.ReferenceSize)
+    end
+end
+
+---raise the entire moving icon above queued/paused icons, including their child frames
+ThemeApply.IconPriority = function(frame, moving)
+    if frame.atIconMoving == moving then return end
+    frame.atIconBaseLevel = frame.atIconBaseLevel or frame:GetFrameLevel()
+    frame:SetFrameLevel(frame.atIconBaseLevel + (moving and 10 or 0))
+    frame.atIconMoving = moving
+end
+
 ---@param frame Frame
 ---@param icon Texture
 ---@param style table
 ---@param overlayParent Frame
 ---@param skinned boolean
 ThemeApply.IconArt = function(frame, icon, style, overlayParent, skinned)
+    frame.atIconStyle = style
+    frame.atIconSkinned = skinned
+    if not frame.atIconLayoutHook then
+        frame:HookScript("OnSizeChanged", ThemeApply.LayoutIconArt)
+        frame.atIconLayoutHook = true
+    end
+    ThemeApply.ConfigureIconTrail(frame, not skinned and style.Trail or nil)
     if skinned then
         icon.zoomApplied = nil
     elseif icon.zoomApplied ~= 1 - style.Zoom then
@@ -331,7 +427,7 @@ ThemeApply.IconArt = function(frame, icon, style, overlayParent, skinned)
         frame.IconMask = frame:CreateMaskTexture()
         frame.IconMask:SetAllPoints(icon)
     end
-    local masked = not skinned and setMask(frame.IconMask, style.Mask)
+    local masked = not skinned and ThemeApply.Mask(frame.IconMask, style.Mask)
     if masked ~= (frame.iconMasked or false) then
         for _, texture in ipairs({ icon, unpack(frame.MergeSlices or {}) }) do
             if masked then
@@ -387,6 +483,38 @@ ThemeApply.IconArt = function(frame, icon, style, overlayParent, skinned)
             texture:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", borderGlow.Spread, -borderGlow.Spread)
         end
     end
+    frame.atStateArt = not skinned and style.StateArt or nil
+    frame.atStateValue = nil
+    ThemeApply.IconState(frame, frame.state, frame.eventInfo or
+        (frame.eventID and private.manager.getEventInfo(frame.eventID)))
+    ThemeApply.LayoutIconArt(frame)
+end
+
+---updates optional state art without changing the manager's timer state or badge alpha
+ThemeApply.IconState = function(frame, state)
+    local style = frame.atStateArt
+    if not style and not frame.StateOverlay then return end
+    if not frame.StateOverlay then
+        local parent = frame.TextureHolder or frame
+        frame.StateOverlay = parent:CreateTexture(nil, "OVERLAY", nil, -7)
+        frame.StateOverlay:SetPoint("TOPLEFT", frame.SpellIcon, "TOPLEFT", -7, 6)
+        frame.StateOverlay:SetPoint("BOTTOMRIGHT", frame.SpellIcon, "BOTTOMRIGHT", 7, -7)
+        frame.StateBadge = parent:CreateTexture(nil, "OVERLAY", nil, 7)
+        frame.StateBadge:SetSize(16, 16)
+        frame.StateBadge:SetPoint("BOTTOMRIGHT", frame.SpellIcon, "BOTTOMRIGHT", -4, 4)
+    end
+    if frame.atStateValue == state and frame.atStateStyle == style then return end
+    frame.atStateValue, frame.atStateStyle = state, style
+    local overlay, badge
+    if style then
+        if state == private.manager.STATES.Paused then
+            overlay, badge = style.Paused, style.PausedIcon
+        elseif state == private.manager.STATES.Queued then
+            overlay, badge = style.Queued, style.QueuedIcon
+        end
+    end
+    frame.StateOverlay:SetShown(ThemeApply.Texture(frame.StateOverlay, overlay))
+    frame.StateBadge:SetShown(ThemeApply.Texture(frame.StateBadge, badge))
 end
 
 ---the color of a dispel type of private.dispellTypeList in the theme's palette
@@ -509,7 +637,7 @@ ThemeApply.PlayEnter = function(frame, enter, keepSize, icon, iconFile)
     end
     -- an Alpha animation on the icon resets the alpha SetEventIconTextures hides its dispel borders with, so the
     -- fade only changes the frame's alpha
-    private.Tween(group, 0, 1, time, "outCubic", function(alpha)
+    private.Tween(group, 0, 1, time, enter.Ease or "outCubic", function(alpha)
         frame:SetAlpha(alpha)
     end)
     ThemeApply.PlayEnterEffects(frame, enter, icon, iconFile)

@@ -35,7 +35,7 @@ local lastEventID                              = 0
 local ICON_ATLASES                             = {
    [1] = "icons_16x16_deadly",
    [2] = "icons_16x16_enrage",
-   [4] = "icons_16x16_bleed",
+   [4] = "icons_16x16_blood",
    [8] = "icons_16x16_magic",
    [16] = "icons_16x16_disease",
    [32] = "icons_16x16_curse",
@@ -44,6 +44,30 @@ local ICON_ATLASES                             = {
    [256] = "icons_16x16_heal",
    [512] = "icons_16x16_damage",
 }
+
+local ICON_FALLBACKS = {
+   -- Pixel rectangles from Blizzard's 512x256 EJ atlas sheet (FileDataID 7494373).
+   [1] = { 199, 231, 199, 231 },
+   [2] = { 299, 331, 1, 33 },
+   [4] = { 1, 33, 199, 231 },
+   [8] = { 469, 501, 1, 33 },
+   [16] = { 265, 297, 1, 33 },
+   [32] = { 67, 99, 199, 231 },
+   [64] = { 265, 297, 69, 101 },
+   [128] = { 265, 297, 103, 135 },
+   [256] = { 333, 365, 1, 33 },
+   [512] = { 133, 165, 199, 231 },
+}
+for _, rect in pairs(ICON_FALLBACKS) do
+   rect.File = "blizzard_ej_icons"
+   rect.Coords = { rect[1] / 512, rect[2] / 512, rect[3] / 256, rect[4] / 256 }
+end
+
+private.manager.getEventIconArt = function(iconBit)
+   local atlas = ICON_ATLASES[iconBit]
+   if atlas and private.ThemeApply.AtlasInfo(atlas) then return { Atlas = atlas } end
+   return ICON_FALLBACKS[iconBit]
+end
 
 local isHighlighted = function(remaining, state, threshold)
    return state == STATES.Active and remaining > 0 and remaining <= threshold
@@ -374,7 +398,14 @@ private.manager.SetEventIconTextures = function(eventID, mask, textures)
    local iconBit = 1
    while iconBit <= 512 do
       if textures[index] and bit.band(mask, iconBit) ~= 0 and bit.band(icons, iconBit) ~= 0 then
-         textures[index]:SetAtlas(ICON_ATLASES[iconBit])
+         local art = private.manager.getEventIconArt(iconBit)
+         if art.Atlas and private.ThemeApply.AtlasInfo(art.Atlas) then
+            textures[index]:SetAtlas(art.Atlas)
+            textures[index]:SetTexCoord(0, 1, 0, 1)
+         else
+            textures[index]:SetTexture(private.ThemeApply.File(art.File))
+            textures[index]:SetTexCoord(unpack(art.Coords))
+         end
          textures[index]:SetAlpha(1)
          index = index + 1
       end
