@@ -31,6 +31,7 @@ ThemeApply.StopTimelineMotion = function(frame)
     local motion = frame.timelineMotion
     if not motion then return end
     for _, group in ipairs(motion.groups) do group:Stop() end
+    motion.Container:SetScale(1)
     for region, parent in pairs(motion.parents) do region:SetParent(parent) end
     wipe(motion.parents)
     motion.Container:Hide()
@@ -123,6 +124,7 @@ ThemeApply.ConfigureTimelineMotion = function(frame, style)
         end)
         frame:HookScript("OnHide", function()
             for _, group in ipairs(motion.groups) do group:Stop() end
+            motion.Container:SetScale(1)
             motion.Glow:SetAlpha(0)
             motion.Swirl:SetAlpha(0)
             motion.urgent, motion.lastRemaining = nil, nil

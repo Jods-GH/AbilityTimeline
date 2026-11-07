@@ -547,7 +547,6 @@ local setupGhost = function(host, ghost, icon, iconFile, frame)
             host.ExitLabelLayer:SetAllPoints(host)
         end
         host.ExitLabelLayer:SetFrameLevel(host:GetFrameLevel() + 2)
-        local cx, cy = frame:GetCenter()
         local scale = frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
         for index, source in ipairs({ frame.SpellName, frame.Cooldown }) do
             local label = host.ExitLabels[index]
@@ -555,13 +554,14 @@ local setupGhost = function(host, ghost, icon, iconFile, frame)
                 label = host.ExitLabelLayer:CreateFontString(nil, "OVERLAY")
                 host.ExitLabels[index] = label
             end
-            local x, y = source:GetCenter()
-            if x and cx then
+            local anchor = index == 1 and frame.atSpellNameAnchor or { "CENTER", "CENTER", 0, 0 }
+            if anchor then
                 label:SetFont(source:GetFont())
                 label:SetText(source:GetText())
                 label:SetTextColor(source:GetTextColor())
+                label:SetScale(scale)
                 label:ClearAllPoints()
-                label:SetPoint("CENTER", host, "CENTER", (x - cx) * scale, (y - cy) * scale)
+                label:SetPoint(anchor[1], host, anchor[2], anchor[3], anchor[4])
                 label:Show()
             end
         end

@@ -359,6 +359,7 @@ end
 private.removeAtIconFrame                      = function(eventID)
    local frame = private.activeFrames[eventID]
    if frame then
+      private.ThemeApply.StopTimelineMotion(frame.frame)
       local exitTime = 0
       if frame.frame:IsVisible() then
          exitTime = private.ThemeApply.PlayExit(frame.frame, private.GetElementStyle("SpellIcon").Exit,
