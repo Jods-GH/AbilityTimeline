@@ -24,8 +24,8 @@ local SetupEventColorisation = function()
         if icons then
             for mask, color in pairs(dispellTypeColors) do
                 if bit.band(icons, mask) ~= 0 then
-                    local color = C_EncounterTimeline.GetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent)
-                    EventColors[eventID] = color
+                    local originalColor = C_EncounterEvents.GetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent)
+                    EventColors[eventID] = originalColor or false
                     private.spellIDColors[eventInfo.spellID] = color
                     C_EncounterEvents.SetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent,  color)
                     break -- Only set the first matching color
@@ -37,14 +37,10 @@ end
 
 local RemoveEventColorisation = function()
     for eventID, color in pairs(EventColors) do
-        if color then
-            C_EncounterEvents.SetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent, color)
-        else
-            local color = CreateColor(private.ThemeApply.Color(private.GetElementStyle("SpellIcon").Text.Font.Color))
-            C_EncounterEvents.SetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent, color)
-        end
+        C_EncounterEvents.SetEventColor(eventID, Enum.EncounterEventColorTrigger.TimelineEvent, color or nil)
     end
     wipe(EventColors)
+    wipe(private.spellIDColors)
 end
 
 private.ToggleEventColorisation = function(enable)
