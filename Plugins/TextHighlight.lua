@@ -5,7 +5,7 @@ local AceGUI = LibStub("AceGUI-3.0")
 
 private.HIGHLIGHT_TEXTS = {}
 
-local textHighlightGroup = private.DynamicGroup.CreateMerged(function()
+local textHighlightGroup = AceGUI:Create("AtMergedDisplayGroup"):Setup(function()
    local settings = private.db.global.text_highlight[private.ACTIVE_EDITMODE_LAYOUT]
    return {
       grow = settings.grow_direction,

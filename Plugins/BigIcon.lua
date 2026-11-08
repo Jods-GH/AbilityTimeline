@@ -5,7 +5,7 @@ local AceGUI = LibStub("AceGUI-3.0")
 
 private.BIG_ICONS = {}
 
-local bigIconGroup = private.DynamicGroup.CreateMerged(function()
+local bigIconGroup = AceGUI:Create("AtMergedDisplayGroup"):Setup(function()
    local settings = private.db.global.bigicon[private.ACTIVE_EDITMODE_LAYOUT]
    return {
       grow = settings.grow_direction,

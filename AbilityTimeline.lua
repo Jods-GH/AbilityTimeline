@@ -39,14 +39,14 @@ end
 
 ---@type table<string, AtDynamicGroup>
 private.TimelineGroups                         = {
-   [ZONES.WAITING] = private.DynamicGroup.Create(function()
+   [ZONES.WAITING] = AceGUI:Create("AtDynamicGroup"):Setup(function()
       return private.WAITING_FRAME:GetGroupSettings()
    end, function()
       return private.WAITING_FRAME and private.WAITING_FRAME.frame
    end, function(grow)
       return private.WAITING_FRAME:ResolveGrow(grow)
    end),
-   [ZONES.QUEUED] = private.DynamicGroup.Create(function()
+   [ZONES.QUEUED] = AceGUI:Create("AtDynamicGroup"):Setup(function()
       return private.QUEUED_FRAME:GetGroupSettings()
    end, function()
       return private.QUEUED_FRAME and private.QUEUED_FRAME.frame
@@ -55,7 +55,7 @@ private.TimelineGroups                         = {
    end, function()
       return private.QUEUED_FRAME:GetSettings().attached
    end),
-   [ZONES.PAUSED] = private.DynamicGroup.Create(function()
+   [ZONES.PAUSED] = AceGUI:Create("AtDynamicGroup"):Setup(function()
       return private.PAUSED_FRAME:GetGroupSettings()
    end, function()
       return private.PAUSED_FRAME and private.PAUSED_FRAME.frame

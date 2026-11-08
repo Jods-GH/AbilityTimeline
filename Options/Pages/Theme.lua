@@ -9,26 +9,6 @@ local L = private.getLocalisation
 local variables = {
     -- typing filters the cards once it paused this long
     searchDelay = 0.25,
-    preview = {
-        width = 240,
-        inset = 12,
-        -- room for the big icon's name below it
-        nameHeight = 24,
-        iconSize = 64,
-        -- seconds into the loop the icon appears, the icon leaves, the bar leaves, and the loop starts again
-        iconIn = 0.6,
-        iconOut = 3.6,
-        barOut = 4.4,
-        loop = 5.6,
-        icon = 237538,
-    },
-    dialog = {
-        width = 380,
-        offsetY = 120,
-        padding = 16,
-        headerHeight = 34,
-        buttonHeight = 24,
-    },
 }
 
 ---@param key string
@@ -50,73 +30,6 @@ end
 
 local dialog
 
----a question in the theme's dialog style: a text, an optional check box and two buttons; escape or closing it
----answers with the back button
-local createDialog = function()
-    local frame = CreateFrame("Frame", "AbilityTimelineThemeDialog", UIParent)
-    frame:Hide()
-    frame:SetFrameStrata("FULLSCREEN_DIALOG")
-    frame:SetWidth(variables.dialog.width)
-    frame:SetPoint("CENTER", UIParent, "CENTER", 0, variables.dialog.offsetY)
-    frame:EnableMouse(true)
-    -- closes with escape
-    table.insert(UISpecialFrames, frame:GetName())
-    local padding = variables.dialog.padding
-
-    frame.Title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    frame.Title:SetPoint("TOPLEFT", frame, "TOPLEFT", padding, -10)
-    frame.Text = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    frame.Text:SetPoint("TOPLEFT", frame, "TOPLEFT", padding, -variables.dialog.headerHeight - padding)
-    frame.Text:SetWidth(variables.dialog.width - padding * 2)
-    frame.Text:SetJustifyH("LEFT")
-    frame.Text:SetWordWrap(true)
-    frame.Text:SetSpacing(3)
-
-    local check = AceGUI:Create("AtCheckBox")
-    check.frame:SetParent(frame)
-    check:SetWidth(variables.dialog.width - padding * 2)
-    check.frame:SetPoint("TOPLEFT", frame.Text, "BOTTOMLEFT", 0, -padding)
-
-    local createButton = function(anchor)
-        local button = AceGUI:Create("AtButton")
-        button:SetWidth((variables.dialog.width - padding * 3) / 2)
-        button.frame:SetParent(frame)
-        button.frame:SetPoint(anchor, frame, anchor, anchor == "BOTTOMLEFT" and padding or -padding, padding)
-        button.frame:Show()
-        return button
-    end
-    local back = createButton("BOTTOMLEFT")
-    back:SetCallback("OnClick", function()
-        frame:Hide()
-    end)
-    local accept = createButton("BOTTOMRIGHT")
-    accept:SetCallback("OnClick", function()
-        local onAccept = frame.question.onAccept
-        frame.answered = true
-        frame:Hide()
-        onAccept(check.frame:IsShown() and check:GetValue())
-    end)
-
-    -- set before the window style hooks its own OnHide, setting a script drops the hooks
-    frame:SetScript("OnHide", function()
-        if not frame.answered and frame.question.onBack then
-            frame.question.onBack()
-        end
-    end)
-    dialog = {
-        frame = frame,
-        check = check,
-        back = back,
-        accept = accept,
-        ApplySettings = function()
-            private.ThemeApply.Window(frame, private.GetWindowStyle("Dialog"), nil, frame.Title)
-            private.ThemeApply.FontRole(frame.Text, "Control")
-        end,
-    }
-    dialog:ApplySettings()
-    private.RegisterThemed(dialog)
-end
-
 ---the frame of the question asked, nil until one was
 ---@return Frame|nil
 private.GetThemeDialog = function()
@@ -127,29 +40,13 @@ end
 ---without), onAccept(checked), onBack }
 ---@param question table
 local ask = function(question)
-    if not dialog then
-        createDialog()
-    end
-    local frame = dialog.frame
-    -- a question still open is answered with its back button
-    if frame:IsShown() then
-        frame:Hide()
-    end
-    frame.question = question
-    frame.answered = false
-    frame.Title:SetText(question.title)
-    frame.Text:SetText(question.text)
-    dialog.check:SetLabel(question.check or "")
-    dialog.check:SetValue(false)
-    dialog.check.frame:SetShown(question.check ~= nil)
-    dialog.accept:SetText(question.accept)
-    dialog.accept:SetStyle(question.acceptStyle or "Primary")
-    dialog.back:SetText(question.back)
-    -- the window grows with its text
-    local padding = variables.dialog.padding
-    frame:SetHeight(variables.dialog.headerHeight + padding * 3 + frame.Text:GetStringHeight() +
-        (question.check and dialog.check.frame:GetHeight() + padding or 0) + variables.dialog.buttonHeight + padding)
-    frame:Show()
+    if dialog then dialog.frame:Hide() end
+    dialog = AceGUI:Create("AtDialogFrame")
+    dialog:SetCallback("OnClose", function(widget)
+        if dialog == widget then dialog = nil end
+        widget:Release()
+    end)
+    dialog:SetQuestion(question)
 end
 private.AskQuestion = ask
 
@@ -235,107 +132,19 @@ local getPreviewKey = function()
     return previewKey or getSavedSelection()
 end
 
----@param widget table
----@param kind string -- Timeline or BigIcon
-local showPiece = function(widget, kind)
-    local frame = widget.frame
-    frame:Show()
-    if kind == "Timeline" then
-        private.ThemeApply.PlayEnter(frame, private.GetElementStyle(kind).Enter)
-    else
-        -- the countdown and its swipe start over with every entry
-        widget.startTime = GetTime()
-        frame.Cooldown:SetCooldown(widget.startTime, widget.duration)
-        private.ThemeApply.PlayEnter(frame, private.GetElementStyle(kind).Enter, true, frame.SpellIcon,
-            variables.preview.icon)
-    end
-end
-
----@param widget table
----@param kind string -- Timeline or BigIcon
-local hidePiece = function(widget, kind)
-    local frame = widget.frame
-    if kind == "Timeline" then
-        private.ThemeApply.PlayExit(frame, private.GetElementStyle(kind).Exit)
-    else
-        private.ThemeApply.PlayExit(frame, private.GetElementStyle(kind).Exit, frame.SpellIcon, variables.preview.icon)
-    end
-    frame:Hide()
-end
-
----starts the preview's loop from the beginning, with both pieces gone
-local restartPreview = function()
-    themePreview.time = 0
-    themePreview.step = 1
-    themePreview.bar.frame:Hide()
-    themePreview.icon.frame:Hide()
-end
-
----the timeline bar and a big icon below it in the hovered theme: the bar appears, then the icon, the icon leaves, then
----the bar, and it starts again
----@return Frame
 local getThemePreview = function()
-    if themePreview then
-        return themePreview.frame
+    if not themePreview then
+        themePreview = AceGUI:Create("AtThemePreview")
+        themePreview:Setup(getPreviewKey)
     end
-    local frame = CreateFrame("Frame", nil, UIParent)
-    frame:Hide()
-    frame:SetWidth(variables.preview.width)
-    local bar = private.CreateSettingsPreview("Timeline", getPreviewKey)
-    local icon = private.CreateSettingsPreview("BigIcon", getPreviewKey)
-    for _, widget in ipairs({ bar, icon }) do
-        widget.frame:SetParent(frame)
-        widget.frame:ClearAllPoints()
-    end
-    bar.frame:SetPoint("TOP", frame, "TOP", 0, -variables.preview.inset)
-    icon.frame:SetPoint("TOP", bar.frame, "BOTTOM", 0, -variables.preview.inset)
-    -- the icon has a size of its own, big icons can be too small or too large to show a theme
-    local applySettings = icon.ApplySettings
-    icon.ApplySettings = function(self)
-        applySettings(self)
-        self.frame:SetSize(variables.preview.iconSize, variables.preview.iconSize)
-    end
-    icon:ApplySettings()
-    themePreview = { frame = frame, bar = bar, icon = icon }
-    local steps = {
-        { at = 0, play = function() showPiece(bar, "Timeline") end },
-        { at = variables.preview.iconIn, play = function() showPiece(icon, "BigIcon") end },
-        { at = variables.preview.iconOut, play = function() hidePiece(icon, "BigIcon") end },
-        { at = variables.preview.barOut, play = function() hidePiece(bar, "Timeline") end },
-    }
-    -- the settings window puts the preview above its panel, its pieces go above it
-    frame:SetScript("OnShow", function()
-        for _, widget in ipairs({ bar, icon }) do
-            widget.frame:SetFrameLevel(frame:GetFrameLevel() + 1)
-        end
-        restartPreview()
-    end)
-    frame:SetScript("OnUpdate", function(_, elapsed)
-        themePreview.time = themePreview.time + elapsed
-        local step = steps[themePreview.step]
-        if themePreview.time >= step.at then
-            private.DrawInTheme(getPreviewKey(), step.play)
-            themePreview.step = themePreview.step % #steps + 1
-            if themePreview.step == 1 then
-                themePreview.time = themePreview.time - variables.preview.loop
-            end
-        end
-    end)
-    restartPreview()
-    return frame
+    return themePreview.frame
 end
 
----shows key in the preview from the start of its loop, the preview grows with the theme's big icon
----@param key string
 local setPreviewTheme = function(key)
     getThemePreview()
     if key == previewKey then return end
     previewKey = key
-    themePreview.bar:ApplySettings()
-    themePreview.icon:ApplySettings()
-    themePreview.frame:SetHeight(variables.preview.inset * 3 + themePreview.bar.frame:GetHeight() +
-        variables.preview.iconSize + variables.preview.nameHeight)
-    restartPreview()
+    themePreview:Refresh()
 end
 
 ---shows a hovered theme in the preview with its name and description
@@ -457,6 +266,11 @@ private.RegisterSettingsPage({
             askToKeepTheme(selectedKey)
         end
         selectedKey = nil
+        if themePreview then
+            themePreview:Release()
+            themePreview = nil
+            previewKey = nil
+        end
     end,
     rows = {
         {

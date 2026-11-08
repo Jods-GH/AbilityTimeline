@@ -9,19 +9,6 @@ local L = private.getLocalisation
 local variables = {
     dispelColor = { r = 0, g = 0.5019607843137255, b = 1 },
     bossModsColor = { r = 1, g = 20 / 255, b = 147 / 255, a = 1 },
-    timelinePreview = { width = 200, height = 36 },
-    -- the ticks preview lies like the timeline, long along its travel direction
-    ticksPreview = { long = 220, short = 30 },
-    -- the elements of a group preview are this many seconds apart, one that ran out starts again behind the last
-    groupPreview = {
-        count = 5,
-        gap = 5,
-        iconSize = 24,
-        textWidth = 200,
-        textHeight = 16,
-        spacing = 4,
-        layoutInterval = 0.25,
-    },
     previewIcon = 237538,
     -- the index of the magic dispel type in private.dispellTypeList
     magicIndex = 3,
@@ -127,6 +114,12 @@ local setupPreview = function(kind, widget, settings)
             frame.SpellName:SetTextColor(variables.dispelColor.r, variables.dispelColor.g, variables.dispelColor.b)
         end
     end
+    local onRelease = widget.OnRelease
+    widget.OnRelease = function(self)
+        self.ApplySettings = applySettings
+        self.OnRelease = onRelease
+        onRelease(self)
+    end
     table.insert(previews, widget)
     widget:ApplySettings()
     return widget
@@ -195,117 +188,22 @@ local createPreview = {
         end)
         return setupPreview("TextHighlight", widget)
     end,
-    -- a piece of the timeline bar in the theme's look, its sparkles included, icons arriving at its left
     Timeline = function()
-        local frame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
-        frame:SetSize(variables.timelinePreview.width, variables.timelinePreview.height)
-        private.TimelineFrame.AddThemeLayers(frame)
-        local widget = {
-            frame = frame,
-            ApplySettings = function()
-                private.TimelineFrame.ApplyTheme(frame, "LEFT", true)
-            end,
-        }
-        widget:ApplySettings()
-        private.RegisterThemed(widget)
+        local widget = AceGUI:Create("AtTimelinePreview")
+        table.insert(previews, widget)
+        return widget
+    end,
+    Ticks = function()
+        local widget = AceGUI:Create("AtTimelinePreview")
+        widget:SetTicks(true)
         table.insert(previews, widget)
         return widget
     end,
 }
 
--- the timeline bar with the ticks of its timeline window, lying like the timeline of the active layout
-createPreview.Ticks = function()
-    local widget = createPreview.Timeline()
-    local frame = widget.frame
-    local ticks = {}
-    widget.ApplySettings = function()
-        private.TimelineFrame.ApplyTheme(frame, private.TimelineFrame.GetArrivalPoint())
-        for _, tick in ipairs(ticks) do
-            tick.frame:Hide()
-            tick:Release()
-        end
-        wipe(ticks)
-        local layout = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT]
-        local isHorizontal = layout.travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL
-        local long, short = variables.ticksPreview.long, variables.ticksPreview.short
-        frame:SetSize(isHorizontal and long or short, isHorizontal and short or long)
-        local settings = private.db.profile.timeline_settings
-        if not settings.ticks_enabled then return end
-        for _, time in ipairs(private.TimelineFrame.GetTickTimes(long)) do
-            local tick = AceGUI:Create("AtTimelineTicks")
-            tick:SetTick(frame, time, long, settings.threshold_time, isHorizontal)
-            tick.frame:Show()
-            table.insert(ticks, tick)
-        end
-    end
-    widget:ApplySettings()
-    return widget
-end
-
----icons, or texts, counting down and starting again, laid out by a dynamic group with the limit and sort of the
----db.profile table at path, smaller than the real ones
----@param path string
----@param asText boolean|nil
----@return table widget
 local createGroupPreview = function(path, asText)
-    local settings = variables.groupPreview
-    local count = settings.count
-    local cycle = count * settings.gap
-    local width = asText and settings.textWidth or settings.iconSize
-    local height = asText and settings.textHeight or settings.iconSize
-    local anchor = CreateFrame("Frame", nil, UIParent)
-    if asText then
-        anchor:SetSize(width, count * height + (count - 1) * settings.spacing)
-    else
-        anchor:SetSize(count * width + (count - 1) * settings.spacing, height)
-    end
-    local startTime = GetTime()
-    local remaining = function(id)
-        return cycle - (GetTime() - startTime + (id - 1) * settings.gap) % cycle
-    end
-    local groupSettings = {
-        grow = asText and private.DynamicGroup.GROW.DOWN or private.DynamicGroup.GROW.RIGHT,
-        spacing = settings.spacing,
-    }
-    local group = private.DynamicGroup.Create(function()
-        groupSettings.limit = private.db.profile[path].limit
-        groupSettings.sort = private.db.profile[path].sort
-        return groupSettings
-    end, function() return anchor end, nil, nil, remaining)
-    local items = {}
-    for id = 1, count do
-        local frame = CreateFrame("Frame", nil, anchor)
-        frame:SetSize(width, height)
-        local icon = private.TEST_ICONS[(id - 1) % #private.TEST_ICONS + 1]
-        local label = frame:CreateFontString(nil, "OVERLAY", asText and "GameFontHighlight" or "NumberFontNormal")
-        if asText then
-            label:SetAllPoints(frame)
-        else
-            local texture = frame:CreateTexture(nil, "ARTWORK")
-            texture:SetAllPoints(frame)
-            texture:SetTexture(icon)
-            label:SetPoint("CENTER")
-        end
-        items[id] = { label = label, icon = icon }
-        group:Add(id, frame)
-    end
-    local sinceLayout = settings.layoutInterval
-    anchor:SetScript("OnUpdate", function(_, elapsed)
-        for id, item in ipairs(items) do
-            local seconds = math.ceil(remaining(id))
-            if asText then
-                item.label:SetFormattedText("|T%d:0|t %s in %d", item.icon, L("TestIcon"), seconds)
-            else
-                item.label:SetText(seconds)
-            end
-        end
-        sinceLayout = sinceLayout + elapsed
-        if sinceLayout >= settings.layoutInterval then
-            sinceLayout = 0
-            group:Layout()
-        end
-    end)
-    local widget = { frame = anchor, ApplySettings = function() group:Layout() end }
+    local widget = AceGUI:Create("AtGroupPreview")
+    widget:Setup(path, asText)
     table.insert(previews, widget)
     return widget
 end
@@ -330,6 +228,17 @@ end
 ---@return table widget
 private.CreateSettingsPreview = function(kind, getThemeKey)
     local widget = createPreview[kind]()
+    local applySettings, onRelease = widget.ApplySettings, widget.OnRelease
+    local scripts = {}
+    widget.OnRelease = function(self)
+        self.ApplySettings = applySettings
+        self.OnRelease = onRelease
+        for frame, script in pairs(scripts) do frame:SetScript("OnUpdate", script) end
+        for i = #previews, 1, -1 do
+            if previews[i] == self then table.remove(previews, i) end
+        end
+        onRelease(self)
+    end
     if getThemeKey then
         local applySettings = widget.ApplySettings
         widget.ApplySettings = function(self)
@@ -339,6 +248,7 @@ private.CreateSettingsPreview = function(kind, getThemeKey)
         for _, frame in ipairs({ widget.frame, widget.frame.Sparkles and widget.frame.Sparkles.driver }) do
             local onUpdate = frame:GetScript("OnUpdate")
             if onUpdate then
+                scripts[frame] = onUpdate
                 frame:SetScript("OnUpdate", function(...)
                     private.DrawInTheme(getThemeKey(), onUpdate, ...)
                 end)
