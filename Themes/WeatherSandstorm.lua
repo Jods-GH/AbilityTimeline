@@ -88,6 +88,12 @@ local BLOWN_AWAY = {
 ---already in sight
 local iconStyle = function(pulse)
     return {
+        -- Sand grains blow in from the side.
+        QueuedMarkers = pulse and {
+            Art = { File = "dust", BlendMode = "BLEND" }, Colors = { "Accent", "Accent2", "Accent" },
+            Size = 16, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.28, Stagger = 0.07, X = -8, Y = 2 },
+        } or false,
         Enter = { Scale = 0.85, Vortex = gather(8, 0.8) },
         -- shrinks into a whirl of sand that spins away
         Exit = {

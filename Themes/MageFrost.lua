@@ -109,6 +109,12 @@ local SHATTER = {
 ---are already in sight
 local iconStyle = function(pulse)
     return {
+        -- Pale ice crystals form with a small frosty lift.
+        QueuedMarkers = pulse and {
+            Art = { File = "flake", BlendMode = "ADD" }, Colors = { "Accent", "Accent2", "Accent" },
+            Size = 15, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.3, Stagger = 0.09, Grow = 0.7, Hop = 2 },
+        } or false,
         Enter = {
             Behavior = "MageFrost",
             Scale = 0.8,

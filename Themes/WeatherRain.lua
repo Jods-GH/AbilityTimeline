@@ -105,6 +105,12 @@ local WASH_AWAY = {
 ---in sight
 local iconStyle = function(pulse)
     return {
+        -- Water beads fall in sequence with a small splash-like hop.
+        QueuedMarkers = pulse and {
+            Art = { File = "waterdrop", BlendMode = "BLEND" }, Colors = { "Water", "Accent2", "Water" },
+            Size = 18, Spacing = 12, Offset = 5, Rotation = -math.pi / 2,
+            Enter = { Time = 0.26, Stagger = 0.1, Y = 7, Hop = 2 },
+        } or false,
         -- drops of water splash up round it and fall back as it fades in, the same water as its leave, fewer and lower
         Enter = {
             Burst = {

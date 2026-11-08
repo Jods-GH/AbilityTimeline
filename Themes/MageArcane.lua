@@ -62,6 +62,12 @@ local DISSOLVE = {
 ---are already in sight
 local iconStyle = function(pulse)
     return {
+        -- Violet and cyan glyphs turn into place.
+        QueuedMarkers = pulse and {
+            Art = { File = "glyph", BlendMode = "ADD" }, Colors = { "Accent", "Accent2", "Accent" },
+            Size = 16, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.32, Stagger = 0.09, Rotation = -1.5, Grow = 0.5 },
+        } or false,
         -- grows in while glyphs spiral into it over a faint swirl closing in on it
         Enter = {
             Scale = 0.6,

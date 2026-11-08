@@ -92,6 +92,12 @@ fonts.Title.Size = 20
 
 local iconStyle = function(pulse)
     return {
+        -- Soft ink flecks sweep in like the theme's brush reveal.
+        QueuedMarkers = pulse and {
+            Art = { File = "dust" }, Colors = { "Accent", "Accent2", "Accent" },
+            Size = 16, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.24, Stagger = 0.07, X = -6 },
+        } or false,
         Enter = BRUSH_IN,
         Exit = { Ghost = { Source = "Icon", Fade = { 1, 0 }, Time = 0.3 } },
         Pulse = pulse and {

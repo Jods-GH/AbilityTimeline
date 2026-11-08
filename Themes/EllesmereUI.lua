@@ -82,6 +82,12 @@ fonts.ButtonPrimary.Color = "$EuiButtonText"
 
 local iconStyle = function(pulse)
     return {
+        -- Small accent beads with the same restrained fade as its icons.
+        QueuedMarkers = pulse and {
+            Art = { File = "circle" }, Colors = { "Accent", "Accent", "Accent" },
+            Size = 10, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.18, Stagger = 0.05 },
+        } or false,
         Enter = FADE_IN,
         Exit = { Ghost = { Source = "Icon", Fade = { 1, 0 }, Time = 0.18 } },
         Pulse = pulse and {

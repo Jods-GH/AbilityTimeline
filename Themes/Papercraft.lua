@@ -806,6 +806,12 @@ end
 ---hopping off as they pass a tick (timeline icons only, big icons are already in sight)
 local iconStyle = function(pulse, size)
     return {
+        -- Three pencil dots draw on one after another without additive light.
+        QueuedMarkers = pulse and {
+            Art = { File = "confetti_dot", BlendMode = "BLEND" }, Colors = { "Accent", "Accent2", "Accent" },
+            Size = 12, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.2, Stagger = 0.09, Grow = 0.4 },
+        } or false,
         Enter = {
             Ghost = { Behavior = "Papercraft", Source = "Icon", Time = 0.9, Sketch = PENCIL_SKETCH },
         },

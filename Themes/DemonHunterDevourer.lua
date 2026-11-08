@@ -54,6 +54,12 @@ local STARFIELD_OUT = {
 ---icons are already in sight
 local iconStyle = function(pulse)
     return {
+        -- Void starlight coalesces from small rotating sparks.
+        QueuedMarkers = pulse and {
+            Art = { File = "starlight", BlendMode = "ADD" }, Colors = { "Accent", "Accent2", "Accent" },
+            Size = 16, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.35, Stagger = 0.09, Rotation = 1.2, Grow = 0.8 },
+        } or false,
         -- starlight spirals in and a star shrinks onto it
         Enter = { Scale = 0.9, Vortex = gather(8, 0.9), Flare = star(0.9, { 1.7, 0.4 }, 3, 0.5) },
         -- shrinks to a point under a collapsing star, then goes off in a blast of starlight

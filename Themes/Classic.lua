@@ -110,6 +110,11 @@ private.RegisterTheme({
         },
         SpellIcon = {
             Size = 44,
+            QueuedMarkers = {
+                Art = { File = "circle" }, Colors = { "Accent", "Accent", "Accent" },
+                Size = 10, Spacing = 12, Offset = 5,
+                Enter = { Time = 0.16, Stagger = 0.05 },
+            },
             Zoom = 0.3,
             BorderWidth = 3,
             Mask = false,

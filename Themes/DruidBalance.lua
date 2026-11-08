@@ -74,6 +74,12 @@ local NIGHT_ENDS = { Ghost = { File = "panel", Slice = 8, Color = "Body", Fade =
 ---only, big icons are already in sight
 local iconStyle = function(pulse)
     return {
+        -- Moonlit stars descend in sequence.
+        QueuedMarkers = pulse and {
+            Art = { File = "twinkle", BlendMode = "ADD" }, Colors = { "Accent", "Accent2", "Accent" },
+            Size = 16, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.32, Stagger = 0.1, X = 4, Y = 7, Grow = 0.3 },
+        } or false,
         -- shooting stars streak in from the upper right and land on it
         Enter = {
             Scale = 0.92,

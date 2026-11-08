@@ -101,6 +101,12 @@ local DUSK = {
 ---big icons are already in sight
 local iconStyle = function(pulse)
     return {
+        -- Sunlit motes drift down into a quiet golden ellipsis.
+        QueuedMarkers = pulse and {
+            Art = { File = "glint", BlendMode = "ADD" }, Colors = { "Accent", "Accent2", "Accent" },
+            Size = 16, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.3, Stagger = 0.1, Y = 5 },
+        } or false,
         -- its leave backwards: an image of it flashing gold comes down into place as it fades in, motes gathering onto it
         Enter = {
             Ghost = { Source = "Icon", Scale = { 1.1, 1 }, Rise = { 10, 0 }, Fade = { 0, 1 }, Flash = FLASH, Time = 0.4 },

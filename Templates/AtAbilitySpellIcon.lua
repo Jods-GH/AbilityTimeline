@@ -174,6 +174,10 @@ end
 ---@param self frame
 ---@param remainingTime number
 local HandleCooldown        = function(self, remainingTime)
+	if self.state == private.manager.STATES.Queued then
+		self.Cooldown:SetText("")
+		return
+	end
 	local formatedTime = remainingTime
 	if formatedTime <= 0 then
 		self.Cooldown:SetText("")
@@ -222,6 +226,7 @@ local UpdateTimeline = function(self, state, timeRemaining, positionRemaining, z
 	private.ThemeApply.IconPriority(frame, zone == ZONES.MOVING and state == private.manager.STATES.Active)
 	private.ThemeApply.IconState(frame, state, frame.eventInfo)
 	positionRemaining = private.ThemeApply.UpdateTimelineMotion(frame, state, timeRemaining, positionRemaining, zone) or positionRemaining
+	private.ThemeApply.UpdateQueuedMarkers(frame, state, frame.timelineMotion and frame.timelineMotion.pauseVisible)
 	local isStopped = zone == ZONES.QUEUED or zone == ZONES.PAUSED or zone == ZONES.INLINE_PAUSED
 	local changed = state ~= frame.state or isStopped ~= frame.isStopped
 	if changed then
@@ -485,6 +490,7 @@ local function ApplySettings(self)
 		ApplySpellName(self, true)
 	end
 	private.ThemeApply.ConfigureTimelineMotion(frame, style)
+	private.ThemeApply.ConfigureQueuedMarkers(frame, style.QueuedMarkers)
 end
 
 ---@param self AtAbilitySpellIcon
@@ -500,6 +506,7 @@ local function OnRelease(self)
 	private.ThemeApply.IconPriority(self.frame, false)
 	private.ThemeApply.UpdateIconTrail(self.frame, false)
 	private.ThemeApply.StopTimelineMotion(self.frame)
+	private.ThemeApply.ResetQueuedMarkers(self.frame)
 	private.ThemeApply.IconState(self.frame, nil, nil)
 	self.frame.eventInfo = nil
 	self.frame.SpellIcon:SetTexture(nil)

@@ -90,6 +90,12 @@ local THRASH_OUT = {
 ---only, big icons are already in sight
 local iconStyle = function(pulse)
     return {
+        -- Heavy earth chips land with a short, low bounce.
+        QueuedMarkers = pulse and {
+            Art = { File = "clod", BlendMode = "BLEND" }, Colors = { "Accent", "Accent2", "Accent" },
+            Size = 14, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.22, Stagger = 0.09, Y = 4, Hop = 2 },
+        } or false,
         Enter = {
             Scale = 0.96,
             Ghost = { File = "panel", Slice = 8, Color = "Shadow", Alpha = 0.97, Dissolve = GASHED, Time = 0.45 },

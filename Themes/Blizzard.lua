@@ -45,7 +45,6 @@ do
         motion.layerLevel = nil
         motion.spec, motion.urgent, motion.lastRemaining = nil, nil, nil
         motion.state, motion.pauseVisible, motion.pauseHiding = nil, nil, nil
-        motion.queueVisible, motion.queueHiding = nil, nil
         motion.introUntil, motion.introRemaining = nil, nil
         if frame.Cooldown then frame.Cooldown:SetAlpha(1) end
     end
@@ -105,28 +104,6 @@ do
             motion.PauseHide:SetScript("OnFinished", function()
                 motion.pauseVisible, motion.pauseHiding = false, false
             end)
-            motion.Dots = {}
-            for index = 1, 3 do
-                local dot = motion.Markers:CreateTexture(nil, "OVERLAY", nil, 7)
-                dot:SetSize(10, 10)
-                dot:SetPoint("BOTTOM", frame.SpellIcon, "BOTTOM", (index - 2) * 10, 4)
-                motion.Dots[index] = dot
-                for _, key in ipairs({ "ShowMotion", "HideMotion" }) do
-                    group = dot:CreateAnimationGroup()
-                    local delay = (index - 1) * 0.2
-                    local up = animation(group, "Translation", dot, 0.2, 1, "OUT")
-                    up:SetOffset(0, 10)
-                    up:SetStartDelay(delay)
-                    local down = animation(group, "Translation", dot, 0.3, 1)
-                    down:SetOffset(0, -10)
-                    down:SetStartDelay(delay + 0.2)
-                    dot[key] = group
-                    table.insert(motion.groups, group)
-                end
-            end
-            motion.Dots[3].HideMotion:SetScript("OnFinished", function()
-                motion.queueVisible, motion.queueHiding = false, false
-            end)
             frame:HookScript("OnHide", function()
                 for _, group in ipairs(motion.groups) do group:Stop() end
                 motion.Container:SetScale(1)
@@ -134,9 +111,7 @@ do
                 motion.Swirl:SetAlpha(0)
                 motion.urgent, motion.lastRemaining = nil, nil
                 motion.pauseVisible, motion.pauseHiding = nil, nil
-                motion.queueVisible, motion.queueHiding = nil, nil
                 frame.StateBadge:Hide()
-                for _, dot in ipairs(motion.Dots) do dot:Hide() end
             end)
         end
         motion.spec = spec
@@ -168,10 +143,6 @@ do
         ThemeApply.Mask(motion.Mask, spec.Highlight.Mask)
         motion.Glow:SetAlpha(0)
         motion.Swirl:SetAlpha(0)
-        for _, dot in ipairs(motion.Dots) do
-            ThemeApply.Texture(dot, spec.QueuedDot)
-            dot:Hide()
-        end
         motion.Container:Show()
         motion.Labels:Show()
         motion.Markers:Show()
@@ -245,35 +216,23 @@ do
                 motion.PauseShow:Play()
             end
             motion.pauseVisible, motion.pauseHiding = true, false
-            motion.queueVisible, motion.queueHiding = false, false
-            for _, dot in ipairs(motion.Dots) do dot.ShowMotion:Stop(); dot.HideMotion:Stop() end
         elseif motion.pauseVisible and not motion.pauseHiding then
             motion.PauseShow:Stop()
             motion.PauseHide:Play()
             motion.pauseHiding = true
         end
-        if not paused and not motion.pauseVisible then
-            if queued and (not motion.queueVisible or motion.queueHiding) then
-                for _, dot in ipairs(motion.Dots) do dot.HideMotion:Stop(); dot.ShowMotion:Play() end
-                motion.queueVisible, motion.queueHiding = true, false
-            elseif not queued and motion.queueVisible and not motion.queueHiding then
-                for _, dot in ipairs(motion.Dots) do dot.ShowMotion:Stop(); dot.HideMotion:Play() end
-                motion.queueHiding = true
-            end
-        end
         if not full then
             motion.pauseVisible, motion.pauseHiding = paused, false
-            motion.queueVisible, motion.queueHiding = queued and not paused, false
             motion.PauseShow:Stop(); motion.PauseHide:Stop()
-            for _, dot in ipairs(motion.Dots) do dot.ShowMotion:Stop(); dot.HideMotion:Stop() end
         end
+        local markers = frame.queuedMarkers
+        local queueVisible = not motion.pauseVisible and (queued or (markers and markers:IsShown()))
         frame.StateBadge:SetShown(motion.pauseVisible and true or false)
-        for _, dot in ipairs(motion.Dots) do dot:SetShown(motion.queueVisible and true or false) end
         if motion.pauseVisible then ThemeApply.Texture(frame.StateBadge, frame.atStateArt.PausedIcon) end
         local overlay = motion.pauseVisible and frame.atStateArt.Paused or
-            motion.queueVisible and frame.atStateArt.Queued
+            queueVisible and frame.atStateArt.Queued
         frame.StateOverlay:SetShown(ThemeApply.Texture(frame.StateOverlay, overlay))
-        frame.IconOverlay:SetShown(not motion.queueVisible)
+        frame.IconOverlay:SetShown(not queueVisible)
         return positionRemaining
     end
 
@@ -666,7 +625,6 @@ local TIMELINE_MOTION = {
         Swirl = component("combattimeline-fx-highlight-fx", { BlendMode = "ADD" }),
         Mask = component("combattimeline-fx-highlight-mask"),
     },
-    QueuedDot = component("combattimeline-fx-queued-icon"),
 }
 
 local icon = function(pulse)
@@ -682,6 +640,11 @@ local icon = function(pulse)
     }
 end
 local spellIcon = icon(true)
+spellIcon.QueuedMarkers = {
+    Art = component("combattimeline-fx-queued-icon"), Colors = { "White", "White", "White" },
+    Size = 10, Spacing = 10, Offset = 4, ReferenceSize = 35,
+    Enter = { Time = 0.5, Stagger = 0.2, Hop = 10, Fade = false },
+}
 spellIcon.Size = 35
 spellIcon.DispelIcon = { Size = 12 }
 spellIcon.Trail = component("combattimeline-line-icontrail", { BlendMode = "ADD" })

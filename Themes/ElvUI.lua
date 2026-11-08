@@ -31,6 +31,12 @@ fonts.ButtonPrimary.Color = "$ElvButtonText"
 
 local iconStyle = function(pulse)
     return {
+        -- Flat squares with a short staggered fade.
+        QueuedMarkers = pulse and {
+            Art = { File = false, Color = "White" }, Colors = { "Accent", "Accent", "Accent" },
+            Size = 8, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.16, Stagger = 0.04 },
+        } or false,
         Enter = FADE_IN,
         Exit = { Ghost = { Source = "Icon", Fade = { 1, 0 }, Time = 0.16 } },
         Pulse = pulse and {

@@ -98,6 +98,12 @@ local DRIFT = {
 ---for the timeline icons only, big icons are already in sight
 local iconStyle = function(pulse)
     return {
+        -- Tiny Efflorescence blossoms open one after another.
+        QueuedMarkers = pulse and {
+            Art = { File = "flowerlet", BlendMode = "ADD" }, Colors = { "Accent", "Accent2", "Accent" },
+            Size = 16, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.34, Stagger = 0.1, Grow = 0.8, Rotation = -0.5 },
+        } or false,
         Enter = {
             Scale = 0.9,
             Vortex = { Texture = MOTE, Colors = { "Accent", "Accent", "Light" }, Count = 9, Radius = 0.9, Turns = 0.6,

@@ -75,6 +75,12 @@ local BURN = {
 ---only, big icons are already in sight
 local iconStyle = function(pulse)
     return {
+        -- Hot embers rise and settle into the queue.
+        QueuedMarkers = pulse and {
+            Art = { File = "ember", BlendMode = "ADD" }, Colors = { "Accent", "Gold", "Accent" },
+            Size = 20, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.28, Stagger = 0.1, Y = -7, Hop = 3 },
+        } or false,
         -- a sheet of fire burns off it from the bottom up
         Enter = {
             Scale = 0.9,

@@ -81,6 +81,12 @@ local SHRED = {
 ---in sight
 local iconStyle = function(pulse)
     return {
+        -- Three blood beads fall and settle like its bleed particles.
+        QueuedMarkers = pulse and {
+            Art = { File = "drop", BlendMode = "BLEND" }, Colors = { "Accent2", "Accent2", "Accent2" },
+            Size = 14, Spacing = 12, Offset = 5, Rotation = -math.pi / 2,
+            Enter = { Time = 0.24, Stagger = 0.08, Y = 6 },
+        } or false,
         Enter = {
             Scale = 0.96,
             Ghost = { File = "panel", Slice = 8, Color = "Shadow", Alpha = 0.97, Dissolve = CLAWING, Time = 0.45 },

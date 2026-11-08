@@ -70,6 +70,12 @@ local INTO_MIST = { Ghost = { File = "panel", Slice = 8, Color = "Body", Fade = 
 ---already in sight
 local iconStyle = function(pulse)
     return {
+        -- Pale mist beads condense with a slow, soft reveal.
+        QueuedMarkers = pulse and {
+            Art = { File = "mote", BlendMode = "ADD" }, Colors = { "Accent2", "Accent", "Accent2" },
+            Size = 20, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.4, Stagger = 0.1, X = -3, Grow = 0.5 },
+        } or false,
         Enter = { Scale = 0.95, Ghost = { Color = "Accent2", Alpha = 0.6, Fade = { 0.6, 0 }, Time = 0.45 } },
         -- shrinks into the mist and is gone, a few wisps left
         Exit = {

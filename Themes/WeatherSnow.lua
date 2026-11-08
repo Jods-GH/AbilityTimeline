@@ -96,6 +96,12 @@ local CRUMBLING = {
 ---the style of spell and big icons: blown away, pulse for the timeline icons only, big icons are already in sight
 local iconStyle = function(pulse)
     return {
+        -- Snowflakes drift sideways and settle.
+        QueuedMarkers = pulse and {
+            Art = { File = "flake", BlendMode = "BLEND" }, Colors = { "Accent2", "Accent", "Accent2" },
+            Size = 15, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.38, Stagger = 0.1, X = 4, Y = 6, Rotation = 0.7 },
+        } or false,
         Enter = { Scale = 0.8, Burst = flurry(8) },
         -- fades as a gust of snow blows across it and away
         Exit = {

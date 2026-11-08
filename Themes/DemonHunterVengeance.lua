@@ -85,6 +85,12 @@ local CONSUME = {
 ---it leaves, pulse for the timeline icons only, big icons are already in sight
 local iconStyle = function(pulse)
     return {
+        -- Soul fragments draw inward with the theme's consuming motion.
+        QueuedMarkers = pulse and {
+            Art = { File = "soul_fragment", BlendMode = "ADD" }, Colors = { "Accent2", "Accent", "Accent2" },
+            Size = 16, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.32, Stagger = 0.1, Y = 7, Rotation = 0.6, Grow = 0.35 },
+        } or false,
         Enter = {
             Ghost = { File = "panel", Slice = 8, Color = "Shadow", Alpha = 0.97, Dissolve = SIGIL_FLAME, Time = 0.45 },
             Burst = rising(4),

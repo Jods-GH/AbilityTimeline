@@ -50,6 +50,12 @@ local TATTOOS_OUT = { Ghost = { File = "panel", Slice = 8, Color = "Body", Fade 
 ---are already in sight
 local iconStyle = function(pulse)
     return {
+        -- Fel embers kindle and hop once.
+        QueuedMarkers = pulse and {
+            Art = { File = "fel_ember", BlendMode = "ADD" }, Colors = { "Accent", "Accent2", "Accent" },
+            Size = 16, Spacing = 12, Offset = 5,
+            Enter = { Time = 0.25, Stagger = 0.08, Y = -5, Hop = 4 },
+        } or false,
         Enter = {
             Ghost = { File = "panel", Slice = 8, Color = "Shadow", Alpha = 0.97, Dissolve = IMMOLATING, Time = 0.45 },
             Burst = rising(4),
