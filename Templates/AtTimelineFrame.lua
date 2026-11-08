@@ -202,50 +202,6 @@ local function ApplyWash(frame, wash, arrival, isHorizontal)
     frame.Wash:Show()
 end
 
--- the texture coordinates that lay a mark's left end at the end icons arrive at, its top towards the frame's top or left
-local MARK_COORDS = {
-    LEFT = { 0, 0, 0, 1, 1, 0, 1, 1 },
-    RIGHT = { 1, 0, 1, 1, 0, 0, 0, 1 },
-    BOTTOM = { 1, 0, 0, 0, 1, 1, 0, 1 },
-    TOP = { 0, 0, 1, 0, 0, 1, 1, 1 },
-}
-
----keeps a mark Length times the timeline's thickness long
----@param frame Frame
-local function UpdateMarkSize(frame)
-    if not frame.mark then return end
-    if frame.isHorizontal then
-        frame.Mark:SetWidth(frame:GetHeight() * (frame.mark.Length or 2))
-    else
-        frame.Mark:SetHeight(frame:GetWidth() * (frame.mark.Length or 2))
-    end
-end
-
----a still texture across the timeline at the end icons arrive at, Length times its thickness long, e.g. a stroke of
----highlighter
----@param frame Frame
----@param mark table|nil
----@param arrival string
----@param isHorizontal boolean
-local function ApplyMark(frame, mark, arrival, isHorizontal)
-    frame.mark = mark
-    if not (mark and private.ThemeApply.Texture(frame.Mark, mark)) then
-        frame.Mark:Hide()
-        return
-    end
-    frame.Mark:ClearAllPoints()
-    if isHorizontal then
-        frame.Mark:SetPoint("TOP" .. arrival, frame, "TOP" .. arrival)
-        frame.Mark:SetPoint("BOTTOM" .. arrival, frame, "BOTTOM" .. arrival)
-    else
-        frame.Mark:SetPoint(arrival .. "LEFT", frame, arrival .. "LEFT")
-        frame.Mark:SetPoint(arrival .. "RIGHT", frame, arrival .. "RIGHT")
-    end
-    frame.Mark:SetTexCoord(unpack(MARK_COORDS[arrival]))
-    frame.Mark:Show()
-    UpdateMarkSize(frame)
-end
-
 ---lays the flow's texture along the timeline, tiled once per its width and shifted by its offset, the texture's
 ---downwards pointing at the end icons arrive at
 ---@param frame Frame
@@ -306,84 +262,6 @@ local function ApplyFlow(frame, flow, arrival, isHorizontal)
     end
 end
 
-local OPPOSITE = { LEFT = "RIGHT", RIGHT = "LEFT", TOP = "BOTTOM", BOTTOM = "TOP" }
-
----lays optional track artwork along the same axis and time range as the event icons
-local function UpdateTrack(frame)
-    local track = frame.track
-    if not frame.TrackArt then return end
-    for _, texture in pairs(frame.TrackArt) do texture:Hide() end
-    for _, mask in pairs(frame.TrackBreakMasks or {}) do
-        frame.TrackArt.Start:RemoveMaskTexture(mask)
-        frame.TrackArt.End:RemoveMaskTexture(mask)
-    end
-    if not track then return end
-    local art, horizontal, arrival = frame.TrackArt, frame.isHorizontal, frame.arrival
-    local length = horizontal and frame:GetWidth() or frame:GetHeight()
-    local thickness = track.Thickness or 14
-    local place = function(texture, distance, along, across)
-        texture:ClearAllPoints()
-        local offset = (arrival == "RIGHT" or arrival == "TOP") and -distance or distance
-        texture:SetPoint("CENTER", frame, arrival, horizontal and offset or 0, horizontal and 0 or offset)
-        texture:SetSize(horizontal and along or across, horizontal and across or along)
-    end
-    local shadow = not horizontal and track.ShadowVertical or track.Shadow
-    local nativeVertical = not horizontal and shadow == track.ShadowVertical
-    art.Shadow:SetShown(private.ThemeApply.OrientedTexture(art.Shadow, shadow,
-        nativeVertical and "RIGHT" or arrival))
-    place(art.Shadow, length / 2, length, track.ShadowThickness or 57)
-    for index, spec in ipairs({ track.End, track.Start }) do
-        local texture = index == 1 and art.End or art.Start
-        texture:SetShown(private.ThemeApply.OrientedTexture(texture, spec, arrival))
-        place(texture, length * (index == 1 and 0.25 or 0.75), length / 2, thickness)
-    end
-    local total = private.db.profile.timeline_settings.threshold_time
-    local time = track.PipTime or 5
-    local maskCounts = { Start = 0, End = 0 }
-    for index = 1, 6 do
-        local duration = 1 + (index - 1) * 2
-        local key = duration <= total / 2 and "End" or "Start"
-        if track.BreakMask and maskCounts[key] < 3 then
-            local mask = frame.TrackBreakMasks[index]
-            if not mask then
-                mask = frame:CreateMaskTexture()
-                frame.TrackBreakMasks[index] = mask
-            end
-            if private.ThemeApply.Mask(mask, track.BreakMask) then
-                mask:ClearAllPoints()
-                local distance = duration / total * length
-                local offset = (arrival == "LEFT" or arrival == "BOTTOM") and distance or -distance
-                mask:SetPoint("CENTER", frame, arrival, horizontal and offset or 0, horizontal and 0 or offset)
-                mask:SetSize(16, 16)
-                mask:SetRotation(horizontal and 0 or 90)
-                art[key]:AddMaskTexture(mask)
-                maskCounts[key] = maskCounts[key] + 1
-            end
-        end
-    end
-    art.Pip:SetShown(time <= total and private.ThemeApply.Texture(art.Pip, track.Pip) or false)
-    place(art.Pip, math.min(time / total, 1) * length, track.PipSize or 16, track.PipSize or 16)
-    art.Divider:SetShown(private.ThemeApply.OrientedTexture(art.Divider, track.Divider, arrival))
-    art.Divider:ClearAllPoints()
-    local offset = (arrival == "LEFT" or arrival == "BOTTOM") and -(track.DividerOffset or 0) or (track.DividerOffset or 0)
-    art.Divider:SetPoint(arrival, frame, OPPOSITE[arrival], horizontal and offset or 0, horizontal and 0 or offset)
-    art.Divider:SetSize(horizontal and (track.DividerWidth or 56) or (track.DividerHeight or 46),
-        horizontal and (track.DividerHeight or 46) or (track.DividerWidth or 56))
-    art.PipText:SetShown(track.PipText and private.db.profile.timeline_settings.ticks_enabled ~= false and time <= total or false)
-    if track.PipText then
-        private.ThemeApply.Font(art.PipText, track.PipFont)
-        art.PipText:SetText(string.format("%d", time))
-        art.PipText:ClearAllPoints()
-        if horizontal then
-            art.PipText:SetPoint("TOP", art.Pip, "BOTTOM", 0, -19)
-        elseif private.GetElementStyle("SpellIcon").Text.Anchor == "RIGHT" then
-            art.PipText:SetPoint("RIGHT", art.Pip, "LEFT", -20, 0)
-        else
-            art.PipText:SetPoint("LEFT", art.Pip, "RIGHT", 20, 0)
-        end
-    end
-end
-
 ---draws the current theme's look of the timeline on a frame made by AddThemeLayers, icons arriving at arrival
 ---@param frame Frame
 ---@param arrival string
@@ -393,16 +271,11 @@ private.TimelineFrame.ApplyTheme = function(frame, arrival, isHorizontal)
     private.ThemeApply.Backdrop(frame, style.Backdrop)
     if frame.Center then frame.Center:SetDrawLayer("BACKGROUND", -8) end
     frame.Background:SetShown(private.ThemeApply.Texture(frame.Background, style.Background))
-    frame.Header:SetShown(private.ThemeApply.Texture(frame.Header, style.Header))
-    if style.Header then
-        frame.Header:SetHeight(math.min(style.Header.Height or 18, frame:GetHeight()))
-    end
     frame.Edge:SetShown(private.ThemeApply.Texture(frame.Edge, style.Edge))
     frame.arrival, frame.isHorizontal = arrival, isHorizontal
-    frame.track = style.Track
-    UpdateTrack(frame)
+    private.ThemeApply.ConfigureTrack(frame, style.Track)
     ApplyWash(frame, style.Wash, arrival, isHorizontal)
-    ApplyMark(frame, style.Mark, arrival, isHorizontal)
+    private.ThemeApply.ConfigureTimelineArt(frame, style, arrival, isHorizontal)
     frame.NowPulse:Stop()
     frame.Now:SetShown(private.ThemeApply.Texture(frame.Now, style.Now))
     if style.Now then
@@ -562,38 +435,20 @@ end
 ---creates the textures and sparkles a theme draws the timeline with on frame, e.g. for a preview of the timeline
 ---@param frame Frame
 private.TimelineFrame.AddThemeLayers = function(frame)
-    frame.TrackBreakMasks = {}
-    frame.TrackArt = {
-        Shadow = frame:CreateTexture(nil, "BACKGROUND", nil, -1),
-        Start = frame:CreateTexture(nil, "ARTWORK"),
-        End = frame:CreateTexture(nil, "ARTWORK"),
-        Pip = frame:CreateTexture(nil, "OVERLAY"),
-        Divider = frame:CreateTexture(nil, "ARTWORK"),
-        PipText = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Large"),
-    }
-    for _, texture in pairs(frame.TrackArt) do texture:Hide() end
-    frame:HookScript("OnSizeChanged", UpdateTrack)
     frame.Background = frame:CreateTexture(nil, "BACKGROUND")
     frame.Background:SetAllPoints(frame)
-    frame.Header = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
-    frame.Header:SetPoint("TOPLEFT")
-    frame.Header:SetPoint("TOPRIGHT")
-    frame.Header:Hide()
     frame.Edge = frame:CreateTexture(nil, "BORDER")
     frame.Edge:SetAllPoints(frame)
     frame.Wash = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
     frame.Wash:SetTexture("Interface\\Buttons\\WHITE8X8")
     frame.Wash:SetPoint("TOPLEFT", 1, -1)
     frame.Wash:SetPoint("BOTTOMRIGHT", -1, 1)
-    frame.Mark = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
-    frame.Mark:Hide()
     frame.Flow = frame:CreateTexture(nil, "BACKGROUND", nil, 2)
     frame.Flow:SetPoint("TOPLEFT", 2, -2)
     frame.Flow:SetPoint("BOTTOMRIGHT", -2, 2)
     frame.Flow:Hide()
     frame.FlowDriver = CreateFrame("Frame", nil, frame)
     frame:HookScript("OnSizeChanged", UpdateFlowCoords)
-    frame:HookScript("OnSizeChanged", UpdateMarkSize)
     frame.Now = frame:CreateTexture(nil, "BORDER", nil, 1)
     frame.NowPulse = frame.Now:CreateAnimationGroup()
     frame.NowPulse:SetLooping("BOUNCE")

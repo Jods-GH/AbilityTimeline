@@ -1,6 +1,60 @@
 local appName, app = ...
 ---@class AbilityTimeline
 local private = app
+local ThemeApply = private.ThemeApply
+local behavior = {}
+
+behavior.GetEffectSpec = function(spec)
+    return spec.Cover
+end
+
+behavior.SetupEffect = function(layer, spec, frame)
+    layer:SetFrameLevel(math.min(frame:GetFrameLevel() + 50, 9000))
+    if not layer.Cover then
+        layer.Cover = layer:CreateTexture(nil, "OVERLAY")
+        layer.Cover:SetAllPoints(layer)
+        layer.Freeze = layer.Cover:CreateAnimationGroup()
+        layer.Freeze:SetToFinalAlpha(true)
+        layer.Appear = layer.Freeze:CreateAnimation("Alpha")
+        layer.Appear:SetFromAlpha(0)
+        layer.Appear:SetToAlpha(1)
+        layer.Appear:SetOrder(1)
+        layer.Grow = layer.Freeze:CreateAnimation("Scale")
+        layer.Grow:SetScaleTo(1, 1)
+        layer.Grow:SetOrigin("CENTER", 0, 0)
+        layer.Grow:SetSmoothing("OUT")
+        layer.Grow:SetOrder(1)
+        layer.Melt = layer.Freeze:CreateAnimation("Alpha")
+        layer.Melt:SetFromAlpha(1)
+        layer.Melt:SetToAlpha(0)
+        layer.Melt:SetSmoothing("IN")
+        layer.Melt:SetOrder(2)
+    end
+    layer.Freeze:Stop()
+    local cover = spec
+    if cover and ThemeApply.Texture(layer.Cover, cover) then
+        ThemeApply.SetTransitionShape(layer, layer.Cover, cover.Mask)
+        local time = cover.Time or 0.5
+        -- the frost grows onto the frame in the first third and melts away in the rest
+        layer.Appear:SetDuration(time * 0.3)
+        layer.Grow:SetDuration(time * 0.3)
+        layer.Grow:SetScaleFrom(cover.Grow or 1, cover.Grow or 1)
+        layer.Melt:SetDuration(time * 0.7)
+        layer.Cover:Show()
+        layer.Freeze:Play()
+    else
+        layer.Cover:Hide()
+    end
+end
+
+behavior.StepEffect = function() end
+
+behavior.ResetEffect = function(layer)
+    if layer.Freeze then layer.Freeze:Stop(); layer.Cover:Hide() end
+end
+
+ThemeApply.RegisterBehavior("MageFrost", behavior)
+
 private.RegisterThemeTextures("MageFrost", { "splinter" })
 
 -- glacial blue with an arcane violet for contrast: splinters and flakes falling over the timeline, everything freezes
@@ -42,9 +96,9 @@ local burst = function(count)
 end
 
 -- frost growing onto the frame and melting off it
-local COVER = { File = "frost", Color = "Accent2", Alpha = 0.9, BlendMode = "ADD", Grow = 1.2, Time = 0.6 }
+local COVER = { Behavior = "MageFrost", File = "frost", Color = "Accent2", Alpha = 0.9, BlendMode = "ADD", Grow = 1.2, Time = 0.6 }
 local SHARD_EDGE = { File = "cracks", Color = "Accent2", Alpha = 0.9, BlendMode = "ADD" }
-local FREEZE = { Scale = 0.96, Cover = COVER, Burst = burst(14) }
+local FREEZE = { Behavior = "MageFrost", Scale = 0.96, Cover = COVER, Burst = burst(14) }
 local SHATTER = {
     Crack = { File = "cracks", Color = "Accent2", Alpha = 0.9, BlendMode = "ADD", Time = 0.1 },
     Shards = { File = "ice", Color = "Body", Edge = SHARD_EDGE, Speed = { 80, 200 }, Gravity = -700, Time = 0.55 },
@@ -56,8 +110,9 @@ local SHATTER = {
 local iconStyle = function(pulse)
     return {
         Enter = {
+            Behavior = "MageFrost",
             Scale = 0.8,
-            Cover = { File = "frost", Color = "Accent2", Alpha = 0.9, BlendMode = "ADD", Grow = 1.2, Time = 0.6 },
+            Cover = { Behavior = "MageFrost", File = "frost", Color = "Accent2", Alpha = 0.9, BlendMode = "ADD", Grow = 1.2, Time = 0.6 },
             Burst = burst(6),
         },
         Exit = {

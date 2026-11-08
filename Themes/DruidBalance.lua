@@ -1,6 +1,37 @@
 local appName, app = ...
 ---@class AbilityTimeline
 local private = app
+local ThemeApply = private.ThemeApply
+local behavior = {}
+
+local stepBeam = function(host, beam, progress)
+    local width, height = host:GetWidth(), host:GetHeight()
+    local above = height * (beam.Height or 2.4)
+    local reach = 1 - (1 - math.min(progress / 0.35, 1)) ^ 3
+    local fading = math.max((progress - 0.35) / 0.65, 0)
+    host.Beam:SetPoint("TOP", host, "TOP", 0, above)
+    host.Beam:SetSize(math.max(width * (beam.Width or 0.6) * (1 - fading * 0.6), 0.01),
+        math.max((above + height / 2) * reach + height * 0.15, 0.01))
+    host.Beam:SetAlpha(progress < 0.35 and math.min(progress / 0.12, 1) or 1 - fading)
+end
+
+behavior.GetEffectSpec = function(spec)
+    return spec.Beam
+end
+
+behavior.SetupEffect = function(host, spec)
+    if not host.Beam then host.Beam = host:CreateTexture(nil, "OVERLAY", nil, 5) end
+    host.Beam:SetShown(ThemeApply.Texture(host.Beam, spec))
+end
+
+behavior.StepEffect = stepBeam
+
+behavior.ResetEffect = function(host)
+    if host.Beam then host.Beam:Hide() end
+end
+
+ThemeApply.RegisterBehavior("DruidBalance", behavior)
+
 private.RegisterThemeTextures("DruidBalance", { "corona", "moonbeam", "shooting_star", "twinkle" }, { "eclipse" })
 
 -- the night sky with lunar silver and solar gold: still stars and shooting stars over the timeline, icons appear as
@@ -57,9 +88,10 @@ local iconStyle = function(pulse)
         },
         -- a beam of Moonfire coming down onto it as it passes a tick
         Pulse = pulse and {
+            Behavior = "DruidBalance",
             Glow = { Color = "Accent", Alpha = 0.4 },
             Scale = false,
-            Beam = { File = "moonbeam", Color = "Accent", Alpha = 0.6, BlendMode = "ADD", Width = 0.5, Time = 0.45 },
+            Beam = { Behavior = "DruidBalance", File = "moonbeam", Color = "Accent", Alpha = 0.6, BlendMode = "ADD", Width = 0.5, Time = 0.45 },
         } or false,
         Text = {
             Font = { Media = false, Object = "GameFontHighlight", Flags = { OUTLINE = true }, Color = "Text", Shadow = true },

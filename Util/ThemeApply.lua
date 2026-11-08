@@ -7,6 +7,83 @@ local SharedMedia = LibStub("LibSharedMedia-3.0")
 private.ThemeApply = {}
 local ThemeApply = private.ThemeApply
 
+local behaviors = {}
+
+---Theme-owned implementations selected by a spec's Behavior key.
+ThemeApply.RegisterBehavior = function(name, behavior)
+    behaviors[name] = behavior
+end
+
+ThemeApply.GetBehavior = function(spec)
+    return spec and behaviors[spec.Behavior] or nil
+end
+
+local callBehavior = function(behavior, method, ...)
+    if behavior and behavior[method] then return behavior[method](...) end
+end
+
+ThemeApply.GetTransitionEffect = function(spec)
+    return spec and (spec.Effect or callBehavior(ThemeApply.GetBehavior(spec), "GetEffectSpec", spec)) or nil
+end
+
+ThemeApply.ConfigureIconBehavior = function(frame, style)
+    callBehavior(frame.atIconBehavior, "ResetIcon", frame)
+    frame.atIconBehavior = not frame.atIconSkinned and ThemeApply.GetBehavior(style) or nil
+    callBehavior(frame.atIconBehavior, "ConfigureIcon", frame, style)
+end
+
+ThemeApply.IconState = function(frame, ...)
+    return callBehavior(frame.atIconBehavior, "IconState", frame, ...)
+end
+
+ThemeApply.ConfigureTimelineMotion = function(frame, ...)
+    return callBehavior(frame.atIconBehavior, "ConfigureTimelineMotion", frame, ...)
+end
+
+ThemeApply.StopTimelineMotion = function(frame, ...)
+    return callBehavior(frame.atIconBehavior, "StopTimelineMotion", frame, ...)
+end
+
+ThemeApply.EnterTimelineMotion = function(frame, ...)
+    return callBehavior(frame.atIconBehavior, "EnterTimelineMotion", frame, ...)
+end
+
+ThemeApply.UpdateTimelineMotion = function(frame, ...)
+    return callBehavior(frame.atIconBehavior, "UpdateTimelineMotion", frame, ...)
+end
+
+ThemeApply.UpdateIconTrail = function(frame, ...)
+    return callBehavior(frame.atIconBehavior, "UpdateIconTrail", frame, ...)
+end
+
+ThemeApply.ConfigureTrack = function(frame, track)
+    callBehavior(frame.atTrackBehavior, "ResetTrack", frame)
+    frame.atTrackBehavior = ThemeApply.GetBehavior(track)
+    callBehavior(frame.atTrackBehavior, "ConfigureTrack", frame, track)
+end
+
+ThemeApply.ConfigureTimelineArt = function(frame, style, arrival, horizontal)
+    callBehavior(frame.atTimelineArtBehavior, "ResetTimelineArt", frame)
+    frame.atTimelineArtBehavior = ThemeApply.GetBehavior(style)
+    callBehavior(frame.atTimelineArtBehavior, "ConfigureTimelineArt", frame, style, arrival, horizontal)
+end
+
+ThemeApply.UpdateTrack = function(frame)
+    callBehavior(frame.atTrackBehavior, "UpdateTrack", frame)
+end
+
+local stopWindowEnter = function(frame)
+    callBehavior(frame.atWindowEnterBehavior, "StopWindowEnter", frame)
+    frame.atWindowEnterBehavior = nil
+end
+
+local playWindowEnter = function(frame)
+    local enter = frame.atWindowStyle.Enter
+    local behavior = enter and ThemeApply.GetBehavior(enter.Ghost)
+    frame.atWindowEnterBehavior = behavior
+    return callBehavior(behavior, "PlayWindowEnter", frame)
+end
+
 ---the path of a texture of Media/Textures/Theme, fetched from SharedMedia
 ---@param name string
 ---@return string
@@ -171,57 +248,6 @@ ThemeApply.AtlasInfo = function(atlas)
     return C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas)
 end
 
----orients artwork using Blizzard's track orientation (arrival is its END point)
-ThemeApply.OrientedTexture = function(texture, spec, arrival)
-    if not ThemeApply.Texture(texture, spec) then return false end
-    local left, right, top, bottom = 0, 1, 0, 1
-    if spec.Coords and not (spec.Atlas and ThemeApply.AtlasInfo(spec.Atlas)) then
-        left, right, top, bottom = unpack(spec.Coords)
-    end
-    if arrival == "LEFT" then
-        texture:SetTexCoord(right, top, right, bottom, left, top, left, bottom)
-    elseif arrival == "BOTTOM" then
-        texture:SetTexCoord(left, top, right, top, left, bottom, right, bottom)
-    elseif arrival == "TOP" then
-        texture:SetTexCoord(right, top, left, top, right, bottom, left, bottom)
-    else
-        texture:SetTexCoord(left, right, top, bottom)
-    end
-    return true
-end
-
-ThemeApply.ConfigureIconTrail = function(frame, spec)
-    frame.iconTrailSpec, frame.iconTrailArrival = spec, nil
-    if not spec and not frame.IconTrail then return end
-    if not frame.IconTrail then
-        frame.IconTrail = frame:CreateTexture(nil, "OVERLAY", nil, -1)
-        frame:HookScript("OnHide", function() frame.IconTrail:Hide() end)
-    end
-    frame.IconTrail:Hide()
-end
-
----the trail follows the icon's anchors; only a direction change needs layout work
-ThemeApply.UpdateIconTrail = function(frame, moving)
-    local spec = frame.iconTrailSpec
-    if not frame.IconTrail then return end
-    if not spec or not moving or not frame:IsShown() or not private.AmbientEffectsEnabled() then
-        frame.IconTrail:Hide()
-        return
-    end
-    local arrival, horizontal = private.TimelineFrame.GetArrivalPoint()
-    if arrival ~= frame.iconTrailArrival then
-        local start = ({ LEFT = "RIGHT", RIGHT = "LEFT", TOP = "BOTTOM", BOTTOM = "TOP" })[arrival]
-        local offset = (arrival == "RIGHT" or arrival == "TOP") and (spec.Offset or 10) or -(spec.Offset or 10)
-        frame.IconTrail:ClearAllPoints()
-        frame.IconTrail:SetPoint(arrival, frame.SpellIcon, start, horizontal and offset or 0, horizontal and 0 or offset)
-        local length, thickness = spec.Length or 32, spec.Thickness or 2
-        frame.IconTrail:SetSize(horizontal and length or thickness, horizontal and thickness or length)
-        ThemeApply.OrientedTexture(frame.IconTrail, spec, arrival)
-        frame.iconTrailArrival = arrival
-    end
-    frame.IconTrail:Show()
-end
-
 ---creates a nine-sliced texture of Media/Textures/Theme
 ---@param parent Frame
 ---@param file string
@@ -310,7 +336,7 @@ ThemeApply.AddShowAnimation = function(frame, scale)
     frame:HookScript("OnShow", function()
         if private.GetAnimationLevel() == private.ANIMATION_LEVELS.OFF then return end
         local enter = frame.atWindowStyle and frame.atWindowStyle.Enter
-        if enter and enter.Ghost and enter.Ghost.Source == "Window" and private.AmbientEffectsEnabled() then return end
+        if callBehavior(ThemeApply.GetBehavior(enter and enter.Ghost), "SkipWindowAnimation", frame, enter) then return end
         local time = private.GetMotion("Open")
         fade:SetDuration(time)
         grow:SetDuration(time)
@@ -387,11 +413,7 @@ ThemeApply.LayoutIconArt = function(frame)
     if overlay and frame.IconOverlay then
         place(frame.IconOverlay, overlay.Offsets or {}, overlay.ReferenceSize)
     end
-    local stateArt = style.StateArt
-    if stateArt and frame.StateOverlay then
-        local offsets = overlay and overlay.Offsets or { left = -7, top = 6, right = 7, bottom = -7 }
-        place(frame.StateOverlay, offsets, stateArt.ReferenceSize)
-    end
+    callBehavior(frame.atIconBehavior, "LayoutIconArt", frame)
 end
 
 ---raise the entire moving icon above queued/paused icons, including their child frames
@@ -414,7 +436,6 @@ ThemeApply.IconArt = function(frame, icon, style, overlayParent, skinned)
         frame:HookScript("OnSizeChanged", ThemeApply.LayoutIconArt)
         frame.atIconLayoutHook = true
     end
-    ThemeApply.ConfigureIconTrail(frame, not skinned and style.Trail or nil)
     if skinned then
         icon.zoomApplied = nil
     elseif icon.zoomApplied ~= 1 - style.Zoom then
@@ -485,38 +506,10 @@ ThemeApply.IconArt = function(frame, icon, style, overlayParent, skinned)
             texture:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", borderGlow.Spread, -borderGlow.Spread)
         end
     end
-    frame.atStateArt = not skinned and style.StateArt or nil
-    frame.atStateValue = nil
+    ThemeApply.ConfigureIconBehavior(frame, style)
     ThemeApply.IconState(frame, frame.state, frame.eventInfo or
         (frame.eventID and private.manager.getEventInfo(frame.eventID)))
     ThemeApply.LayoutIconArt(frame)
-end
-
----updates optional state art without changing the manager's timer state or badge alpha
-ThemeApply.IconState = function(frame, state)
-    local style = frame.atStateArt
-    if not style and not frame.StateOverlay then return end
-    if not frame.StateOverlay then
-        local parent = frame.TextureHolder or frame
-        frame.StateOverlay = parent:CreateTexture(nil, "OVERLAY", nil, -7)
-        frame.StateOverlay:SetPoint("TOPLEFT", frame.SpellIcon, "TOPLEFT", -7, 6)
-        frame.StateOverlay:SetPoint("BOTTOMRIGHT", frame.SpellIcon, "BOTTOMRIGHT", 7, -7)
-        frame.StateBadge = parent:CreateTexture(nil, "OVERLAY", nil, 7)
-        frame.StateBadge:SetSize(16, 16)
-        frame.StateBadge:SetPoint("BOTTOMRIGHT", frame.SpellIcon, "BOTTOMRIGHT", -4, 4)
-    end
-    if frame.atStateValue == state and frame.atStateStyle == style then return end
-    frame.atStateValue, frame.atStateStyle = state, style
-    local overlay, badge
-    if style then
-        if state == private.manager.STATES.Paused then
-            overlay, badge = style.Paused, style.PausedIcon
-        elseif state == private.manager.STATES.Queued then
-            overlay, badge = style.Queued, style.QueuedIcon
-        end
-    end
-    frame.StateOverlay:SetShown(ThemeApply.Texture(frame.StateOverlay, overlay))
-    frame.StateBadge:SetShown(ThemeApply.Texture(frame.StateBadge, badge))
 end
 
 ---the color of a dispel type of private.dispellTypeList in the theme's palette
@@ -646,7 +639,7 @@ ThemeApply.PlayEnter = function(frame, enter, keepSize, icon, iconFile)
 end
 
 ---plays an icon style's Pulse once, when the icon passes a tick of the timeline: Glow flares up behind it, and Ghost,
----Flare, Beam, Vortex and Burst play over it as in an Exit; the icon keeps its size, its borders and badges wouldn't
+---Flare, Effect, Vortex and Burst play over it as in an Exit; the icon keeps its size, its borders and badges wouldn't
 ---grow with it
 ---@param frame Frame
 ---@param pulse table|nil
@@ -690,8 +683,9 @@ ThemeApply.PlayPulse = function(frame, pulse, icon, iconFile)
     else
         frame.AtPulse:Hide()
     end
-    if pulse.Ghost or pulse.Flare or pulse.Beam or pulse.Vortex or pulse.Burst then
-        ThemeApply.PlayExit(frame, { Ghost = pulse.Ghost, Flare = pulse.Flare, Beam = pulse.Beam, Vortex = pulse.Vortex,
+    local effect = ThemeApply.GetTransitionEffect(pulse)
+    if pulse.Ghost or pulse.Flare or effect or pulse.Vortex or pulse.Burst then
+        ThemeApply.PlayExit(frame, { Ghost = pulse.Ghost, Flare = pulse.Flare, Effect = effect, Vortex = pulse.Vortex,
             Burst = pulse.Burst }, icon, iconFile, true)
     end
 end
@@ -753,30 +747,6 @@ local applyDecor = function(shell, decor)
     end
 end
 
-local stopWindowSketch = function(frame)
-    local pending = frame.atWindowSketch
-    if not pending then return end
-    private.StopTween(pending)
-    frame:SetAlpha(pending.alpha)
-    frame.atWindowSketch = nil
-end
-
-local playWindowSketch = function(frame)
-    local enter = frame.atWindowStyle.Enter
-    local ghost = enter and enter.Ghost
-    if not ghost or ghost.Source ~= "Window" or not private.AmbientEffectsEnabled() then return false end
-    local pending = { alpha = frame:GetAlpha() }
-    frame.atWindowSketch = pending
-    frame:SetAlpha(0)
-    -- Settings creates its page after Show. Copy its artwork after that layout completes.
-    private.Tween(pending, 0, 1, 0.001, "linear", function() end, function()
-        frame:SetAlpha(pending.alpha)
-        frame.atWindowSketch = nil
-        ThemeApply.PlayEnterEffects(frame, enter)
-    end)
-    return true
-end
-
 ---draws a window in the theme's window style: shadow, rounded body, wash, edge, a line under its header,
 ---a fade in when shown and sparkles along the header when the theme has them; Grain (a texture spec over the body),
 ---EdgeArt (a texture spec in place of the edge) and Decor dress it up further
@@ -785,7 +755,7 @@ end
 ---@param closeButton Button|nil
 ---@param title FontString|nil -- defaults to the title of a PortraitFrameTemplate
 ThemeApply.Window = function(frame, style, closeButton, title)
-    stopWindowSketch(frame)
+    stopWindowEnter(frame)
     ThemeApply.StopEnterEffects(frame)
     for _, key in ipairs({ "NineSlice", "Bg", "TopTileStreaks", "PortraitContainer" }) do
         if frame[key] then
@@ -825,14 +795,14 @@ ThemeApply.Window = function(frame, style, closeButton, title)
         frame.AtShell = shell
         ThemeApply.AddShowAnimation(frame)
         frame:HookScript("OnShow", function()
-            stopWindowSketch(frame)
-            if not playWindowSketch(frame) then
+            stopWindowEnter(frame)
+            if not playWindowEnter(frame) then
                 ThemeApply.PlayEnterEffects(frame, frame.atWindowStyle.Enter)
             end
         end)
         -- not when only a parent hid it, like UIParent while the interface is hidden
         frame:HookScript("OnHide", function()
-            stopWindowSketch(frame)
+            stopWindowEnter(frame)
             ThemeApply.StopEnterEffects(frame)
             if not frame:IsShown() and not frame.atWindowFadeComplete then
                 ThemeApply.PlayExit(frame, frame.atWindowStyle.Exit)

@@ -4,6 +4,24 @@ local private = app
 local SharedMedia = LibStub("LibSharedMedia-3.0")
 
 -- Refinement picks B5 E3 P1 X2 W3, 2026-11-06.
+local timelineArt = {}
+
+timelineArt.ConfigureTimelineArt = function(frame, style)
+    if not frame.Header then
+        frame.Header = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+        frame.Header:SetPoint("TOPLEFT")
+        frame.Header:SetPoint("TOPRIGHT")
+    end
+    frame.Header:SetShown(private.ThemeApply.Texture(frame.Header, style.Header))
+    if style.Header then frame.Header:SetHeight(math.min(style.Header.Height or 18, frame:GetHeight())) end
+end
+
+timelineArt.ResetTimelineArt = function(frame)
+    if frame.Header then frame.Header:Hide() end
+end
+
+private.ThemeApply.RegisterBehavior("GW2UI", timelineArt)
+
 private.RegisterThemeTextures("GW2UI", {}, { "gw2_brush", "gw2_ink" })
 local ART = "Interface\\AddOns\\GW2_UI\\Textures\\"
 if GW2_ADDON then
@@ -126,6 +144,7 @@ private.RegisterTheme({
     Windows = { Window = WINDOW, Dialog = WINDOW },
     Elements = {
         Timeline = {
+            Behavior = "GW2UI",
             Backdrop = {
                 Background = false, Border = "None", BgFile = "Interface\\Buttons\\WHITE8X8",
                 Color = "Body", BorderColor = { 0, 0, 0, 0 },
