@@ -356,7 +356,7 @@ driver:SetScript("OnUpdate", function(_, elapsed)
          frame.positionRemaining = positionRemaining
          frame.timeRemaining = timeRemaining
          frame.currentState = state
-         frame.mergeState = state == private.ENCOUNTER_STATES.Queued and private.ENCOUNTER_STATES.Active or state
+         frame.mergeState = state
          table.insert(zoneIcons, widget)
       end
    end
