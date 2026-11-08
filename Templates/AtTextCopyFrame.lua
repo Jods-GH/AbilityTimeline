@@ -4,19 +4,18 @@ local private = app
 local AceGUI = LibStub("AceGUI-3.0")
 
 local Type = "AtTextCopyFrame"
-local Version = 1
+local Version = 2
 local variables = {
-    height = 100,
-    width = 10,
-    editBoxOffset = {
-        x = 5,
-        y = 0,
-    }
+    width = 440,
+    padding = 16,
+    headerHeight = 34,
+    editBoxHeight = 26,
 }
 
 ---@param self AtTextCopyFrame
 local function OnAcquire(self)
-    self.Content.frame:Show()
+    self.frame:SetWidth(variables.width)
+    self:ApplySettings()
     self.EditBox.frame:Show()
     self.Hint:Show()
     self.CloseButton:Show()
@@ -24,15 +23,17 @@ end
 
 ---@param self AtTextCopyFrame
 local function OnRelease(self)
-    self.EditBox:SetText('')
+    self.focusRequest = nil
     self.EditBox.editbox:SetScript("OnKeyUp", nil)
-    self.Content.frame:Hide()
+    self.EditBox.editbox:SetScript("OnTextChanged", nil)
+    self.EditBox:ClearFocus()
+    self.EditBox:SetText('')
+    self.activeText = nil
     self.EditBox.frame:Hide()
     self.Hint:Hide()
     self.CloseButton:Hide()
 end
 
-local activeText = ""
 local function RegisterKeyBinds(widget)
     widget.EditBox.editbox:SetScript("OnKeyUp", function(self, key)
         if IsControlKeyDown() then
@@ -46,57 +47,68 @@ local function RegisterKeyBinds(widget)
         end
     end)
     widget.EditBox.editbox:SetScript("OnTextChanged", function(self)
-        self:SetText(activeText)
+        if self:GetText() ~= widget.activeText then
+            self:SetText(widget.activeText)
+        end
         self:SetFocus()
         self:HighlightText()
     end)
 end
 
 local function SetValues(self, text)
+    self.activeText = text
     self.EditBox:SetText(text)
+    self.EditBox.editbox:SetTextInsets(6, 6, 3, 3)
     RegisterKeyBinds(self)
     -- Delay focus and highlight to ensure it works after frame is shown
+    local request = {}
+    self.focusRequest = request
     C_Timer.After(0.05, function()
-        if self.EditBox and self.EditBox.editbox then
+        if self.focusRequest == request and self.frame:IsShown() then
             self.EditBox.editbox:SetFocus()
             self.EditBox.editbox:HighlightText()
         end
     end)
-    activeText = text
 end
 
 
 ---@param self AtTextCopyFrame
 local function ApplySettings(self)
-    private.ThemeApply.Window(self.frame, private.GetWindowStyle("Window"), self.frame.CloseButton)
+    private.ThemeApply.Window(self.frame, private.GetWindowStyle("Dialog"), self.frame.CloseButton, self.frame.Title)
     private.ThemeApply.FontRole(self.frame.Hint, "Muted")
+    self.frame:SetHeight(variables.headerHeight + variables.editBoxHeight + self.Hint:GetStringHeight() +
+        variables.padding * 3)
 end
 
 local function Constructor()
     local count = AceGUI:GetNextWidgetNum(Type)
 
-    local frame = CreateFrame("Frame", Type .. count, UIParent, 'PortraitFrameTemplateNoCloseButton')
+    local frame = CreateFrame("Frame", Type .. count, UIParent)
 
-    frame:SetPortraitTextureRaw("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\portrait.tga")
     frame:SetPoint("TOP", UIParent, "TOP", 0, -50)
-    frame:SetTitle(private.getLocalisation("CopyText"))
-    frame:SetHeight(variables.height)
+    frame:SetWidth(variables.width)
+    frame:SetFrameStrata("FULLSCREEN_DIALOG")
+    frame:EnableMouse(true)
+    frame.Title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    frame.Title:SetPoint("TOPLEFT", frame, "TOPLEFT", variables.padding, -10)
+    frame.Title:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -40, -10)
+    frame.Title:SetJustifyH("LEFT")
+    frame.Title:SetText(private.getLocalisation("CopyText"))
 
-    frame.Content = AceGUI:Create("SimpleGroup")
-    -- a child of the window, so it is drawn on the window's layer; AceGUI's SetParent only takes AceGUI containers
-    frame.Content.frame:SetParent(frame)
-    frame.Content:SetPoint("TOPLEFT", frame, "TOPLEFT", variables.editBoxOffset.x, -variables.editBoxOffset.y - 30)
-    frame.Content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -variables.editBoxOffset.x,
-    variables.editBoxOffset.y + 30)
-    frame.Content:SetLayout("Fill")
     frame.EditBox = AceGUI:Create("AtEditBox")
+    frame.EditBox.frame:SetParent(frame)
+    frame.EditBox:SetPoint("TOPLEFT", frame, "TOPLEFT", variables.padding, -variables.headerHeight - variables.padding)
+    frame.EditBox:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -variables.padding, -variables.headerHeight - variables.padding)
     frame.EditBox:SetLabel('')
+    frame.EditBox:SetHeight(variables.editBoxHeight)
     frame.EditBox:DisableButton(true)
-    private.Debug(frame.EditBox, "editbox")
-    frame.Content:AddChild(frame.EditBox)
+    frame.EditBox.editbox:SetTextInsets(6, 6, 3, 3)
 
     frame.Hint = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    frame.Hint:SetPoint("BOTTOM", frame, "BOTTOM", 0, 10)
+    frame.Hint:SetPoint("TOPLEFT", frame.EditBox.frame, "BOTTOMLEFT", 0, -variables.padding)
+    frame.Hint:SetPoint("TOPRIGHT", frame.EditBox.frame, "BOTTOMRIGHT", 0, -variables.padding)
+    frame.Hint:SetWordWrap(true)
+    frame.Hint:SetJustifyH("LEFT")
     frame.Hint:SetText(private.getLocalisation("TextCopyHint"))
 
     frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
@@ -111,7 +123,6 @@ local function Constructor()
         type = Type,
         count = count,
         SetValues = SetValues,
-        Content = frame.Content,
         EditBox = frame.EditBox,
         Hint = frame.Hint,
         CloseButton = frame.CloseButton,
