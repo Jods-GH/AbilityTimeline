@@ -35,7 +35,7 @@ end
 
 ---@param self table -- an AtDropdownItem widget
 local function ApplyItemSettings(self)
-    self.highlight:SetColorTexture(ThemeApply.Color("Highlight"))
+    ThemeApply.Solid(self.highlight, ThemeApply.Color("Highlight"))
     self.check:SetTexture(ThemeApply.File("check"))
     self.check:SetVertexColor(ThemeApply.Color("Accent"))
     ThemeApply.FontRole(self.text, "MenuItem")

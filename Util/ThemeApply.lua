@@ -88,7 +88,7 @@ end
 ---@param name string
 ---@return string
 ThemeApply.File = function(name)
-    return SharedMedia:Fetch("background", private.MediaName(name))
+    return SharedMedia:Fetch(private.ThemeMediaType, private.MediaName(name))
 end
 
 ---reads a palette name, { r =, g =, b =, a = } or { r, g, b, a }, alpha replaces the color's alpha
@@ -202,6 +202,13 @@ ThemeApply.FontRole = function(fontString, role)
     fontString:SetTextColor(font:GetTextColor())
 end
 
+---keeps solid colors readable by window animations that copy GetTexture and GetVertexColor
+ThemeApply.Solid = function(texture, r, g, b, a)
+    texture:ClearTextureSlice()
+    texture:SetTexture("Interface\\Buttons\\WHITE8X8")
+    texture:SetVertexColor(r, g, b, a or 1)
+end
+
 ---applies a texture spec: Atlas, Media (SharedMedia background), File (a texture of Media/Textures/Theme), Texture
 ---or only a Color, tinted by Color and Alpha, Slice nine-slices it with that margin
 ---@param texture Texture
@@ -227,8 +234,7 @@ ThemeApply.Texture = function(texture, spec)
         texture:SetTexture(spec.Texture)
         texture:SetTexCoord(unpack(spec.Coords or { 0, 1, 0, 1 }))
     elseif spec.Color then
-        texture:SetColorTexture(ThemeApply.Color(spec.Color, spec.Alpha))
-        texture:SetVertexColor(1, 1, 1, 1)
+        ThemeApply.Solid(texture, ThemeApply.Color(spec.Color, spec.Alpha))
         return true
     else
         texture:SetTexture(nil)
@@ -853,7 +859,7 @@ ThemeApply.Window = function(frame, style, closeButton, title)
     shell.HeaderLine:ClearAllPoints()
     shell.HeaderLine:SetPoint("TOPLEFT", 12, -(style.HeaderHeight or 34))
     shell.HeaderLine:SetPoint("TOPRIGHT", -12, -(style.HeaderHeight or 34))
-    shell.HeaderLine:SetColorTexture(ThemeApply.Color(style.HeaderLine))
+    ThemeApply.Solid(shell.HeaderLine, ThemeApply.Color(style.HeaderLine))
     shell.Sparkles:Start(style.Sparkles)
 
     title = title or frame.TitleContainer and frame.TitleContainer.TitleText
@@ -872,7 +878,7 @@ ThemeApply.Window = function(frame, style, closeButton, title)
         closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -8, -6)
     end
     if frame.Footer then
-        frame.Footer.Background:SetColorTexture(ThemeApply.Color(style.Footer))
+        ThemeApply.Solid(frame.Footer.Background, ThemeApply.Color(style.Footer))
         ThemeApply.FontRole(frame.Footer.AddonName, "Footer")
     end
     callBehavior(frame.atWindowBehavior, "ConfigureWindow", frame, style)

@@ -47,7 +47,7 @@ local function ApplySettings(self)
     ThemeApply.FontRole(frame.New, "Label")
     frame.New:SetTextColor(ThemeApply.Color("Accent"))
     frame.Dot:SetVertexColor(ThemeApply.Color("Accent"))
-    frame.Hover:SetColorTexture(ThemeApply.Color("Highlight"))
+    ThemeApply.Solid(frame.Hover, ThemeApply.Color("Highlight"))
     frame.Label:SetAlpha(self.disabled and 0.5 or 1)
 end
 
@@ -178,7 +178,7 @@ AceGUI:RegisterWidgetType(Type, Constructor, Version)
 ---@param self AtSettingHeading
 local function ApplyHeadingSettings(self)
     ThemeApply.FontRole(self.frame.Text, "Heading")
-    self.frame.Line:SetColorTexture(ThemeApply.Color("Line"))
+    ThemeApply.Solid(self.frame.Line, ThemeApply.Color("Line"))
 end
 
 ---@param self AtSettingHeading

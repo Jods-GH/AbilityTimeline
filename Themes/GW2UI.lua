@@ -25,8 +25,8 @@ private.ThemeApply.RegisterBehavior("GW2UI", timelineArt)
 private.RegisterThemeTextures("GW2UI", {}, { "gw2_brush", "gw2_ink" })
 local ART = "Interface\\AddOns\\GW2_UI\\Textures\\"
 if GW2_ADDON then
-    SharedMedia:Register("background", private.MediaName("gw2_panel"), ART .. "uistuff\\settingspanelbg.png")
-    SharedMedia:Register("background", private.MediaName("gw2_header"), ART .. "bag\\bagheader.png")
+    SharedMedia:Register(private.ThemeMediaType, private.MediaName("gw2_panel"), ART .. "uistuff\\settingspanelbg.png")
+    SharedMedia:Register(private.ThemeMediaType, private.MediaName("gw2_header"), ART .. "bag\\bagheader.png")
     for name, path in pairs({
         gw2_world = "character\\worldmap-background.png",
         gw2_menu = "character\\menu-hover.png",
@@ -39,7 +39,7 @@ if GW2_ADDON then
         gw2_border = "addonSkins\\border.png",
         gw2_button = "uistuff\\button.png",
     }) do
-        SharedMedia:Register("background", private.MediaName(name), ART .. path)
+        SharedMedia:Register(private.ThemeMediaType, private.MediaName(name), ART .. path)
     end
 end
 

@@ -79,14 +79,18 @@ local SetMergedIcons = function(self, members)
 	local frame = self.frame
 	self.mergedMembers = members
 	local count = members and #members or 1
-	local ids = {}
-	for i = 1, count do
-		ids[i] = members and members[i].frame.eventInfo.id or self.eventInfo.id
-	end
 	local style = private.GetElementStyle("BigIcon")
 	local width, height = frame:GetSize()
-	local key = table.concat(ids, ",") .. ":" .. width .. ":" .. height .. ":" .. (style.Zoom or 0)
+	local key
+	if count > 1 then
+		local ids = {}
+		for i = 1, count do
+			ids[i] = members[i].frame.eventInfo.id
+		end
+		key = table.concat(ids, ",") .. ":" .. width .. ":" .. height .. ":" .. (style.Zoom or 0)
+	end
 	if frame.mergeKey == key then return end
+	if frame.AtEnterHost then frame.pendingEnter = true end
 	private.ThemeApply.StopEnterEffects(frame)
 	frame.mergeKey = key
 	local zoom = 1 - (style.Zoom or 0)

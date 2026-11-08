@@ -84,23 +84,6 @@ ThemeApply.PlayEnterEffects = function(frame, enter, icon, iconFile)
     if not enter or not private.AmbientEffectsEnabled() then return end
     local effect = ThemeApply.GetTransitionEffect(enter)
     local ghost = enter.Ghost
-    if ghost and ghost.Source == "Icon" and frame.MergeSlices and frame.MergeSlices[1]:IsShown() then
-        frame.AtEnterSlices = frame.AtEnterSlices or {}
-        for i, slice in ipairs(frame.MergeSlices) do
-            if slice:IsShown() then
-                local holder = frame.AtEnterSlices[i] or CreateFrame("Frame", nil, frame)
-                frame.AtEnterSlices[i] = holder
-                holder:ClearAllPoints()
-                holder:SetAllPoints(slice)
-                local _, host = ThemeApply.PlayExit(holder, { Ghost = ghost }, slice, slice:GetTexture(), true)
-                if host then
-                    holder.AtEnterHost = host
-                    host.enterFrame = holder
-                end
-            end
-        end
-        ghost = nil
-    end
     if ghost or enter.Flare or enter.Vortex or effect then
         local _, host = ThemeApply.PlayExit(frame, { Ghost = ghost, Flare = enter.Flare, Vortex = enter.Vortex, Effect = effect },
             icon, iconFile, true)
@@ -125,6 +108,10 @@ ThemeApply.SetTransitionShape = setShape
 
 local hosts = {}
 
+local hideComposite = function(textures)
+    for _, texture in ipairs(textures or {}) do texture:Hide() end
+end
+
 local releaseHost = function(host)
     if host.ghostBehavior and host.ghostBehavior.ResetGhost then host.ghostBehavior.ResetGhost(host) end
     if host.effectBehavior and host.effectBehavior.ResetEffect then host.effectBehavior.ResetEffect(host) end
@@ -133,7 +120,9 @@ local releaseHost = function(host)
         host.enterFrame = nil
     end
     host.Burst:Stop()
+    hideComposite(host.GhostSlices)
     for _, piece in ipairs(host.Shards) do
+        hideComposite(piece.IconSlices)
         piece:Hide()
     end
     host:Hide()
@@ -142,9 +131,6 @@ end
 
 ThemeApply.StopEnterEffects = function(frame)
     if frame.AtEnterHost then releaseHost(frame.AtEnterHost) end
-    for _, holder in ipairs(frame.AtEnterSlices or {}) do
-        if holder.AtEnterHost then releaseHost(holder.AtEnterHost) end
-    end
 end
 
 ---adds mask to texture or takes it away
@@ -164,6 +150,71 @@ local setMask = function(texture, mask, on)
 end
 
 ThemeApply.SetTransitionMask = setMask
+
+-- Snapshot the image before its widgets return to the pool. Merge slices divide the icon horizontally.
+local snapshotIcon = function(frame)
+    if not frame.MergeSlices or not frame.MergeSlices[1]:IsShown() then return end
+    local sources = {}
+    for _, source in ipairs(frame.MergeSlices) do
+        if source:IsShown() then table.insert(sources, source) end
+    end
+    local count, slices = #sources, {}
+    local add = function(source, x, width, separator)
+        local r, g, b, a = source:GetVertexColor()
+        table.insert(slices, {
+            file = source:GetTexture(), coords = { source:GetTexCoord() }, x = x, width = width,
+            r = r, g = g, b = b, a = a, alpha = source:GetAlpha(), separator = separator,
+        })
+    end
+    for i, source in ipairs(sources) do add(source, (i - 1) / count, 1 / count) end
+    for i, source in ipairs(frame.MergeSeparators or {}) do
+        if source:IsShown() then add(source, i / count, source:GetWidth() / frame:GetWidth(), true) end
+    end
+    return slices
+end
+
+-- All image pieces follow one full-icon control texture and its full-icon masks, rather than separate effects.
+local drawComposite = function(holder, key, control, slices, shardMask)
+    if not slices then hideComposite(holder[key]); return end
+    holder[key] = holder[key] or {}
+    local width, height = control:GetWidth(), control:GetHeight()
+    local r, g, b, a = control:GetVertexColor()
+    local layer, sublevel = control:GetDrawLayer()
+    local shape = control.atShaped and holder.AtShape
+    for i, slice in ipairs(slices) do
+        local texture = holder[key][i]
+        if not texture then
+            texture = control:GetParent():CreateTexture()
+            holder[key][i] = texture
+        end
+        if texture.source ~= slice then
+            for mask in pairs(texture.atMasks or {}) do setMask(texture, mask, false) end
+            texture:SetParent(control:GetParent())
+            texture:SetTexture(slice.file)
+            texture:SetTexCoord(unpack(slice.coords))
+            texture:ClearTextureSlice()
+            texture:ClearAllPoints()
+            texture.source = slice
+        end
+        texture:SetDrawLayer(layer, math.min(sublevel + (slice.separator and 1 or 0), 7))
+        texture:SetPoint("TOPLEFT", control, "TOPLEFT", width * slice.x, 0)
+        texture:SetSize(width * slice.width, height)
+        texture:SetVertexColor(r * slice.r, g * slice.g, b * slice.b, a * slice.a)
+        texture:SetAlpha(control:GetAlpha() * slice.alpha)
+        texture:SetDesaturation(control:GetDesaturation())
+        texture:SetBlendMode(control:GetBlendMode())
+        for mask in pairs(texture.atMasks or {}) do
+            if mask ~= shardMask and mask ~= shape and not (control.atMasks and control.atMasks[mask]) then
+                setMask(texture, mask, false)
+            end
+        end
+        for mask, enabled in pairs(control.atMasks or {}) do setMask(texture, mask, enabled) end
+        if shardMask then setMask(texture, shardMask, true) end
+        if shape then setMask(texture, shape, true) end
+        texture:Show()
+    end
+    for i = #slices + 1, #holder[key] do holder[key][i]:Hide() end
+end
 
 local lerp = function(range, progress, default)
     if not range then return default end
@@ -259,6 +310,7 @@ local stepGhost = function(host, ghost, progress)
         end
         host.GhostEdge:SetAlpha(1 - progress * progress)
     end
+    drawComposite(host, "GhostSlices", host.Ghost, ghost.Source == "Icon" and host.iconSlices or nil)
 end
 
 ---@param host Frame
@@ -438,6 +490,10 @@ local cutShards = function(host, shards, icon, iconFile)
         setShape(piece, piece.Texture, shards.Mask)
         setShape(piece, piece.Edge, shards.Mask)
         piece:SetSize(host:GetWidth(), host:GetHeight())
+        if shards.Source == "Icon" and host.iconSlices then
+            piece.Texture:SetTexture(nil)
+            drawComposite(piece, "IconSlices", piece.Texture, host.iconSlices, piece.Mask)
+        end
         local speed = between(shards.Speed)
         piece.x, piece.y = 0, 0
         piece.vx = ((seed[1] - middle[1]) * 2 + (math.random() - 0.5) * 0.3) * speed
@@ -483,6 +539,7 @@ local setupGhost = function(host, ghost, icon, iconFile, frame)
     if host.ghostBehavior and host.ghostBehavior.SetupGhost then
         host.ghostBehavior.SetupGhost(host, ghost, icon, iconFile, frame)
     end
+    if ghost.Source == "Icon" and host.iconSlices then texture:SetTexture(nil) end
     stepGhost(host, ghost, 0)
 end
 
@@ -535,12 +592,15 @@ ThemeApply.PlayExit = function(frame, exit, icon, iconFile, attach, state)
     if host.ghostBehavior and host.ghostBehavior.ResetGhost then host.ghostBehavior.ResetGhost(host) end
     host.ghostBehavior = ThemeApply.GetBehavior(exit.Ghost)
     host.ghostDuration = nil
+    host.iconSlices = snapshotIcon(frame)
+    hideComposite(host.GhostSlices)
     host.windowDissolve, host.windowDissolveActive = nil, nil
     for _, art in ipairs(host.WindowDissolveFrames or {}) do
         art.Color:Hide()
         art.Edge:Hide()
     end
     for _, piece in ipairs(host.Shards) do
+        hideComposite(piece.IconSlices)
         piece:Hide()
     end
     if exit.Shards then
@@ -574,26 +634,6 @@ ThemeApply.PlayExit = function(frame, exit, icon, iconFile, attach, state)
         exit.Flare and exit.Flare.Time or 0, host.effectBehavior and host.effectSpec.Time or 0, exit.Vortex and exit.Vortex.Time or 0), host
 end
 
--- Copy the visible artwork into detached effects before its widget returns to the pool.
-local mergedExitFrame
 ThemeApply.PlayIconExit = function(frame, exit, icon, iconFile, attach, state)
-    if not frame.MergeSlices or not frame.MergeSlices[1]:IsShown() then
-        return ThemeApply.PlayExit(frame, exit, icon, iconFile, attach, state)
-    end
-    mergedExitFrame = mergedExitFrame or CreateFrame("Frame")
-    mergedExitFrame:SetParent(frame)
-    mergedExitFrame:SetFrameStrata(frame:GetFrameStrata())
-    mergedExitFrame:SetFrameLevel(frame:GetFrameLevel())
-    local duration = 0
-    for _, slice in ipairs(frame.MergeSlices) do
-        if slice:IsShown() then
-            mergedExitFrame:ClearAllPoints()
-            mergedExitFrame:SetAllPoints(slice)
-            local sliceDuration = ThemeApply.PlayExit(mergedExitFrame, exit, slice, slice:GetTexture(), nil, state)
-            duration = math.max(duration, sliceDuration)
-        end
-    end
-    mergedExitFrame:ClearAllPoints()
-    mergedExitFrame:SetParent(UIParent)
-    return duration
+    return ThemeApply.PlayExit(frame, exit, icon, iconFile, attach, state)
 end

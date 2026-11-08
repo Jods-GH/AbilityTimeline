@@ -20,7 +20,7 @@ local popup
 ---@param item Button
 local drawItem = function(item)
     local r, g, b, a = ThemeApply.Color("Highlight")
-    item.Fill:SetColorTexture(r, g, b, item.selected and a * 3 or 0)
+    ThemeApply.Solid(item.Fill, r, g, b, item.selected and a * 3 or 0)
     ThemeApply.FontRole(item.Text, "Control")
     ThemeApply.FontRole(item.Detail, "Muted")
     local color = item.suggestion and item.suggestion.color

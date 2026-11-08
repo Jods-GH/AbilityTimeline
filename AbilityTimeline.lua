@@ -159,6 +159,9 @@ local clusters                                 = {}
 
 local applyMergedCluster                       = function(members, group)
    local host = members[1]
+   for _, widget in ipairs(members) do
+      if widget.frame.pendingEnter then host.frame.pendingEnter = true end
+   end
    host:SetMergedIcons(members)
    for index, widget in ipairs(members) do
       local frame = widget.frame
@@ -172,6 +175,7 @@ local applyMergedCluster                       = function(members, group)
          if group then group:Remove(eventID) end
          if frame.mergeKey then widget:SetMergedIcons(nil) end
          if frame.mergedInto ~= host then private.ThemeApply.StopEnterEffects(frame) end
+         frame.pendingEnter = nil
          frame.mergedInto = host
          frame:Hide()
       end

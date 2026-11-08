@@ -730,7 +730,7 @@ for name, path in pairs({
     blizzard_settings_slider = "Interface\\Buttons\\UI-SliderBar-Background",
     blizzard_settings_thumb = "Interface\\Buttons\\UI-SliderBar-Button-Horizontal",
 }) do
-    settingsMedia:Register("background", private.MediaName(name), path)
+    settingsMedia:Register(private.ThemeMediaType, private.MediaName(name), path)
 end
 
 do

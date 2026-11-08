@@ -305,6 +305,7 @@ local SetMergedIcons        = function(self, members)
 		key = table.concat(ids, ",")
 	end
 	if frame.mergeKey == key then return end
+	if frame.AtEnterHost then frame.pendingEnter = true end
 	private.ThemeApply.StopEnterEffects(frame)
 	frame.mergeKey = key
 	if not key then

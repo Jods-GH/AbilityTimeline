@@ -25,7 +25,7 @@ local drawState = function(frame)
         frame.AtOff:SetVertexColor(1, 1, 1, 1)
         ThemeApply.Texture(frame.AtOn, type(style.Check) == "table" and style.Check or { File = style.Check })
         frame.AtOn:SetVertexColor(1, 1, 1, (frame.atProgress or 0) >= 0.5 and 1 or 0)
-        frame.AtHover:SetColorTexture(1, 1, 1, 0.08 * (frame.atHover or 0))
+        ThemeApply.Solid(frame.AtHover, 1, 1, 1, 0.08 * (frame.atHover or 0))
         frame.AtKnob:Hide()
         for _, line in ipairs(frame.AtEdges) do line:Hide() end
         return
@@ -34,15 +34,15 @@ local drawState = function(frame)
     for _, line in ipairs(frame.AtEdges) do line:Show() end
     local switch = variables.switch
     local progress, hover = frame.atProgress or 0, frame.atHover or 0
-    frame.AtOff:SetColorTexture(ThemeApply.Color("Track"))
+    ThemeApply.Solid(frame.AtOff, ThemeApply.Color("Track"))
     local r, g, b = ThemeApply.Color("Accent")
-    frame.AtOn:SetColorTexture(r, g, b, 0.9 * progress)
+    ThemeApply.Solid(frame.AtOn, r, g, b, 0.9 * progress)
     r, g, b = ThemeApply.Color("White")
-    frame.AtHover:SetColorTexture(r, g, b, 0.08 * hover)
+    ThemeApply.Solid(frame.AtHover, r, g, b, 0.08 * hover)
     for _, line in ipairs(frame.AtEdges) do
-        line:SetColorTexture(ThemeApply.Color("Edge"))
+        ThemeApply.Solid(line, ThemeApply.Color("Edge"))
     end
-    frame.AtKnob:SetColorTexture(ThemeApply.Color(progress >= 0.5 and "White" or "Accent2"))
+    ThemeApply.Solid(frame.AtKnob, ThemeApply.Color(progress >= 0.5 and "White" or "Accent2"))
     frame.AtKnob:SetPoint("LEFT", frame.AtSwitch, "LEFT",
         switch.inset + progress * (switch.width - switch.knob - switch.inset * 2), 0)
     frame.AtRing:SetVertexColor(ThemeApply.MixColor("Muted", "Accent", math.max(progress, hover * 0.5)))

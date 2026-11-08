@@ -56,6 +56,9 @@ function mergedMixin:Layout()
    for i = 1, count do
       local members = clusters[i].members
       local host = members[1]
+      for _, widget in ipairs(members) do
+         if widget.frame.pendingEnter then host.frame.pendingEnter = true end
+      end
       host:SetMergedIcons(members)
       for index, widget in ipairs(members) do
          local frame = widget.frame
@@ -69,6 +72,7 @@ function mergedMixin:Layout()
             self:Remove(id)
             widget:SetMergedIcons(nil)
             if frame.mergedInto ~= host then private.ThemeApply.StopEnterEffects(frame) end
+            frame.pendingEnter = nil
             frame.mergedInto = host
             frame:Hide()
          end

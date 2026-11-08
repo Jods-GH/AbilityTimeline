@@ -3,9 +3,9 @@ local appName, app = ...
 local private = app
 local SharedMedia = LibStub("LibSharedMedia-3.0")
 
--- the theme art of Media/Textures/Theme (tools/textures/generate.py), registered with SharedMedia by name, so names
--- stay unique across the folders. Shared holds what the engine, the widgets or several themes use, every theme
--- registers its own folder with RegisterThemeTextures
+-- Internal theme art uses its own SharedMedia type so masks, sprites and controls stay out of background pickers.
+-- Shared holds what the engine, the widgets or several themes use; every theme registers its own folder.
+private.ThemeMediaType = "bt_theme"
 local TEXTURES = "Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\Theme\\"
 local SHARED_TEXTURES = {
     "check", "chevron", "circle", "close", "cracks", "dust", "fel_ember", "flake", "frost", "glint", "glow", "gradient", "ice",
@@ -16,11 +16,11 @@ for i = 1, 10 do
     table.insert(SHARED_TEXTURES, "shard" .. i)
 end
 
----the SharedMedia background name of a texture of Media/Textures/Theme
+---the SharedMedia name of a texture of Media/Textures/Theme
 ---@param name string
 ---@return string
 private.MediaName = function(name)
-    return "AbilityTimeline " .. name
+    return "BT " .. name
 end
 
 local mediaPreviews = {}
@@ -43,12 +43,12 @@ end
 private.RegisterThemeTextures = function(folder, names, dissolves)
     local path = TEXTURES .. folder .. "\\"
     for _, name in ipairs(names) do
-        SharedMedia:Register("background", private.MediaName(name), path .. name .. ".tga")
+        SharedMedia:Register(private.ThemeMediaType, private.MediaName(name), path .. name .. ".tga")
     end
     for _, name in ipairs(dissolves or {}) do
         for i = 1, 12 do
-            SharedMedia:Register("background", private.MediaName(name .. i), path .. name .. i .. ".tga")
-            SharedMedia:Register("background", private.MediaName(name .. "_edge" .. i), path .. name .. "_edge" .. i .. ".tga")
+            SharedMedia:Register(private.ThemeMediaType, private.MediaName(name .. i), path .. name .. i .. ".tga")
+            SharedMedia:Register(private.ThemeMediaType, private.MediaName(name .. "_edge" .. i), path .. name .. "_edge" .. i .. ".tga")
         end
     end
 end

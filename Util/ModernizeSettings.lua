@@ -1,6 +1,7 @@
 local appName, app = ...
 ---@class AbilityTimeline
 local private = app
+local SharedMedia = LibStub("LibSharedMedia-3.0")
 
 local WHITE = { r = 1, g = 1, b = 1, a = 1 }
 local WHITE_RGB = { r = 1, g = 1, b = 1 }
@@ -181,6 +182,31 @@ local migrateToThemes = function()
         private.MergeTables(themeModifications[private.DEFAULT_THEME], modifications)
     end
     private.GetThemeSettings().migrated = true
+end
+
+---converts saved theme art backgrounds to file specs now that the art has its own media type
+local function migrateThemeMedia(node)
+    local changed = false
+    for _, key in ipairs({ "Media", "Background" }) do
+        local value = node[key]
+        local name = type(value) == "string" and (value:match("^AbilityTimeline (.+)$") or value:match("^BT (.+)$"))
+        local path = name and SharedMedia:Fetch(private.ThemeMediaType, private.MediaName(name), true)
+        if path then
+            if key == "Media" then
+                node.File = name
+            else
+                node.BgFile = path
+            end
+            node[key] = false
+            changed = true
+        end
+    end
+    for _, value in pairs(node) do
+        if type(value) == "table" then
+            changed = migrateThemeMedia(value) or changed
+        end
+    end
+    return changed
 end
 
 private.modernize = function()
@@ -425,8 +451,14 @@ private.modernize = function()
         end
     end
 
-    if not private.GetThemeSettings().migrated then
+    local restoreTheme = not private.GetThemeSettings().migrated
+    if restoreTheme then
         migrateToThemes()
+    end
+    if migrateThemeMedia(private.GetThemeSettings().modifications) then
+        restoreTheme = true
+    end
+    if restoreTheme then
         private.RestoreSavedTheme()
     end
 end

@@ -34,7 +34,7 @@ end
 ---@param item Button
 local drawItem = function(item)
     local r, g, b, a = ThemeApply.Color(item.selected and "Accent" or "Highlight")
-    item.Fill:SetColorTexture(r, g, b, item.selected and 0.25 or a * (item.hover and 1 or 0))
+    ThemeApply.Solid(item.Fill, r, g, b, item.selected and 0.25 or a * (item.hover and 1 or 0))
 end
 
 ---shows the media of the owner's type whose name contains the search, from popup.offset on
@@ -146,7 +146,7 @@ local createPopup = function()
         item.Preview:SetPoint("RIGHT", item, "RIGHT", -4, 0)
         item.Preview.Back = item.Preview:CreateTexture(nil, "BACKGROUND")
         item.Preview.Back:SetAllPoints(item.Preview)
-        item.Preview.Back:SetColorTexture(unpack(variables.previewBack))
+        ThemeApply.Solid(item.Preview.Back, unpack(variables.previewBack))
         item.Preview.Texture = item.Preview:CreateTexture(nil, "ARTWORK")
         item.Preview.Texture:SetAllPoints(item.Preview)
         item.Text = item:CreateFontString(nil, "OVERLAY", "GameFontHighlight")

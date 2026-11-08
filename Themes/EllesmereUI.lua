@@ -2,8 +2,8 @@ local appName, app = ...
 ---@class AbilityTimeline
 local private = app
 local SharedMedia = LibStub("LibSharedMedia-3.0")
-SharedMedia:Register("background", private.MediaName("eui_stock_checkbox"), "Interface\\Buttons\\UI-CheckBox-Up")
-SharedMedia:Register("background", private.MediaName("eui_stock_checked"), "Interface\\Buttons\\UI-CheckBox-Check")
+SharedMedia:Register(private.ThemeMediaType, private.MediaName("eui_stock_checkbox"), "Interface\\Buttons\\UI-CheckBox-Up")
+SharedMedia:Register(private.ThemeMediaType, private.MediaName("eui_stock_checked"), "Interface\\Buttons\\UI-CheckBox-Check")
 
 local provider = function()
     return not EUI_CLIENT_BLOCKED and EllesmereUI
