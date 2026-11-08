@@ -418,6 +418,13 @@ private.modernize = function()
 
     migrateLayoutToProfile()
 
+    for _, key in ipairs({ "big_icon_settings", "highlight_text_settings", "waiting_group", "queued_group", "paused_group" }) do
+        local settings = private.db.profile[key]
+        if settings.merge_timers == nil then
+            settings.merge_timers = private.db.profile.timeline_settings.merge_timers
+        end
+    end
+
     if not private.GetThemeSettings().migrated then
         migrateToThemes()
         private.RestoreSavedTheme()

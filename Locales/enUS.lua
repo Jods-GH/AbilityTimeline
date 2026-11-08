@@ -274,9 +274,12 @@ if L then
     L["PreventOverlap"] = "Prevent Overlapping Icons"
     L["PreventOverlapDescription"] = "Pushes moving icons back along the timeline so they never cover each other. The soonest icon always stays at its real position."
     L["MergeTimers"] = "Merge Simultaneous Timers"
-    L["MergeTimersDescription"] = "Events that happen at the same time share one split icon while moving along the timeline. They are shown separately again in the big icon, text highlight and queued icons."
+    L["MergeTimersDescription"] = "Choose where events that happen at the same time are combined: moving timeline, waiting, queued or paused timers, big icons or text highlights. Timers merge within each group. Clear all selections to disable merging."
+    L["MergeWaitingTimers"] = "Waiting Timers"
+    L["MergeQueuedTimers"] = "Queued Timers"
+    L["MergePausedTimers"] = "Paused Timers"
     L["MergeWindow"] = "Merge Window (seconds)"
-    L["MergeWindowDescription"] = "How close in time events have to be to get merged into one icon."
+    L["MergeWindowDescription"] = "How close in time events have to be to get merged. Applies to all selected displays."
     L["MultipleTimers"] = "Multiple Timers (%d)"
 
     -- errors
@@ -460,6 +463,7 @@ if L then
     L["SettingsSectionTimeScale"] = "Time Scale"
     L["SettingsSectionTicks"] = "Ticks"
     L["SettingsSectionOverlap"] = "Overlapping Icons"
+    L["SettingsSectionMerging"] = "Timer Merging"
     L["SettingsSectionWaitingGroup"] = "Waiting Icons"
     L["SettingsSectionQueuedGroup"] = "Queued Icons"
     L["SettingsSectionPausedGroup"] = "Paused Icons"

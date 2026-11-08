@@ -5,6 +5,7 @@ local issecretvalue                            = issecretvalue or function() ret
 
 private.manager                                = {}
 private.manager.activeTimers                   = {}
+private.MAX_MERGED_TIMER_ICONS                  = 4
 private.manager.callbacks                      = LibStub("CallbackHandler-1.0"):New(private.manager)
 
 -- values match Enum.EncounterTimelineEventState so timeline states can be passed through
@@ -31,6 +32,40 @@ local STATES                                   = private.manager.STATES
 local activeTimers                             = private.manager.activeTimers
 local sourceIndex                              = {}
 local lastEventID                              = 0
+
+---groups widgets by their positionRemaining, measured from the first event in each cluster
+---@param widgets table
+---@param clusters table -- reused storage
+---@param settings table -- merge settings for this display
+---@return number clusterCount
+private.manager.clusterTimers = function(widgets, clusters, settings)
+   table.sort(widgets, function(a, b)
+      if a.frame.positionRemaining ~= b.frame.positionRemaining then
+         return a.frame.positionRemaining < b.frame.positionRemaining
+      end
+      return a.frame.eventInfo.id < b.frame.eventInfo.id
+   end)
+   local count = 0
+   for _, widget in ipairs(widgets) do
+      local remaining = widget.frame.positionRemaining
+      local cluster = clusters[count]
+      if settings.merge_timers and cluster and
+          (widget.frame.mergeState or widget.frame.currentState) ==
+              (cluster.members[1].frame.mergeState or cluster.members[1].frame.currentState) and
+          #cluster.members < private.MAX_MERGED_TIMER_ICONS and
+          remaining - cluster.remaining <= settings.merge_window then
+         table.insert(cluster.members, widget)
+      else
+         count = count + 1
+         cluster = clusters[count] or { members = {} }
+         clusters[count] = cluster
+         wipe(cluster.members)
+         cluster.remaining = remaining
+         table.insert(cluster.members, widget)
+      end
+   end
+   return count
+end
 
 local ICON_ATLASES                             = {
    [1] = "icons_16x16_deadly",
@@ -312,11 +347,15 @@ end
 
 ---@param source string|nil removes all events of that source, or every event if nil
 private.manager.removeAllEvents = function(source)
+   local wasUpdatingDisplays = private.manager.isUpdatingDisplays
+   private.manager.isUpdatingDisplays = true
    for eventID, event in pairs(activeTimers) do
       if not source or event.source == source then
          private.manager.removeEvent(eventID)
       end
    end
+   private.manager.isUpdatingDisplays = wasUpdatingDisplays
+   if not wasUpdatingDisplays then private.manager.callbacks:Fire("EVENT_DISPLAYS_UPDATED") end
 end
 
 private.manager.setEventHidden = function(eventID, hidden)
@@ -417,7 +456,48 @@ private.manager.SetEventIconTextures = function(eventID, mask, textures)
    end
 end
 
+local mergedDisplayTimes = { bigIcon = {}, textHighlight = {} }
+local mergedDisplaySettings = { bigIcon = "big_icon_settings", textHighlight = "highlight_text_settings" }
+local displayClusters = {}
+
+-- A merged display enters and leaves at its first timer's boundary, just like its shared countdown.
+local updateMergedDisplayTimes = function()
+   for display, key in pairs(mergedDisplaySettings) do
+      local times = mergedDisplayTimes[display]
+      wipe(times)
+      if private.db.profile[key].merge_timers then
+         local widgets = {}
+         for id, event in pairs(activeTimers) do
+            local state = private.manager.getEventState(id)
+            local allowed = event.info.allowedDisplays
+            if not event.hidden and (not allowed or allowed[display] ~= false) and state and
+                state ~= STATES.Paused and state ~= STATES.Canceled then
+               local elapsed = private.manager.getEventTimeElapsed(id)
+               if not elapsed or elapsed < 0 then elapsed = event.info.duration end
+               table.insert(widgets, {
+                  frame = { eventInfo = event.info, positionRemaining = event.info.duration - elapsed },
+                  remaining = private.manager.getEventRemainingTime(id),
+                  state = state,
+               })
+            end
+         end
+         local count = private.manager.clusterTimers(widgets, displayClusters, {
+            merge_timers = true,
+            merge_window = private.db.profile.timeline_settings.merge_window,
+         })
+         for i = 1, count do
+            local members = displayClusters[i].members
+            for _, widget in ipairs(members) do
+               times[widget.frame.eventInfo.id] = members[1]
+            end
+         end
+      end
+   end
+end
+
 ticker:SetScript("OnUpdate", function()
+   updateMergedDisplayTimes()
+   private.manager.isUpdatingDisplays = true
    for eventID, event in pairs(activeTimers) do
       local state = private.manager.getEventState(eventID)
       if not state or state == STATES.Finished or state == STATES.Canceled then
@@ -431,7 +511,22 @@ ticker:SetScript("OnUpdate", function()
          if not event.hidden then
             local allowed = event.info.allowedDisplays
             for display, shouldDisplay in pairs(private.manager.displays) do
-               local isDisplayed = (not allowed or allowed[display] ~= false) and shouldDisplay(event, remaining, state) and
+               local merged = mergedDisplayTimes[display] and mergedDisplayTimes[display][eventID]
+               local ended = event.mergedDisplayEndRemaining and event.mergedDisplayEndRemaining[display]
+               local settingsKey = mergedDisplaySettings[display]
+               if ended and (not private.db.profile[settingsKey].merge_timers or remaining > ended) then
+                  event.mergedDisplayEndRemaining[display] = nil
+                  ended = nil
+               end
+               -- The first event may be removed before its slightly later partners. Do not restart their
+               -- display for the leftover fraction of the merge window; a timing extension can show it again.
+               if merged and state == STATES.Active and (merged.state ~= STATES.Active or merged.remaining <= 0) then
+                  event.mergedDisplayEndRemaining = event.mergedDisplayEndRemaining or {}
+                  event.mergedDisplayEndRemaining[display] = remaining
+                  ended = remaining
+               end
+               local isDisplayed = not ended and (not allowed or allowed[display] ~= false) and
+                  shouldDisplay(event, merged and merged.remaining or remaining, merged and merged.state or state) and
                   true or nil
                if isDisplayed ~= event.displays[display] then
                   event.displays[display] = isDisplayed
@@ -450,4 +545,6 @@ ticker:SetScript("OnUpdate", function()
          event.lastRemaining = remaining
       end
    end
+   private.manager.isUpdatingDisplays = nil
+   private.manager.callbacks:Fire("EVENT_DISPLAYS_UPDATED")
 end)

@@ -75,6 +75,51 @@ local applyEventColor = function(frame)
 	end
 end
 
+local SetMergedIcons = function(self, members)
+	local frame = self.frame
+	self.mergedMembers = members
+	local count = members and #members or 1
+	local ids = {}
+	for i = 1, count do
+		ids[i] = members and members[i].frame.eventInfo.id or self.eventInfo.id
+	end
+	local style = private.GetElementStyle("BigIcon")
+	local width, height = frame:GetSize()
+	local key = table.concat(ids, ",") .. ":" .. width .. ":" .. height .. ":" .. (style.Zoom or 0)
+	if frame.mergeKey == key then return end
+	private.ThemeApply.StopEnterEffects(frame)
+	frame.mergeKey = key
+	local zoom = 1 - (style.Zoom or 0)
+	local minCoord, maxCoord = 0.5 - 0.5 * zoom, 0.5 + 0.5 * zoom
+	local coordWidth = (maxCoord - minCoord) / count
+	for i, slice in ipairs(frame.MergeSlices) do
+		if count > 1 and i <= count then
+			slice:ClearAllPoints()
+			slice:SetPoint("TOPLEFT", frame, "TOPLEFT", (i - 1) * width / count, 0)
+			slice:SetSize(width / count, height)
+			slice:SetTexture(members[i].frame.eventInfo.iconFileID)
+			slice:SetTexCoord(minCoord + (i - 1) * coordWidth, minCoord + i * coordWidth, minCoord, maxCoord)
+			slice:Show()
+		else
+			slice:Hide()
+		end
+	end
+	for i, separator in ipairs(frame.MergeSeparators) do
+		if i < count then
+			separator:ClearAllPoints()
+			separator:SetPoint("TOP", frame, "TOPLEFT", i * width / count, 0)
+			separator:SetSize(private.GetElementStyle("SpellIcon").MergeSeparator.Width, height)
+			separator:Show()
+		else
+			separator:Hide()
+		end
+	end
+	frame.SpellIcon:SetShown(count == 1)
+	frame.SpellName:SetText(count > 1 and string.format(private.getLocalisation("MultipleTimers"), count) or self.eventInfo.spellName)
+	frame.SpellName:SetTextColor(private.ThemeApply.Color(style.Text.Font.Color))
+	if count == 1 then applyEventColor(frame) end
+end
+
 local function ApplySettings(self)
 	local frame = self.frame
 	local style = private.GetElementStyle("BigIcon")
@@ -100,6 +145,9 @@ local function ApplySettings(self)
 		"Interface\\Buttons\\WHITE8X8", 0, 0, 0, 0.64)
 
 	local borderWidth = style.BorderWidth
+	for _, separator in ipairs(frame.MergeSeparators) do
+		private.ThemeApply.Texture(separator, private.GetElementStyle("SpellIcon").MergeSeparator)
+	end
 	if not style.Border.File then
 		frame.BossModsBorderEdges[1]:SetHeight(borderWidth)
 		frame.BossModsBorderEdges[2]:SetHeight(borderWidth)
@@ -158,6 +206,8 @@ local function ApplySettings(self)
 	else
 		frame.SpellNameBackground:Hide()
 	end
+	frame.mergeKey = nil
+	if self.eventInfo then self:SetMergedIcons(self.mergedMembers) end
 end
 
 ---@param self AtBigIcon
@@ -167,22 +217,36 @@ end
 
 ---@param self AtBigIcon
 local function OnRelease(self)
+	private.ThemeApply.StopEnterEffects(self.frame)
 	private.ThemeApply.IconState(self.frame, nil, nil)
 	self.frame.SpellIcon:SetTexture(nil)
+	self.frame.SpellIcon:Show()
 	self.frame.SpellName:SetText("")
 	self.frame.eventInfo = nil
 	self.frame.eventID = nil
+	self.eventInfo = nil
+	self.mergedMembers = nil
+	self.frame.mergeKey = nil
+	self.frame.mergedInto = nil
+	self.frame.pendingEnter = nil
+	for _, slice in ipairs(self.frame.MergeSlices) do slice:Hide() end
+	for _, separator in ipairs(self.frame.MergeSeparators) do separator:Hide() end
 	self.frame:SetScript("OnUpdate", nil)
 	private.ClearEventTooltip(self.frame)
 	private.ThemeApply.BossModsBorder(self.frame, private.GetElementStyle("BigIcon").Border, nil)
 	private.StopGlow(self.frame)
 end
 
-local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
+local SetEventInfo = function(widget, eventInfo, disableOnUpdate, deferDisplay)
 	widget.eventInfo = eventInfo
+	widget.frame.eventInfo = eventInfo
 	if not disableOnUpdate then
-		private.ThemeApply.PlayEnter(widget.frame, private.GetElementStyle("BigIcon").Enter, true, widget.frame.SpellIcon,
-			eventInfo.iconFileID)
+		if deferDisplay then
+			widget.frame.pendingEnter = true
+		else
+			private.ThemeApply.PlayEnter(widget.frame, private.GetElementStyle("BigIcon").Enter, true, widget.frame.SpellIcon,
+				eventInfo.iconFileID)
+		end
 		widget.frame.Cooldown:SetCooldown(GetTime(), private.manager.getEventRemainingTime(eventInfo.id))
 		widget.frame:SetScript("OnUpdate", function(self)
 			private.ThemeApply.IconState(self, private.manager.getEventState(eventInfo.id), eventInfo)
@@ -218,7 +282,7 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
 	widget.frame.eventID = eventInfo.id
 	private.ThemeApply.IconState(widget.frame, nil, eventInfo)
 	applyEventColor(widget.frame)
-	widget.frame:Show()
+	if deferDisplay then widget.frame:Hide() else widget.frame:Show() end
 	if private.db.profile.big_icon_settings and private.db.profile.big_icon_settings.useTooltip and private.db.profile.big_icon_settings.useTooltip ~= Enum.EncounterEventsTooltipAnchor.Hidden then
 		private.AddEventTooltip(widget.frame, eventInfo, private.db.profile.big_icon_settings.useTooltip)
 	end
@@ -247,6 +311,18 @@ local function Constructor()
 
 	frame.SpellIcon = frame:CreateTexture(nil, "BACKGROUND")
 	frame.SpellIcon:SetAllPoints(frame)
+	frame.MergeSlices = {}
+	frame.MergeSeparators = {}
+	for i = 1, private.MAX_MERGED_TIMER_ICONS do
+		local slice = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+		slice:Hide()
+		table.insert(frame.MergeSlices, slice)
+		if i < private.MAX_MERGED_TIMER_ICONS then
+			local separator = frame:CreateTexture(nil, "BORDER")
+			separator:Hide()
+			table.insert(frame.MergeSeparators, separator)
+		end
+	end
 	frame.SpellName = frame.TextureHolder:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
 	frame.SpellName:SetWidth(variables.icon_text_width)
 	frame.SpellName:SetWordWrap(true)
@@ -357,6 +433,7 @@ local function Constructor()
 		count = count,
 		frame = frame,
 		SetEventInfo = SetEventInfo,
+		SetMergedIcons = SetMergedIcons,
 		HandleCooldown = HandleCooldown,
 		ApplySettings = ApplySettings,
 	}

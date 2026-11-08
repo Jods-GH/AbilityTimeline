@@ -344,6 +344,80 @@ private.DynamicGroup.Create = function(getSettings, getAnchor, resolveGrow, shou
    return group
 end
 
+---creates a display group whose simultaneous timers share a widget and a limit slot
+private.DynamicGroup.CreateMerged = function(getSettings, getAnchor, playEnter)
+   local group = private.DynamicGroup.Create(getSettings, getAnchor)
+   local layout = group.Layout
+   local widgets, moving, clusters = {}, {}, {}
+   local driver = CreateFrame("Frame")
+   driver:Hide()
+
+   function group:AddWidget(id, widget)
+      widgets[id] = widget
+      driver:Show()
+   end
+
+   function group:RemoveWidget(id)
+      widgets[id] = nil
+      if not next(widgets) then driver:Hide() end
+   end
+
+   function group:Layout()
+      wipe(moving)
+      for id, widget in pairs(widgets) do
+         local info = widget.frame.eventInfo
+         local elapsed = private.manager.getEventTimeElapsed(id)
+         if not elapsed or elapsed < 0 then elapsed = info.duration end
+         widget.frame.positionRemaining = info.duration - elapsed
+         table.insert(moving, widget)
+      end
+      local count = private.manager.clusterTimers(moving, clusters, getSettings())
+      for i = 1, count do
+         local members = clusters[i].members
+         local host = members[1]
+         host:SetMergedIcons(members)
+         for index, widget in ipairs(members) do
+            local frame = widget.frame
+            local id = frame.eventInfo.id
+            if index == 1 then
+               if frame.mergedInto then
+                  frame.mergedInto = nil
+               end
+               self:Add(id, frame)
+            else
+               self:Remove(id)
+               widget:SetMergedIcons(nil)
+               if frame.mergedInto ~= host then private.ThemeApply.StopEnterEffects(frame) end
+               frame.mergedInto = host
+               frame:Hide()
+            end
+         end
+      end
+      layout(self)
+      for _, item in ipairs(self.items) do
+         local widget = widgets[item.id]
+         if widget and not item.hiddenByLimit then
+            if widget.frame.pendingEnter then
+               widget.frame.pendingEnter = nil
+               playEnter(widget)
+            end
+            widget.frame:Show()
+         end
+      end
+   end
+
+   -- Hidden members cannot drive their own updates. Recheck timing and settings even while merged.
+   local elapsed = 0
+   driver:SetScript("OnUpdate", function(_, delta)
+      elapsed = elapsed + delta
+      if elapsed >= 0.1 then
+         elapsed = 0
+         group:Layout()
+      end
+   end)
+   return group
+end
+
 ---appends all entries of source to target
 ---@param target table
 ---@param source table

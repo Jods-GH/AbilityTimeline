@@ -760,12 +760,6 @@ private.RegisterSettingsPage(turnedOffInEditMode({
         }),
         heading("SettingsSectionOverlap"),
         row("Checkbox", "PreventOverlap", { profileKey = "timeline_settings.prevent_overlap", preview = false }),
-        row("Checkbox", "MergeTimers", { profileKey = "timeline_settings.merge_timers", preview = false }),
-        row("Slider", "MergeWindow", {
-            profileKey = "timeline_settings.merge_window", minValue = 0, maxValue = 2, valueStep = 0.1,
-            hidden = function() return not private.db.profile.timeline_settings.merge_timers end,
-            preview = false,
-        }),
         {
             kind = "Heading",
             name = L("SettingsSectionCountdowns"),

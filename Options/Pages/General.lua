@@ -30,6 +30,20 @@ useTimelineModule.image = "Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\
 local timelineHeading = { kind = "Heading", name = L("SettingsSectionTimeline") }
 timelineHeading.hidden = useTimelineModule.hidden
 
+local mergeSettings = {
+    timeline = "timeline_settings",
+    waiting = "waiting_group",
+    queued = "queued_group",
+    paused = "paused_group",
+    bigIcon = "big_icon_settings",
+    textHighlight = "highlight_text_settings",
+}
+
+local refreshMergedDisplays = function()
+    private.evaluateBigIconPositions()
+    private.evaluateTextPositions()
+end
+
 private.RegisterSettingsPage({
     key = "General",
     order = 10,
@@ -38,6 +52,49 @@ private.RegisterSettingsPage({
     rows = {
         timelineHeading,
         useTimelineModule,
+        { kind = "Heading", name = L("SettingsSectionMerging") },
+        {
+            kind = "Dropdown",
+            name = L("MergeTimers"),
+            desc = L("MergeTimersDescription"),
+            multiselect = true,
+            values = {
+                timeline = L("SettingsPageTimeline"),
+                waiting = L("MergeWaitingTimers"),
+                queued = L("MergeQueuedTimers"),
+                paused = L("MergePausedTimers"),
+                bigIcon = L("SettingsPageBigIcon"),
+                textHighlight = L("SettingsPageTextHighlight"),
+            },
+            sorting = { "timeline", "waiting", "queued", "paused", "bigIcon", "textHighlight" },
+            get = function()
+                local selected = {}
+                for key, settings in pairs(mergeSettings) do
+                    selected[key] = private.db.profile[settings].merge_timers
+                end
+                return selected
+            end,
+            set = function(value, key)
+                private.db.profile[mergeSettings[key]].merge_timers = value
+            end,
+            onChange = refreshMergedDisplays,
+        },
+        {
+            kind = "Slider",
+            name = L("MergeWindow"),
+            desc = L("MergeWindowDescription"),
+            profileKey = "timeline_settings.merge_window",
+            minValue = 0,
+            maxValue = 2,
+            valueStep = 0.1,
+            hidden = function()
+                for _, settings in pairs(mergeSettings) do
+                    if private.db.profile[settings].merge_timers then return false end
+                end
+                return true
+            end,
+            onChange = refreshMergedDisplays,
+        },
         { kind = "Heading", name = L("SettingsSectionCountdowns") },
         toggle("useAudioCountdowns"),
         {

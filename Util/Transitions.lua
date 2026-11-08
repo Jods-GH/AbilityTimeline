@@ -83,8 +83,26 @@ ThemeApply.PlayEnterEffects = function(frame, enter, icon, iconFile)
     ThemeApply.StopEnterEffects(frame)
     if not enter or not private.AmbientEffectsEnabled() then return end
     local effect = ThemeApply.GetTransitionEffect(enter)
-    if enter.Ghost or enter.Flare or enter.Vortex or effect then
-        local _, host = ThemeApply.PlayExit(frame, { Ghost = enter.Ghost, Flare = enter.Flare, Vortex = enter.Vortex, Effect = effect },
+    local ghost = enter.Ghost
+    if ghost and ghost.Source == "Icon" and frame.MergeSlices and frame.MergeSlices[1]:IsShown() then
+        frame.AtEnterSlices = frame.AtEnterSlices or {}
+        for i, slice in ipairs(frame.MergeSlices) do
+            if slice:IsShown() then
+                local holder = frame.AtEnterSlices[i] or CreateFrame("Frame", nil, frame)
+                frame.AtEnterSlices[i] = holder
+                holder:ClearAllPoints()
+                holder:SetAllPoints(slice)
+                local _, host = ThemeApply.PlayExit(holder, { Ghost = ghost }, slice, slice:GetTexture(), true)
+                if host then
+                    holder.AtEnterHost = host
+                    host.enterFrame = holder
+                end
+            end
+        end
+        ghost = nil
+    end
+    if ghost or enter.Flare or enter.Vortex or effect then
+        local _, host = ThemeApply.PlayExit(frame, { Ghost = ghost, Flare = enter.Flare, Vortex = enter.Vortex, Effect = effect },
             icon, iconFile, true)
         if host then
             frame.AtEnterHost = host
@@ -124,6 +142,9 @@ end
 
 ThemeApply.StopEnterEffects = function(frame)
     if frame.AtEnterHost then releaseHost(frame.AtEnterHost) end
+    for _, holder in ipairs(frame.AtEnterSlices or {}) do
+        if holder.AtEnterHost then releaseHost(holder.AtEnterHost) end
+    end
 end
 
 ---adds mask to texture or takes it away
@@ -551,4 +572,28 @@ ThemeApply.PlayExit = function(frame, exit, icon, iconFile, attach, state)
     return math.max(crackTime + (exit.Shards and exit.Shards.Time or 0),
         exit.Burst and (exit.BurstDelay or crackTime) + exit.Burst.Life[2] or 0, host.ghostDuration or (exit.Ghost and exit.Ghost.Time or 0),
         exit.Flare and exit.Flare.Time or 0, host.effectBehavior and host.effectSpec.Time or 0, exit.Vortex and exit.Vortex.Time or 0), host
+end
+
+-- Copy the visible artwork into detached effects before its widget returns to the pool.
+local mergedExitFrame
+ThemeApply.PlayIconExit = function(frame, exit, icon, iconFile, attach, state)
+    if not frame.MergeSlices or not frame.MergeSlices[1]:IsShown() then
+        return ThemeApply.PlayExit(frame, exit, icon, iconFile, attach, state)
+    end
+    mergedExitFrame = mergedExitFrame or CreateFrame("Frame")
+    mergedExitFrame:SetParent(frame)
+    mergedExitFrame:SetFrameStrata(frame:GetFrameStrata())
+    mergedExitFrame:SetFrameLevel(frame:GetFrameLevel())
+    local duration = 0
+    for _, slice in ipairs(frame.MergeSlices) do
+        if slice:IsShown() then
+            mergedExitFrame:ClearAllPoints()
+            mergedExitFrame:SetAllPoints(slice)
+            local sliceDuration = ThemeApply.PlayExit(mergedExitFrame, exit, slice, slice:GetTexture(), nil, state)
+            duration = math.max(duration, sliceDuration)
+        end
+    end
+    mergedExitFrame:ClearAllPoints()
+    mergedExitFrame:SetParent(UIParent)
+    return duration
 end

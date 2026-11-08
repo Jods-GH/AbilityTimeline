@@ -38,7 +38,12 @@ end
 
 ---@param self AtTextHighlight
 local function OnRelease(self)
+    private.ThemeApply.StopEnterEffects(self.frame)
     self.frame:SetScript("OnUpdate", nil)
+    self.frame.eventInfo = nil
+    self.frame.mergeCount = nil
+    self.frame.mergedInto = nil
+    self.frame.pendingEnter = nil
 end
 
 
@@ -65,16 +70,20 @@ end
 ---@param remainingDuration any
 local HandleTexts = function(widget, eventInfo, remainingDuration)
     local textColor = GetTextColor(widget, remainingDuration)
+    local count = widget.frame.mergeCount or 1
+    local name = count > 1 and string.format(private.getLocalisation("MultipleTimers"), count) or eventInfo.spellName
     private.manager.SetEventIconTextures(eventInfo.id, 126, widget.frame.dispellTypeIcons)
     local atlas = widget.frame.dispellTypeIcons[1]:GetAtlas()
-    local formatedText = string.format("%s in |c%s%i|r", eventInfo.spellName, textColor,
+    local formatedText = string.format("%s in |c%s%i|r", name, textColor,
         math.ceil(remainingDuration))
     if private.db.profile.highlight_text_settings.dispellIcons and atlas then
-        formatedText = string.format("|A:%s:20:20|a %s in |c%s%i|r", atlas, eventInfo.spellName, textColor,
+        formatedText = string.format("|A:%s:20:20|a %s in |c%s%i|r", atlas, name, textColor,
             math.ceil(remainingDuration))
     end
     widget.frame.SpellName:SetText(formatedText)
-    if private.db.profile.text_settings.useEventColor then
+    if count > 1 then
+        widget.frame.SpellName:SetTextColor(private.ThemeApply.Color(private.GetElementStyle("TextHighlight").Text.Font.Color))
+    elseif private.db.profile.text_settings.useEventColor then
         local color = private.manager.getEventColor(eventInfo.id)
         if color then
             widget.frame.SpellName:SetTextColor(color.r, color.g, color.b)
@@ -82,10 +91,23 @@ local HandleTexts = function(widget, eventInfo, remainingDuration)
     end
 end
 
-local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
+local SetMergedIcons = function(widget, members)
+    local count = members and #members or 1
+    if widget.frame.mergeCount == count then return end
+    widget.frame.mergeCount = count
+    local remaining = private.manager.getEventRemainingTime(widget.eventInfo.id)
+    HandleTexts(widget, widget.eventInfo, remaining or widget.eventInfo.duration)
+end
+
+local SetEventInfo = function(widget, eventInfo, disableOnUpdate, deferDisplay)
     widget.eventInfo = eventInfo
+    widget.frame.eventInfo = eventInfo
     if not disableOnUpdate then
-        private.ThemeApply.PlayEnter(widget.frame, private.GetElementStyle("TextHighlight").Enter)
+        if deferDisplay then
+            widget.frame.pendingEnter = true
+        else
+            private.ThemeApply.PlayEnter(widget.frame, private.GetElementStyle("TextHighlight").Enter)
+        end
         HandleTexts(widget, eventInfo, eventInfo.duration)
         widget.frame:SetScript("OnUpdate", function(self)
             local remainingDuration = private.manager.getEventRemainingTime(widget.eventInfo.id)
@@ -94,7 +116,7 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate)
             end
         end)
     end
-    widget.frame:Show()
+    if deferDisplay then widget.frame:Hide() else widget.frame:Show() end
 end
 
 local function Constructor()
@@ -122,6 +144,7 @@ local function Constructor()
         count = count,
         frame = frame,
         SetEventInfo = SetEventInfo,
+        SetMergedIcons = SetMergedIcons,
         eventInfo = {},
         GetTextColor = GetTextColor,
         ApplySettings = ApplySettings,

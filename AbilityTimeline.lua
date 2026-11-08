@@ -23,6 +23,20 @@ local getTimelineSettings = function()
    return private.db.profile.timeline_settings
 end
 
+local groupSettingsKeys = {
+   [ZONES.WAITING] = "waiting_group",
+   [ZONES.QUEUED] = "queued_group",
+   [ZONES.PAUSED] = "paused_group",
+   [ZONES.INLINE_PAUSED] = "paused_group",
+}
+
+local getGroupMergeSettings = function(zone)
+   return {
+      merge_timers = private.db.profile[groupSettingsKeys[zone]].merge_timers,
+      merge_window = getTimelineSettings().merge_window,
+   }
+end
+
 ---@type table<string, AtDynamicGroup>
 private.TimelineGroups                         = {
    [ZONES.WAITING] = private.DynamicGroup.Create(function()
@@ -95,21 +109,15 @@ end
 local setZone                                  = function(eventID, widget, zone)
    local frame = widget.frame
    if frame.zone == zone then return end
-   -- animated groups slide the icon in from where it was shown before, new icons have no previous position
-   local fromX, fromY
-   if frame.zone and (frame:IsShown() or frame.mergedInto) then
-      fromX, fromY = frame:GetCenter()
-   end
-   -- merged icons only exist while moving
-   if frame.mergedInto then
-      frame.mergedInto = nil
-      frame:Show()
-   end
-   widget:SetMergedIcons(nil)
-   frame.displayRemaining = nil
+   local fromX, fromY = frame.zoneFromX, frame.zoneFromY
+   -- a timer entering another zone leaves its previous merge group
    if frame.zone and groups[frame.zone] then
       groups[frame.zone]:Remove(eventID)
    end
+   frame:Hide()
+   frame.mergedInto = nil
+   widget:SetMergedIcons(nil)
+   frame.displayRemaining = nil
    frame.zone = zone
    if not zone then return end
    frame:ClearAllPoints()
@@ -117,6 +125,17 @@ local setZone                                  = function(eventID, widget, zone)
    frame:SetSize(size, size)
    if groups[zone] then
       groups[zone]:Add(eventID, frame, fromX, fromY)
+   end
+end
+
+-- Capture every member's origin before any host changes zones or loses its anchors.
+local captureZonePositions                     = function()
+   for _, widget in pairs(private.activeFrames) do
+      local frame = widget.frame
+      frame.zoneFromX, frame.zoneFromY = nil, nil
+      if frame.zone and (frame:IsShown() or frame.mergedInto) then
+         frame.zoneFromX, frame.zoneFromY = (frame.mergedInto and frame.mergedInto.frame or frame):GetCenter()
+      end
    end
 end
 
@@ -138,11 +157,44 @@ end
 local movingIcons                              = {}
 local clusters                                 = {}
 
-local compareMoving                            = function(a, b)
-   if a.frame.positionRemaining ~= b.frame.positionRemaining then
-      return a.frame.positionRemaining < b.frame.positionRemaining
+local applyMergedCluster                       = function(members, group)
+   local host = members[1]
+   host:SetMergedIcons(members)
+   for index, widget in ipairs(members) do
+      local frame = widget.frame
+      local eventID = frame.eventInfo.id
+      if index == 1 then
+         if frame.mergedInto then
+            frame.mergedInto = nil
+         end
+         if group then group:Add(eventID, frame) end
+      else
+         if group then group:Remove(eventID) end
+         if frame.mergeKey then widget:SetMergedIcons(nil) end
+         if frame.mergedInto ~= host then private.ThemeApply.StopEnterEffects(frame) end
+         frame.mergedInto = host
+         frame:Hide()
+      end
    end
-   return a.frame.eventInfo.id < b.frame.eventInfo.id
+end
+
+local groupedIcons                             = {
+   [ZONES.WAITING] = {},
+   [ZONES.QUEUED] = {},
+   [ZONES.PAUSED] = {},
+}
+
+local resolveGroupedMerges                     = function()
+   for zone, widgets in pairs(groupedIcons) do
+      local count = private.manager.clusterTimers(widgets, clusters, getGroupMergeSettings(zone))
+      for i = 1, count do
+         applyMergedCluster(clusters[i].members, groups[zone])
+      end
+      for _, widget in ipairs(widgets) do
+         local frame = widget.frame
+         widget:UpdateTimeline(frame.currentState, frame.timeRemaining, frame.positionRemaining, zone)
+      end
+   end
 end
 
 ---merges moving icons with the same timing and pushes overlapping icons back, so no two moving icons overlap
@@ -151,25 +203,7 @@ end
 local resolveMovingCollisions                  = function(elapsed)
    local layout = getTimelineLayout()
    local settings = getTimelineSettings()
-   table.sort(movingIcons, compareMoving)
-
-   -- events within the merge window of the first event of a cluster share one icon
-   local clusterCount = 0
-   for _, widget in ipairs(movingIcons) do
-      local remaining = widget.frame.positionRemaining
-      local cluster = clusters[clusterCount]
-      if settings.merge_timers and cluster and #cluster.members < private.MAX_MERGED_TIMELINE_ICONS and
-          remaining - cluster.remaining <= settings.merge_window then
-         table.insert(cluster.members, widget)
-      else
-         clusterCount = clusterCount + 1
-         cluster = clusters[clusterCount] or { members = {} }
-         clusters[clusterCount] = cluster
-         wipe(cluster.members)
-         cluster.remaining = remaining
-         table.insert(cluster.members, widget)
-      end
-   end
+   local clusterCount = private.manager.clusterTimers(movingIcons, clusters, settings)
 
    -- the time one icon takes up on the timeline, later icons are pushed back by that much
    local moveSize = private.TIMELINE_FRAME:GetMoveSize()
@@ -191,29 +225,47 @@ local resolveMovingCollisions                  = function(elapsed)
          end
       end
       previous = displayRemaining
-      host:SetMergedIcons(members)
-      for index, widget in ipairs(members) do
-         local frame = widget.frame
-         frame.displayRemaining = displayRemaining
-         if index == 1 then
-            if frame.mergedInto then
-               frame.mergedInto = nil
-               frame:Show()
-            end
-         else
-            if frame.mergeKey then
-               widget:SetMergedIcons(nil)
-            end
-            if frame.mergedInto ~= host then
-               frame.mergedInto = host
-               frame:Hide()
-            end
-         end
+      applyMergedCluster(members)
+      for _, widget in ipairs(members) do
+         widget.frame.displayRemaining = displayRemaining
       end
    end
 end
 
 local inlinePausedIcons                        = {}
+local zoneIcons                                = {}
+
+local zoneMergesTimers                         = function(zone)
+   if zone == ZONES.MOVING then return getTimelineSettings().merge_timers end
+   return private.db.profile[groupSettingsKeys[zone]].merge_timers
+end
+
+-- Resolve the section for a whole cluster before grouping within sections. A timer slightly later than
+-- its partners must not become a new standalone host at the old section's edge for the merge window.
+local resolveMergedZones                       = function()
+   local count = private.manager.clusterTimers(zoneIcons, clusters, {
+      merge_timers = true,
+      merge_window = getTimelineSettings().merge_window,
+   })
+   for i = 1, count do
+      local members = clusters[i].members
+      local zone = members[1].frame.nextZone
+      local merge = zoneMergesTimers(zone)
+      for _, widget in ipairs(members) do
+         merge = merge and zoneMergesTimers(widget.frame.nextZone)
+      end
+      for _, widget in ipairs(members) do
+         local frame = widget.frame
+         local target = merge and zone or frame.nextZone
+         setZone(frame.eventInfo.id, widget, target)
+         if target == ZONES.MOVING or target == ZONES.INLINE_PAUSED then
+            table.insert(target == ZONES.MOVING and movingIcons or inlinePausedIcons, widget)
+         else
+            table.insert(groupedIcons[target], widget)
+         end
+      end
+   end
+end
 
 ---returns if the queued group stacks in the same column besides the timeline as the paused icons shown on the timeline
 ---@return boolean
@@ -231,17 +283,12 @@ local resolveInlinePausedCollisions            = function(elapsed)
    local layout = getTimelineLayout()
    local settings = getTimelineSettings()
    local moveSize = private.TIMELINE_FRAME:GetMoveSize()
-   if not settings.prevent_overlap or moveSize <= 0 then
-      for _, widget in ipairs(inlinePausedIcons) do
-         widget.frame.displayRemaining = widget.frame.positionRemaining
-      end
-      return
-   end
-   table.sort(inlinePausedIcons, compareMoving)
+   local preventOverlap = settings.prevent_overlap and moveSize > 0
+   local clusterCount = private.manager.clusterTimers(inlinePausedIcons, clusters, getGroupMergeSettings(ZONES.INLINE_PAUSED))
 
    -- the queued stack grows from the near end, paused icons have to stay above it
    local minimum = 0
-   if queuedSharesPausedColumn() then
+   if preventOverlap and queuedSharesPausedColumn() then
       local visible = groups[ZONES.QUEUED]:GetVisibleCount()
       if visible > 0 then
          local extent = visible * private.QUEUED_FRAME:GetIconSize() +
@@ -249,19 +296,27 @@ local resolveInlinePausedCollisions            = function(elapsed)
          minimum = extent / moveSize * settings.threshold_time
       end
    end
-   local iconTime = (private.GetElementStyle("SpellIcon").Size + layout.iconMargin) / moveSize * settings.threshold_time
+   local iconTime = preventOverlap and
+       (private.GetElementStyle("SpellIcon").Size + layout.iconMargin) / moveSize * settings.threshold_time or 0
    local previous
-   for _, widget in ipairs(inlinePausedIcons) do
-      local frame = widget.frame
-      local displayRemaining = math.max(frame.positionRemaining, minimum)
-      if previous then
-         displayRemaining = math.max(displayRemaining, previous + iconTime)
+   for i = 1, clusterCount do
+      local members = clusters[i].members
+      local frame = members[1].frame
+      local displayRemaining = clusters[i].remaining
+      if preventOverlap then
+         displayRemaining = math.max(displayRemaining, minimum)
+         if previous then
+            displayRemaining = math.max(displayRemaining, previous + iconTime)
+         end
+         -- glide down once there is room again instead of jumping
+         if frame.displayRemaining then
+            displayRemaining = math.max(displayRemaining, frame.displayRemaining - elapsed * (1 + CATCH_UP_SPEED))
+         end
       end
-      -- glide down once there is room again instead of jumping
-      if frame.displayRemaining then
-         displayRemaining = math.max(displayRemaining, frame.displayRemaining - elapsed * (1 + CATCH_UP_SPEED))
+      applyMergedCluster(members)
+      for _, widget in ipairs(members) do
+         widget.frame.displayRemaining = displayRemaining
       end
-      frame.displayRemaining = displayRemaining
       previous = displayRemaining
    end
 end
@@ -279,6 +334,9 @@ driver:SetScript("OnUpdate", function(_, elapsed)
    local waitingSpace = private.GetElementStyle("SpellIcon").Size + private.WAITING_FRAME:GetSettings().spacing
    wipe(movingIcons)
    wipe(inlinePausedIcons)
+   wipe(zoneIcons)
+   for _, widgets in pairs(groupedIcons) do wipe(widgets) end
+   captureZonePositions()
    for eventID, widget in pairs(private.activeFrames) do
       local timeElapsed = private.manager.getEventTimeElapsed(eventID)
       local timeRemaining = private.manager.getEventRemainingTime(eventID)
@@ -289,19 +347,17 @@ driver:SetScript("OnUpdate", function(_, elapsed)
       if state and not ended and timeRemaining and eventInfo then
          if not timeElapsed or timeElapsed < 0 then timeElapsed = eventInfo.duration end
          local positionRemaining = eventInfo.duration - timeElapsed
-         local zone = getZone(state, positionRemaining)
-         setZone(eventID, widget, zone)
-         if zone == ZONES.MOVING or zone == ZONES.INLINE_PAUSED then
-            local frame = widget.frame
-            frame.positionRemaining = positionRemaining
-            frame.timeRemaining = timeRemaining
-            frame.currentState = state
-            table.insert(zone == ZONES.MOVING and movingIcons or inlinePausedIcons, widget)
-         else
-            widget:UpdateTimeline(state, timeRemaining, positionRemaining, zone)
-         end
+         local frame = widget.frame
+         frame.nextZone = getZone(state, positionRemaining)
+         frame.positionRemaining = positionRemaining
+         frame.timeRemaining = timeRemaining
+         frame.currentState = state
+         frame.mergeState = state == private.ENCOUNTER_STATES.Queued and private.ENCOUNTER_STATES.Active or state
+         table.insert(zoneIcons, widget)
       end
    end
+   resolveMergedZones()
+   resolveGroupedMerges()
    resolveInlinePausedCollisions(elapsed)
    for _, widget in ipairs(inlinePausedIcons) do
       local frame = widget.frame
@@ -330,12 +386,27 @@ driver:SetScript("OnUpdate", function(_, elapsed)
       end
       group:Animate(elapsed)
    end
+   -- Visibility and enter effects are committed only after merging, limits and positions are resolved.
+   for eventID, widget in pairs(private.activeFrames) do
+      local frame = widget.frame
+      local group = groups[frame.zone]
+      local item = group and group.index[eventID]
+      if frame.zone and not frame.mergedInto and (not group or item and not item.hiddenByLimit) then
+         if frame.pendingEnter then
+            frame.pendingEnter = nil
+            private.ThemeApply.PlayEnter(frame, private.GetElementStyle("SpellIcon").Enter, true,
+               frame.SpellIcon, frame.eventInfo.iconFileID)
+         end
+         frame:Show()
+      end
+   end
 end)
 
 ---re-evaluates the zones, sizes and anchors of all timeline icons, call after changing any group related setting
 private.refreshTimelineGroups                  = function()
    if not private.TIMELINE_FRAME or not private.WAITING_FRAME or not private.QUEUED_FRAME or not private.PAUSED_FRAME then return end
    refreshAnchors()
+   captureZonePositions()
    for eventID, widget in pairs(private.activeFrames) do
       setZone(eventID, widget, nil)
    end
@@ -347,9 +418,9 @@ private.createTimelineIcon                     = function(eventID)
       private.removeAtIconFrame(eventID)
    end
    local frame = AceGUI:Create("AtAbilitySpellIcon")
-   frame:SetEventInfo(private.manager.getEventInfo(eventID))
+   frame.frame:Hide()
+   frame:SetEventInfo(private.manager.getEventInfo(eventID), false, true)
    private.activeFrames[eventID] = frame
-   frame.frame:Show()
    if not driver:IsShown() then
       refreshAnchors()
       driver:Show()
@@ -362,7 +433,7 @@ private.removeAtIconFrame                      = function(eventID)
       private.ThemeApply.StopTimelineMotion(frame.frame)
       local exitTime = 0
       if frame.frame:IsVisible() then
-         exitTime = private.ThemeApply.PlayExit(frame.frame, private.GetElementStyle("SpellIcon").Exit,
+         exitTime = private.ThemeApply.PlayIconExit(frame.frame, private.GetElementStyle("SpellIcon").Exit,
             frame.frame.SpellIcon, frame.frame.eventInfo and frame.frame.eventInfo.iconFileID, nil,
             private.manager.getEventState(eventID))
       end

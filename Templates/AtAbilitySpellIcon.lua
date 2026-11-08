@@ -8,10 +8,8 @@ local variables = {
 	ExtraIcons={
 		IconSize = 16,
 	},
-	MaxMergedIcons = 4,
+	MaxMergedIcons = private.MAX_MERGED_TIMER_ICONS,
 }
-
-private.MAX_MERGED_TIMELINE_ICONS = variables.MaxMergedIcons
 
 private.RELATIVE_POSITIONS = {
 	RIGHT = "LEFT",
@@ -307,6 +305,7 @@ local SetMergedIcons        = function(self, members)
 		key = table.concat(ids, ",")
 	end
 	if frame.mergeKey == key then return end
+	private.ThemeApply.StopEnterEffects(frame)
 	frame.mergeKey = key
 	if not key then
 		hideMergeSlices(frame)
@@ -355,7 +354,8 @@ end
 ---@param self AtAbilitySpellIcon
 ---@param eventInfo EncounterTimelineEventInfo
 ---@param disableOnUpdate boolean -- if true, the event specific textures will not be set (used for previews)
-local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
+---@param deferDisplay boolean|nil -- runtime icons wait for the timeline's merge and layout pass
+local SetEventInfo          = function(self, eventInfo, disableOnUpdate, deferDisplay)
 	self:ApplySettings()
 	self.frame.eventInfo = eventInfo
 	private.ThemeApply.IconState(self.frame, nil, eventInfo)
@@ -365,8 +365,12 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 	-- the position is updated by the timeline driver (see AbilityTimeline.lua) based on the zone of the icon
 	self.frame.frameIsMoving = false
 	if not disableOnUpdate then
-		private.ThemeApply.PlayEnter(self.frame, private.GetElementStyle("SpellIcon").Enter, true, self.frame.SpellIcon,
-			eventInfo.iconFileID)
+		if deferDisplay then
+			self.frame.pendingEnter = true
+		else
+			private.ThemeApply.PlayEnter(self.frame, private.GetElementStyle("SpellIcon").Enter, true, self.frame.SpellIcon,
+				eventInfo.iconFileID)
+		end
 		private.ThemeApply.EnterTimelineMotion(self.frame)
 		private.Debug("Setting event info for eventID: " .. eventInfo.id .. " with spell name: " .. eventInfo.spellName)
 		if private.db.profile.icon_settings.dispellIcons then
@@ -394,7 +398,7 @@ local SetEventInfo          = function(self, eventInfo, disableOnUpdate)
 			private.manager.SetEventIconTextures(eventInfo.id, 1, self.frame.DangerIcon)
 		end
 	end
-	self.frame:Show()
+	if deferDisplay then self.frame:Hide() else self.frame:Show() end
 
 	if private.db.profile.icon_settings and private.db.profile.icon_settings.useTooltip and private.db.profile.icon_settings.useTooltip ~= Enum.EncounterEventsTooltipAnchor.Hidden then
 		private.AddEventTooltip(self.frame, eventInfo, private.db.profile.icon_settings.useTooltip)
@@ -491,6 +495,7 @@ end
 
 ---@param self AtAbilitySpellIcon
 local function OnRelease(self)
+	private.ThemeApply.StopEnterEffects(self.frame)
 	private.ThemeApply.IconPriority(self.frame, false)
 	private.ThemeApply.UpdateIconTrail(self.frame, false)
 	private.ThemeApply.StopTimelineMotion(self.frame)
@@ -504,6 +509,10 @@ local function OnRelease(self)
 	self.frame.mergeKey = nil
 	self.frame.mergedInto = nil
 	self.frame.displayRemaining = nil
+	self.frame.pendingEnter = nil
+	self.frame.zoneFromX, self.frame.zoneFromY = nil, nil
+	self.frame.nextZone = nil
+	self.frame.mergeState = nil
 	hideMergeSlices(self.frame)
 	self.frame.SpellIcon:Show()
 	handleAnchors(self.frame, false)
