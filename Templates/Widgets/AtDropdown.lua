@@ -254,8 +254,8 @@ local function Skin(widget)
         UpdateMultiText(widget)
     end)
     frame.AtDraw = function()
-        ThemedWidgets.DrawField(field)
-        frame.AtChevron:SetVertexColor(ThemeApply.MixColor("Muted", "Text", field.hover or 0))
+        ThemedWidgets.DrawDropdown(field, widget.button_cover, widget.text, frame.AtChevron, widget.disabled,
+            widget.pullout and widget.pullout.frame:IsShown())
     end
     for _, hoverFrame in ipairs({ widget.button, widget.button_cover }) do
         ThemedWidgets.HookHover(hoverFrame, field, frame.AtDraw)

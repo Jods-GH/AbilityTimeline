@@ -23,6 +23,18 @@ private.MediaName = function(name)
     return "AbilityTimeline " .. name
 end
 
+local mediaPreviews = {}
+
+---registers a composite media preview without duplicating its texture artwork
+private.RegisterMediaPreview = function(mediaType, name, draw, reset)
+    mediaPreviews[mediaType] = mediaPreviews[mediaType] or {}
+    mediaPreviews[mediaType][name] = { Draw = draw, Reset = reset }
+end
+
+private.GetMediaPreview = function(mediaType, name)
+    return mediaPreviews[mediaType] and mediaPreviews[mediaType][name]
+end
+
 ---registers the textures of a theme's folder of Media/Textures/Theme, dissolves are the names of Ghost.Dissolve frame
 ---sets: <name>1..12 and <name>_edge1..12, Util/Transitions.lua steps through them
 ---@param folder string

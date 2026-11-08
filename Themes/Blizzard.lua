@@ -2,6 +2,7 @@ local appName, app = ...
 ---@class AbilityTimeline
 local private = app
 local ThemeApply = private.ThemeApply
+local TRACK_BACKGROUND = "Blizzard Timeline"
 
 do
     local behavior = {}
@@ -523,6 +524,7 @@ do
         for index, spec in ipairs({ track.End, track.Start }) do
             local texture = index == 1 and art.End or art.Start
             texture:SetShown(behavior.OrientedTexture(texture, spec, arrival))
+            texture:SetVertexColor(ThemeApply.Color(private.GetElementStyle("Timeline").Backdrop.Color))
             place(texture, length * (index == 1 and 0.25 or 0.75), length / 2, thickness)
         end
         local total = private.db.profile.timeline_settings.threshold_time
@@ -552,6 +554,7 @@ do
         art.Pip:SetShown(time <= total and private.ThemeApply.Texture(art.Pip, track.Pip) or false)
         place(art.Pip, math.min(time / total, 1) * length, track.PipSize or 16, track.PipSize or 16)
         art.Divider:SetShown(behavior.OrientedTexture(art.Divider, track.Divider, arrival))
+        art.Divider:SetVertexColor(ThemeApply.Color(private.GetElementStyle("Timeline").Backdrop.Color))
         art.Divider:ClearAllPoints()
         local offset = (arrival == "LEFT" or arrival == "BOTTOM") and -(track.DividerOffset or 0) or (track.DividerOffset or 0)
         art.Divider:SetPoint(arrival, frame, OPPOSITE[arrival], horizontal and offset or 0, horizontal and 0 or offset)
@@ -573,7 +576,7 @@ do
     end
 
     behavior.ConfigureTrack = function(frame, track)
-        frame.track = track
+        frame.track = private.GetElementStyle("Timeline").Backdrop.Background == TRACK_BACKGROUND and track or nil
         if not frame.TrackArt then
             frame.TrackBreakMasks = {}
             frame.TrackArt = {
@@ -593,6 +596,14 @@ do
     behavior.ResetTrack = function(frame)
         frame.track = nil
         behavior.UpdateTrack(frame)
+    end
+
+    behavior.ConfigureTimelineArt = function(frame, style)
+        if style.Backdrop.Background ~= TRACK_BACKGROUND then return end
+        local backdrop = {}
+        for key, value in pairs(style.Backdrop) do backdrop[key] = value end
+        backdrop.Background = false
+        ThemeApply.Backdrop(frame, backdrop)
     end
 
     ThemeApply.RegisterBehavior("Blizzard", behavior)
@@ -687,15 +698,204 @@ spellIcon.Exit = {
     } },
 }
 
+
+local settingsMedia = LibStub("LibSharedMedia-3.0")
+settingsMedia:Register("background", TRACK_BACKGROUND, ThemeApply.File("blizzard_timeline"))
+
+do
+    local start = component("combattimeline-line-left")
+    local finish = component("combattimeline-line-right")
+    local behavior = ThemeApply.GetBehavior({ Behavior = "Blizzard" })
+    private.RegisterMediaPreview("background", TRACK_BACKGROUND, function(frame)
+        frame.Texture:Hide()
+        if not frame.BlizzardTrackPreview then
+            local left = frame:CreateTexture(nil, "ARTWORK")
+            left:SetPoint("TOPLEFT", frame, "TOPLEFT")
+            left:SetPoint("BOTTOMRIGHT", frame, "BOTTOM")
+            local right = frame:CreateTexture(nil, "ARTWORK")
+            right:SetPoint("TOPLEFT", frame, "TOP")
+            right:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+            frame.BlizzardTrackPreview = { left, right }
+        end
+        behavior.OrientedTexture(frame.BlizzardTrackPreview[1], finish, "LEFT")
+        behavior.OrientedTexture(frame.BlizzardTrackPreview[2], start, "LEFT")
+        for _, texture in ipairs(frame.BlizzardTrackPreview) do texture:Show() end
+    end, function(frame)
+        for _, texture in ipairs(frame.BlizzardTrackPreview or {}) do texture:Hide() end
+    end)
+end
+for name, path in pairs({
+    blizzard_settings_check_box = "Interface\\Buttons\\UI-CheckBox-Up",
+    blizzard_settings_check = "Interface\\Buttons\\UI-CheckBox-Check",
+    blizzard_settings_slider = "Interface\\Buttons\\UI-SliderBar-Background",
+    blizzard_settings_thumb = "Interface\\Buttons\\UI-SliderBar-Button-Horizontal",
+}) do
+    settingsMedia:Register("background", private.MediaName(name), path)
+end
+
+do
+    local behavior = {}
+    local frameAtlases = {
+        "UI-Frame-Metal-CornerTopLeft", "UI-Frame-Metal-CornerTopRight",
+        "UI-Frame-Metal-CornerBottomLeft", "UI-Frame-Metal-CornerBottomRight",
+        "_UI-Frame-Metal-EdgeTop", "_UI-Frame-Metal-EdgeBottom",
+        "!UI-Frame-Metal-EdgeLeft", "!UI-Frame-Metal-EdgeRight",
+    }
+    behavior.ConfigureWindow = function(frame)
+        if not NineSliceUtil or not NineSliceUtil.ApplyLayoutByName or not NineSliceUtil.GetLayout or
+            not NineSliceUtil.GetLayout("ButtonFrameTemplateNoPortrait") then return end
+        for _, atlas in ipairs(frameAtlases) do
+            if not ThemeApply.AtlasInfo(atlas) then return end
+        end
+        local shell = frame.AtShell
+        if not shell.BlizzardFrame then
+            shell.BlizzardFrame = CreateFrame("Frame", nil, shell)
+            shell.BlizzardFrame:SetPoint("TOPLEFT", shell, "TOPLEFT", -2, 0)
+            shell.BlizzardFrame:SetPoint("BOTTOMRIGHT", shell, "BOTTOMRIGHT", -4, 3)
+            NineSliceUtil.ApplyLayoutByName(shell.BlizzardFrame, "ButtonFrameTemplateNoPortrait")
+            for _, key in ipairs({ "TopLeftCorner", "TopEdge", "TopRightCorner" }) do
+                local piece = shell.BlizzardFrame[key]
+                piece:SetHeight(piece:GetHeight() + 16)
+            end
+        end
+        shell.atBlizzardFrameLevel = shell:GetFrameLevel()
+        shell:SetFrameLevel(math.max(frame:GetFrameLevel() - 1, 0))
+        shell.BlizzardFrame:SetFrameLevel(shell:GetFrameLevel())
+        shell.BlizzardFrame:Show()
+        shell:SetBackdropBorderColor(0, 0, 0, 0)
+    end
+    behavior.ConfigureSettingsWindow = function(widget)
+        local frame = widget.frame
+        local shell = frame.AtShell
+        frame.atBlizzardNavWidth = frame.Nav:GetWidth()
+        frame.Nav:SetWidth(199)
+        if ThemeApply.AtlasInfo("Options_InnerFrame") then
+            if not shell.BlizzardInset then
+                shell.BlizzardInset = shell:CreateTexture(nil, "BORDER", nil, 2)
+                shell.BlizzardInset:SetPoint("TOPLEFT", frame, "TOPLEFT", 12, -34)
+                shell.BlizzardInset:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -12, 34)
+                shell.BlizzardInset:SetAtlas("Options_InnerFrame")
+            end
+            shell.BlizzardInset:Show()
+        end
+        for _, panel in ipairs({ frame.Nav, frame.Details }) do
+            panel.AtFill:Hide(); panel.AtEdge:Hide()
+        end
+        ThemeApply.FontRole(frame.Details.Text, "CardText")
+        frame.atBlizzardSettings = widget
+    end
+    behavior.ResetWindow = function(frame)
+        local shell = frame.AtShell
+        if shell and shell.BlizzardFrame then shell.BlizzardFrame:Hide() end
+        if shell and shell.BlizzardInset then shell.BlizzardInset:Hide() end
+        if shell and shell.atBlizzardFrameLevel ~= nil then
+            shell:SetFrameLevel(shell.atBlizzardFrameLevel)
+            shell.atBlizzardFrameLevel = nil
+        end
+        if frame.atBlizzardSettings then
+            frame.Nav:SetWidth(frame.atBlizzardNavWidth)
+            frame.atBlizzardNavWidth = nil
+            for _, panel in ipairs({ frame.Nav, frame.Details }) do
+                panel.AtFill:Show(); panel.AtEdge:Show()
+            end
+            frame.atBlizzardSettings = nil
+        end
+    end
+    ThemeApply.RegisterBehavior("BlizzardSettings", behavior)
+end
+
+local SETTINGS_WINDOW = {
+    Behavior = "BlizzardSettings",
+    Backdrop = {
+        BgFile = "Interface\\Buttons\\WHITE8X8",
+        EdgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        EdgeSize = 16, Insets = { left = 4, right = 4, top = 4, bottom = 4 },
+        Color = "Body", BorderColor = "Edge",
+    },
+    Fill = "Body", Edge = "Edge", Wash = { 0, 0, 0, 0 },
+    HeaderLine = { 0, 0, 0, 0 }, HeaderHeight = 34, Footer = "FooterFill",
+    CloseArt = { Atlas = "RedButton-Exit", Texture = "Interface\\Buttons\\UI-Panel-MinimizeButton-Up" },
+    ShowScale = 1, Sparkles = false,
+}
+
+local settingsFonts = {}
+for role, font in pairs(private.Themes.Classic.Fonts) do
+    settingsFonts[role] = {
+        Object = "GameFontHighlight", Size = font.Size, Color = font.Color,
+        Shadow = true, Flags = {},
+    }
+end
+for _, role in ipairs({ "Title", "DialogTitle", "Heading", "CardTitle", "Button", "ButtonPrimary", "TabSelected" }) do
+    settingsFonts[role].Object = "GameFontNormal"
+    settingsFonts[role].Color = "Accent"
+end
+settingsFonts.Control.Color = "Accent"
+settingsFonts.Label.Color = "Accent"
+settingsFonts.Tab.Color = "Accent"
+settingsFonts.Heading.Color = "Text"
+settingsFonts.Heading.Size = 18
+settingsFonts.Title.Size = 14
+settingsFonts.TabSelected.Color = "Text"
+settingsFonts.CardText.Color = "Text"
+settingsFonts.CardText.Size = 12
+
 private.RegisterTheme({
     Name = "Blizzard",
     DisplayName = private.getLocalisation("ThemeBlizzard"),
     Description = private.getLocalisation("ThemeBlizzardDescription"),
     Effects = true,
     Motion = { Time = { Enter = 0.2, Exit = 0.2 } },
+    Variables = {
+        BlizzardPanelColor = function()
+            if PANEL_BACKGROUND_COLOR then return { PANEL_BACKGROUND_COLOR:GetRGBA() } end
+            return { 0.055, 0.055, 0.055, 0.78 }
+        end,
+    },
+    Palette = {
+        Body = "$BlizzardPanelColor",
+        Card = { 0, 0, 0, 0 },
+        Field = { 0.06, 0.06, 0.06, 0.75 },
+        FieldHover = { 0.11, 0.105, 0.09, 1 },
+        FieldPressed = { 0.02, 0.02, 0.02, 1 },
+        Track = { 0.2, 0.18, 0.14, 1 },
+        Edge = { 0.45, 0.4, 0.3, 1 },
+        Line = { 0.55, 0.45, 0.23, 0.65 },
+        Accent = { 1, 0.82, 0, 1 }, Accent2 = { 0.8, 0.7, 0.45, 1 },
+        Text = { 1, 1, 1, 1 }, Muted = { 0.65, 0.62, 0.56, 1 },
+        Highlight = { 1, 1, 1, 0.025 },
+        FooterFill = { 0.025, 0.025, 0.025, 0.25 },
+    },
+    Fonts = settingsFonts,
+    Windows = { Window = SETTINGS_WINDOW, Dialog = SETTINGS_WINDOW },
+    Controls = {
+        Dropdown = {
+            Normal = "common-dropdown-c-button",
+            Hover = "common-dropdown-c-button-hover-1",
+            Open = "common-dropdown-c-button-open",
+            Disabled = "common-dropdown-c-button-disabled",
+            Arrow = "common-dropdown-c-button-hover-arrow",
+        },
+        Button = { Fill = "White", Edge = "Edge", Parts = {
+            { Texture = "Interface\\Buttons\\UI-Panel-Button-Up", Coords = { 0, 0.09375, 0, 0.6875 } },
+            { Texture = "Interface\\Buttons\\UI-Panel-Button-Up", Coords = { 0.09375, 0.53125, 0, 0.6875 } },
+            { Texture = "Interface\\Buttons\\UI-Panel-Button-Up", Coords = { 0.53125, 0.625, 0, 0.6875 } },
+        } },
+        CheckBox = { Box = { Atlas = "checkbox-minimal", File = "blizzard_settings_check_box" },
+            Check = { Atlas = "checkmark-minimal", File = "blizzard_settings_check" }, Size = 32 },
+        Slider = {
+            Track = { Atlas = "_Minimal_SliderBar_Middle", File = "blizzard_settings_slider" },
+            Thumb = { Atlas = "Minimal_SliderBar_Button", File = "blizzard_settings_thumb" },
+            Height = 16, Size = 20, Fill = false,
+            Caps = { Width = 8,
+                Left = { Atlas = "Minimal_SliderBar_Left", File = "blizzard_settings_slider" },
+                Right = { Atlas = "Minimal_SliderBar_Right", File = "blizzard_settings_slider" },
+            },
+        },
+    },
     Elements = {
         Timeline = {
-            Backdrop = { Background = false, Border = false }, Background = false,
+            Behavior = "Blizzard",
+            Backdrop = { Background = TRACK_BACKGROUND, Border = false }, Background = false,
             Track = {
                 Behavior = "Blizzard",
                 Start = component("combattimeline-line-left"),

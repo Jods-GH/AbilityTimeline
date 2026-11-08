@@ -73,8 +73,19 @@ local function ApplySettings(self)
     end
     local headerHeight = style.HeaderHeight or variables.headerHeight
     local headerOffset = math.max(0, headerHeight - variables.headerHeight)
+    frame.Title:ClearAllPoints()
     frame.Title:SetPoint("TOPLEFT", frame, "TOPLEFT", style.HeaderArt and 44 or variables.padding + 4, -10 - headerOffset)
+    frame.TestButton:ClearAllPoints()
     frame.TestButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -40, -6 - headerOffset)
+    frame.MoveButton:ClearAllPoints()
+    frame.MoveButton:SetPoint("RIGHT", frame.TestButton, "LEFT", -variables.padding / 2, 0)
+    self.search.frame:ClearAllPoints()
+    self.search.frame:SetPoint("RIGHT", frame.MoveButton, "LEFT", -variables.padding, 0)
+    self.search.editbox:ClearAllPoints()
+    self.search.editbox:SetPoint("LEFT", self.search.frame, "LEFT", 7, 0)
+    self.search.editbox:SetPoint("RIGHT", self.search.frame, "RIGHT", 0, 0)
+    self.search.editbox:SetHeight(variables.buttonHeight)
+    frame.CloseButton:ClearAllPoints()
     frame.CloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -8, -6 - headerOffset)
     frame.Nav:SetPoint("TOPLEFT", frame, "TOPLEFT", variables.padding, -headerHeight - variables.padding)
     frame.Details:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -variables.padding, -headerHeight - variables.padding)
@@ -94,6 +105,7 @@ local function ApplySettings(self)
     for _, button in ipairs({ details.Reset, details.ResetPage, frame.TestButton, frame.MoveButton }) do
         ThemedWidgets.DrawButton(button)
     end
+    ThemeApply.ConfigureSettingsWindow(self, style)
 end
 
 ---@param self AtSettingsWindow

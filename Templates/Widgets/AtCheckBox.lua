@@ -21,9 +21,9 @@ local variables = {
 local drawState = function(frame)
     local style = ThemeApply.ControlStyle("CheckBox")
     if style and not frame.atRadio then
-        frame.AtOff:SetTexture(ThemeApply.File(style.Box))
+        ThemeApply.Texture(frame.AtOff, type(style.Box) == "table" and style.Box or { File = style.Box })
         frame.AtOff:SetVertexColor(1, 1, 1, 1)
-        frame.AtOn:SetTexture(ThemeApply.File(style.Check))
+        ThemeApply.Texture(frame.AtOn, type(style.Check) == "table" and style.Check or { File = style.Check })
         frame.AtOn:SetVertexColor(1, 1, 1, (frame.atProgress or 0) >= 0.5 and 1 or 0)
         frame.AtHover:SetColorTexture(1, 1, 1, 0.08 * (frame.atHover or 0))
         frame.AtKnob:Hide()

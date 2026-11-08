@@ -27,6 +27,10 @@ local variables = {
 
 local popup
 
+local getMediaName = function(widget)
+    return widget.value or "None"
+end
+
 ---@param item Button
 local drawItem = function(item)
     local r, g, b, a = ThemeApply.Color(item.selected and "Accent" or "Highlight")
@@ -51,7 +55,7 @@ local refreshPopup = function()
         if name then
             local path = SharedMedia:Fetch(owner.mediaType, name)
             item.name = name
-            item.selected = name == owner.value
+            item.selected = name == getMediaName(owner)
             ThemeApply.FontRole(item.Text, "Control")
             -- a font previewed in the row before stays over the font object, so the role's own font is set again
             item.Text:SetFont(ThemeApply.FontObject("Control"):GetFont())
@@ -59,7 +63,11 @@ local refreshPopup = function()
             item.Preview:SetShown(owner.mediaType ~= "font")
             item.Preview.Texture:SetShown(owner.mediaType ~= "border")
             item.Preview:SetBackdrop(nil)
-            if owner.mediaType == "font" then
+            if item.Preview.atMediaPreview then item.Preview.atMediaPreview.Reset(item.Preview) end
+            item.Preview.atMediaPreview = private.GetMediaPreview(owner.mediaType, name)
+            if item.Preview.atMediaPreview then
+                item.Preview.atMediaPreview.Draw(item.Preview)
+            elseif owner.mediaType == "font" then
                 item.Text:SetFont(path, variables.fontSize, "")
             elseif owner.mediaType == "border" then
                 if path and path ~= "" then
@@ -190,7 +198,9 @@ local createPopup = function()
     end)
     popup:SetScript("OnHide", function()
         popup.Search:ClearFocus()
+        local owner = popup.owner
         popup.owner = nil
+        if owner then owner.frame.AtDraw() end
     end)
     -- the themed are held weakly, the popup holds it
     popup.AtThemed = { ApplySettings = applyPopupSettings }
@@ -208,17 +218,19 @@ local openPopup = function(widget)
     popup:SetPoint("TOPRIGHT", widget.frame, "BOTTOMRIGHT", 0, -2)
     popup.Search:SetText("")
     -- the selected one is in the middle of the list
-    local index = tIndexOf(SharedMedia:List(widget.mediaType), widget.value) or 1
+    local index = tIndexOf(SharedMedia:List(widget.mediaType), getMediaName(widget)) or 1
     popup.offset = index - math.ceil(variables.visibleItems / 2)
     popup:Show()
     refreshPopup()
     popup.Search:SetFocus()
+    widget.frame.AtDraw()
 end
 
 ---@param self AtMediaPicker
 local function ApplySettings(self)
     local frame = self.frame
     ThemeApply.FontRole(frame.Text, "Control")
+    frame.atDisabled = self.disabled
     frame.AtDraw()
     frame:SetAlpha(self.disabled and 0.5 or 1)
 end
@@ -251,7 +263,8 @@ end
 ---@param value string|nil
 local function SetValue(self, value)
     self.value = value
-    self.frame.Text:SetText(value or "")
+    local name = getMediaName(self)
+    self.frame.Text:SetText(name == "None" and private.getLocalisation("EditorNone") or name or "")
 end
 
 ---@param self AtMediaPicker
@@ -276,8 +289,8 @@ local function Constructor()
     frame.Text:SetJustifyH("LEFT")
     frame.Text:SetWordWrap(false)
     frame.AtDraw = function()
-        ThemedWidgets.DrawField(field)
-        frame.Chevron:SetVertexColor(ThemeApply.MixColor("Muted", "Text", field.hover or 0))
+        ThemedWidgets.DrawDropdown(field, frame, frame.Text, frame.Chevron, frame.atDisabled,
+            popup and popup.owner and popup.owner.frame == frame and popup:IsShown())
     end
 
     ---@class AtMediaPicker : AceGUIWidget

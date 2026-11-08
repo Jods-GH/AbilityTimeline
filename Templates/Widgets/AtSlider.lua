@@ -16,9 +16,25 @@ local variables = {
 local function ApplySettings(self)
     local style = ThemeApply.ControlStyle("Slider")
     local thumb = self.slider:GetThumbTexture()
-    thumb:SetTexture(ThemeApply.File(style and style.Thumb or "circle"))
+    local thumbArt = style and style.Thumb or "circle"
+    ThemeApply.Texture(thumb, type(thumbArt) == "table" and thumbArt or { File = thumbArt })
     thumb:SetSize(style and style.Size or variables.thumb, style and style.Size or variables.thumb)
-    self.slider.AtTrack:SetTexture(style and ThemeApply.File(style.Track) or "Interface\\Buttons\\WHITE8X8")
+    local trackArt = style and style.Track
+    ThemeApply.Texture(self.slider.AtTrack, type(trackArt) == "table" and trackArt or
+        (trackArt and { File = trackArt } or { Texture = "Interface\\Buttons\\WHITE8X8" }))
+    local caps = style and style.Caps
+    self.slider.AtTrack:ClearAllPoints()
+    self.slider.AtTrack:SetPoint("LEFT", self.slider, "LEFT", caps and caps.Width or 0, 0)
+    self.slider.AtTrack:SetPoint("RIGHT", self.slider, "RIGHT", caps and -caps.Width or 0, 0)
+    if caps and not self.slider.AtCaps then
+        self.slider.AtCaps = { self.slider:CreateTexture(nil, "BACKGROUND"), self.slider:CreateTexture(nil, "BACKGROUND") }
+        self.slider.AtCaps[1]:SetPoint("RIGHT", self.slider.AtTrack, "LEFT")
+        self.slider.AtCaps[2]:SetPoint("LEFT", self.slider.AtTrack, "RIGHT")
+    end
+    for i, texture in ipairs(self.slider.AtCaps or {}) do
+        texture:SetShown(caps and ThemeApply.Texture(texture, i == 1 and caps.Left or caps.Right) or false)
+        if caps then texture:SetSize(caps.Width, style.Height) end
+    end
     self.slider.AtTrack:SetHeight(style and style.Height or variables.track)
     self.slider.AtFillBar:SetShown(not style or style.Fill ~= false)
     ThemeApply.FontRole(self.label, "Label")

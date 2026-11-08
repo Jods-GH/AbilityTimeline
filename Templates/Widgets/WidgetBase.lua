@@ -108,6 +108,50 @@ ThemedWidgets.DrawField = function(field)
     field.Edge:SetVertexColor(ThemeApply.MixColor("Edge", "Accent", focus, nil, 0.8))
 end
 
+---draws the shared dropdown field for selection and media pickers
+ThemedWidgets.DrawDropdown = function(field, anchor, text, chevron, disabled, open)
+    local style = ThemeApply.ControlStyle("Dropdown")
+    local atlas = style and (disabled and style.Disabled or
+        open and style.Open or
+        (field.hover or 0) > 0 and style.Hover or style.Normal)
+    local native = atlas and ThemeApply.AtlasInfo(atlas)
+    field.Fill:ClearAllPoints()
+    chevron:ClearAllPoints()
+    text:ClearAllPoints()
+    if native then
+        ThemeApply.Texture(field.Fill, { Atlas = atlas })
+        field.Fill:SetPoint("TOPLEFT", anchor, "TOPLEFT", -7, 7)
+        field.Fill:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", 7, -7)
+        field.Edge:Hide()
+        text:SetPoint("LEFT", anchor, "LEFT", 13, 0)
+        text:SetPoint("RIGHT", anchor, "RIGHT", -13, 0)
+        text:SetJustifyH("CENTER")
+        if style.Arrow and ThemeApply.AtlasInfo(style.Arrow) then
+            chevron:SetTexCoord(0, 1, 0, 1)
+            chevron:SetAtlas(style.Arrow, true)
+            chevron:SetPoint("BOTTOM", anchor, "BOTTOM", 0, -5)
+            chevron:SetVertexColor(1, 1, 1, 1)
+            chevron:SetShown(not disabled and (field.hover or 0) > 0)
+        else
+            chevron:Hide()
+        end
+    else
+        field.Fill:SetPoint("TOPLEFT", anchor, "TOPLEFT")
+        field.Fill:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT")
+        field.Edge:Show()
+        ThemedWidgets.DrawField(field)
+        chevron:SetTexture(ThemeApply.File("chevron"))
+        chevron:SetTexCoord(0, 1, 0, 1)
+        chevron:SetSize(12, 12)
+        chevron:SetPoint("RIGHT", anchor, "RIGHT", -8, 0)
+        chevron:SetVertexColor(ThemeApply.MixColor("Muted", "Text", field.hover or 0))
+        chevron:Show()
+        text:SetPoint("LEFT", anchor, "LEFT", 10, 0)
+        text:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
+        text:SetJustifyH("LEFT")
+    end
+end
+
 local BUTTON_FONTS = {
     Plain = "Button",
     Primary = "ButtonPrimary",
@@ -118,6 +162,9 @@ local BUTTON_FONTS = {
 ---@param button Button
 ThemedWidgets.DrawButton = function(button)
     ThemeApply.PanelStyle(button.AtFill, button.AtEdge)
+    button.AtFill:Show()
+    button.AtEdge:Show()
+    for _, texture in ipairs(button.AtParts or {}) do texture:Hide() end
     local hover = button.atHover or 0
     local style = ThemeApply.ControlStyle("Button")
     if style and button.atStyle ~= "Danger" then
@@ -134,6 +181,23 @@ ThemedWidgets.DrawButton = function(button)
         button.AtFill:SetVertexColor(ThemeApply.MixColor("Field", "FieldHover", hover))
         button.AtEdge:SetVertexColor(ThemeApply.MixColor("Edge", button.atStyle == "Danger" and "Danger" or "Accent",
             hover, nil, 0.6))
+    end
+    if style and style.Parts then
+        if not button.AtParts then
+            button.AtParts = {}
+            for i = 1, 3 do button.AtParts[i] = button:CreateTexture(nil, "BACKGROUND", nil, 2) end
+            local left, middle, right = unpack(button.AtParts)
+            left:SetPoint("TOPLEFT"); left:SetPoint("BOTTOMLEFT"); left:SetWidth(12)
+            right:SetPoint("TOPRIGHT"); right:SetPoint("BOTTOMRIGHT"); right:SetWidth(12)
+            middle:SetPoint("TOPLEFT", left, "TOPRIGHT")
+            middle:SetPoint("BOTTOMRIGHT", right, "BOTTOMLEFT")
+        end
+        for i, texture in ipairs(button.AtParts) do
+            ThemeApply.Texture(texture, style.Parts[i])
+            texture:SetVertexColor(1, 1, 1, button:IsEnabled() and (0.85 + 0.15 * hover) or 0.4)
+            texture:Show()
+        end
+        button.AtFill:Hide(); button.AtEdge:Hide()
     end
     local font = ThemeApply.FontObject(BUTTON_FONTS[button.atStyle or "Plain"])
     button:SetNormalFontObject(font)

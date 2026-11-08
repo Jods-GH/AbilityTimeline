@@ -212,9 +212,11 @@ ThemeApply.Texture = function(texture, spec)
         texture:SetTexture(nil)
         return false
     end
+    -- SetAtlas applies native slice data; clear the previous texture's slicing first.
+    texture:ClearTextureSlice()
     if spec.Atlas and ThemeApply.AtlasInfo(spec.Atlas) then
-        texture:SetAtlas(spec.Atlas)
         texture:SetTexCoord(0, 1, 0, 1)
+        texture:SetAtlas(spec.Atlas)
     elseif spec.Media then
         texture:SetTexture(SharedMedia:Fetch("background", spec.Media))
         texture:SetTexCoord(0, 1, 0, 1)
@@ -223,7 +225,7 @@ ThemeApply.Texture = function(texture, spec)
         texture:SetTexCoord(unpack(spec.Coords or { 0, 1, 0, 1 }))
     elseif spec.Texture then
         texture:SetTexture(spec.Texture)
-        texture:SetTexCoord(0, 1, 0, 1)
+        texture:SetTexCoord(unpack(spec.Coords or { 0, 1, 0, 1 }))
     elseif spec.Color then
         texture:SetColorTexture(ThemeApply.Color(spec.Color, spec.Alpha))
         texture:SetVertexColor(1, 1, 1, 1)
@@ -235,8 +237,6 @@ ThemeApply.Texture = function(texture, spec)
     if spec.Slice then
         texture:SetTextureSliceMargins(spec.Slice, spec.Slice, spec.Slice, spec.Slice)
         texture:SetTextureSliceMode(Enum.UITextureSliceMode.Stretched)
-    else
-        texture:ClearTextureSlice()
     end
     texture:SetBlendMode(spec.BlendMode or "BLEND")
     texture:SetVertexColor(ThemeApply.Color(spec.Color, spec.Alpha))
@@ -293,6 +293,10 @@ ThemeApply.CreatePanel = function(frame)
     end
     ThemeApply.PanelStyle(frame.AtFill, frame.AtEdge)
     return frame.AtFill, frame.AtEdge
+end
+
+ThemeApply.ConfigureSettingsWindow = function(widget, style)
+    callBehavior(ThemeApply.GetBehavior(style), "ConfigureSettingsWindow", widget, style)
 end
 
 ---applies a backdrop spec: Background and Border (SharedMedia names) or BgFile and EdgeFile, EdgeSize,
@@ -700,7 +704,7 @@ end
 
 ---gives a UIPanelCloseButton the theme's close glyph
 ---@param button Button
-ThemeApply.SkinCloseButton = function(button)
+ThemeApply.SkinCloseButton = function(button, art)
     if not button.AtIcon then
         ThemeApply.HideButtonTextures(button)
         button:SetSize(24, 24)
@@ -710,16 +714,25 @@ ThemeApply.SkinCloseButton = function(button)
         button.AtIcon:SetSize(14, 14)
         button:HookScript("OnEnter", function()
             private.TweenMotion(button.AtIcon, "Hover", 0, 1, function(progress)
-                button.AtIcon:SetVertexColor(ThemeApply.MixColor("Muted", "Text", progress))
+                button.AtIcon:SetVertexColor(ThemeApply.MixColor(button.atCloseArt and "White" or "Muted", "Text", progress))
             end)
         end)
         button:HookScript("OnLeave", function()
             private.TweenMotion(button.AtIcon, "Hover", 1, 0, function(progress)
-                button.AtIcon:SetVertexColor(ThemeApply.MixColor("Muted", "Text", progress))
+                button.AtIcon:SetVertexColor(ThemeApply.MixColor(button.atCloseArt and "White" or "Muted", "Text", progress))
             end)
         end)
     end
-    button.AtIcon:SetVertexColor(ThemeApply.Color("Muted"))
+    button.atCloseArt = art
+    if art then
+        ThemeApply.Texture(button.AtIcon, art)
+        button.AtIcon:SetSize(24, 24)
+    else
+        button.AtIcon:SetTexture(ThemeApply.File("close"))
+        button.AtIcon:SetTexCoord(0, 1, 0, 1)
+        button.AtIcon:SetSize(14, 14)
+        button.AtIcon:SetVertexColor(ThemeApply.Color("Muted"))
+    end
 end
 
 ---lays out a window's Decor: textures at points of the window (tape on its corners, doodles in its margins), each
@@ -755,6 +768,8 @@ end
 ---@param closeButton Button|nil
 ---@param title FontString|nil -- defaults to the title of a PortraitFrameTemplate
 ThemeApply.Window = function(frame, style, closeButton, title)
+    callBehavior(frame.atWindowBehavior, "ResetWindow", frame)
+    frame.atWindowBehavior = ThemeApply.GetBehavior(style)
     stopWindowEnter(frame)
     ThemeApply.StopEnterEffects(frame)
     for _, key in ipairs({ "NineSlice", "Bg", "TopTileStreaks", "PortraitContainer" }) do
@@ -852,7 +867,7 @@ ThemeApply.Window = function(frame, style, closeButton, title)
         frame.TitleContainer.TitleText:SetJustifyH("LEFT")
     end
     if closeButton then
-        ThemeApply.SkinCloseButton(closeButton)
+        ThemeApply.SkinCloseButton(closeButton, style.CloseArt)
         closeButton:ClearAllPoints()
         closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -8, -6)
     end
@@ -860,4 +875,5 @@ ThemeApply.Window = function(frame, style, closeButton, title)
         frame.Footer.Background:SetColorTexture(ThemeApply.Color(style.Footer))
         ThemeApply.FontRole(frame.Footer.AddonName, "Footer")
     end
+    callBehavior(frame.atWindowBehavior, "ConfigureWindow", frame, style)
 end
