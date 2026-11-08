@@ -7,6 +7,8 @@ local L = AceLocale:NewLocale(appName, "enUS", true)
 
 if L then
     L["AccessOptionsMessage"] = "Access the options via /at"
+    L["ThemeDebugTitle"] = "AbilityTimeline Debug - Theme"
+    L["ThemeDebugCopyHint"] = "Click the report, then press Ctrl+A and Ctrl+C to copy everything."
     L["TimelineNotEnabledMessage"] = "The timeline feature is not enabled. Enable it by going to options -> gameplay enhancements -> enable boss abilities"
     L["TimelineNotSupportedMessage"] = "The timeline feature is not supported on this version."
     L["NoBossModClassicMessage"] = "No boss timers will be shown on this version without DBM or BigWigs installed."

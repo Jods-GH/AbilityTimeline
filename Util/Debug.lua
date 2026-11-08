@@ -165,8 +165,40 @@ private.debugTexturesUnderMouse = function()
     end
 end
 
----prints the theme in use, the player's changes to it and what the timeline is drawn with
+local themeDebugWindow
+
+local openThemeDebugReport = function(report)
+    if not themeDebugWindow then
+        themeDebugWindow = AceGUI:Create("Frame")
+        themeDebugWindow:SetTitle(private.getLocalisation("ThemeDebugTitle"))
+        themeDebugWindow:SetStatusText(private.getLocalisation("ThemeDebugCopyHint"))
+        themeDebugWindow:SetWidth(1000)
+        themeDebugWindow:SetHeight(600)
+        themeDebugWindow:SetLayout("Fill")
+        themeDebugWindow:SetCallback("OnClose", function(widget)
+            AceGUI:Release(widget)
+            themeDebugWindow = nil
+        end)
+        local text = AceGUI:Create("MultiLineEditBox")
+        text:SetLabel("")
+        text:DisableButton(true)
+        themeDebugWindow:AddChild(text)
+        themeDebugWindow.report = text
+    end
+    themeDebugWindow.report:SetText(report)
+    themeDebugWindow:Show()
+end
+
+---captures the theme in use, the player's changes and the timeline's actual art in a copyable debug window
 private.debugTheme = function()
+    local lines = {}
+    local print = function(...)
+        local values = {}
+        for index = 1, select("#", ...) do values[index] = tostring((select(index, ...))) end
+        local line = table.concat(values, " ")
+        lines[#lines + 1] = line
+        private.DebugLog(line)
+    end
     local settings = private.GetThemeSettings()
     print("theme:", private.GetCurrentThemeKey(), "saved:", settings.key, "resolves to:", private.GetSavedThemeKey(), "animations:", private.GetAnimationLevel())
     local printTable
@@ -186,6 +218,8 @@ private.debugTheme = function()
     printTable(private.GetElementStyle("Timeline"), "  ")
     local frame = private.TIMELINE_FRAME and private.TIMELINE_FRAME.frame
     if frame then
+        print("timeline frame alpha:", frame:GetAlpha())
+        print("palette Body:", ("%.3f %.3f %.3f %.3f"):format(private.ThemeApply.Color("Body")))
         local backdrop = frame:GetBackdrop()
         if backdrop then
             print("drawn backdrop:", tostring(backdrop.bgFile), tostring(backdrop.edgeFile),
@@ -193,9 +227,12 @@ private.debugTheme = function()
         else
             print("drawn backdrop: none")
         end
-        for _, key in ipairs({ "Background", "Edge", "Wash", "Now" }) do
+        for _, key in ipairs({ "Background", "Edge", "Wash", "Now", "Header", "Mark", "Flow" }) do
             local texture = frame[key]
             print(key, texture:IsShown(), tostring(texture:GetTexture()), ("%.2f %.2f %.2f %.2f"):format(texture:GetVertexColor()))
         end
+        print("background alpha:", frame.Background:GetAlpha(), "blend:", frame.Background:GetBlendMode(),
+            "desaturated:", frame.Background:IsDesaturated())
     end
+    openThemeDebugReport(table.concat(lines, "\n"))
 end

@@ -71,6 +71,24 @@ local TEARING = {
 local SKETCH_IN = {
     Ghost = { File = "hatch", Color = "Muted", Time = 0.7, Sketch = { Back = "PaperLight", Frames = "scribble", Count = 12, Draw = 0.6 } },
 }
+local PENCIL_SKETCH = {
+    Back = "PaperLight",
+    Color = "Graphite",
+    Hatch = "hatch_dense",
+    Frames = "scribble",
+    Count = 12,
+    From = 0.12,
+    Draw = 0.5,
+    Outline = { File = "sketch_box", Color = "Ink", Frames = "outline", Until = 0.25 },
+    Fill = { Frames = "wash", Count = 12 },
+}
+local WINDOW_SKETCH_IN = {
+    Ghost = { Source = "Window", Time = 1.2,
+        Sketch = { Color = "Graphite", Frames = "scribble", Hatch = "hatch", Count = 12,
+            Loose = true, Trace = true, OutlineFrames = "outline", Retrace = 0.28, Overlap = 0.35,
+            Blank = 0.08, Draw = 0.1, Ink = 0.04, Gap = 0.005, MaxTime = 1.2 },
+    },
+}
 local TEAR_AWAY = {
     Ghost = { File = "panel", Slice = 8, Color = "Body", Dissolve = TEARING, Time = 0.5 },
     Burst = confettiBurst(6),
@@ -90,7 +108,8 @@ local window = function(decor)
         WashHeight = 90,
         HeaderLine = "Line",
         Decor = decor,
-        Enter = SKETCH_IN,
+        ShowScale = 1,
+        Enter = WINDOW_SKETCH_IN,
         Exit = TEAR_AWAY,
     }
 end
@@ -101,19 +120,7 @@ end
 local iconStyle = function(pulse, size)
     return {
         Enter = {
-            Ghost = { Source = "Icon", Time = 0.9,
-                Sketch = {
-                    Back = "PaperLight",
-                    Color = "Graphite",
-                    Hatch = "hatch_dense",
-                    Frames = "scribble",
-                    Count = 12,
-                    From = 0.12,
-                    Draw = 0.5,
-                    Outline = { File = "sketch_box", Color = "Ink", Frames = "outline", Until = 0.25 },
-                    Fill = { Frames = "wash", Count = 12 },
-                },
-            },
+            Ghost = { Source = "Icon", Time = 0.9, Sketch = PENCIL_SKETCH },
         },
         Exit = {
             Ghost = { Source = "Icon", Dissolve = TEARING, Time = 0.4 },

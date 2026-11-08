@@ -309,6 +309,8 @@ ThemeApply.AddShowAnimation = function(frame, scale)
     frame.AtShowAnimation = group
     frame:HookScript("OnShow", function()
         if private.GetAnimationLevel() == private.ANIMATION_LEVELS.OFF then return end
+        local enter = frame.atWindowStyle and frame.atWindowStyle.Enter
+        if enter and enter.Ghost and enter.Ghost.Source == "Window" and private.AmbientEffectsEnabled() then return end
         local time = private.GetMotion("Open")
         fade:SetDuration(time)
         grow:SetDuration(time)
@@ -751,6 +753,30 @@ local applyDecor = function(shell, decor)
     end
 end
 
+local stopWindowSketch = function(frame)
+    local pending = frame.atWindowSketch
+    if not pending then return end
+    private.StopTween(pending)
+    frame:SetAlpha(pending.alpha)
+    frame.atWindowSketch = nil
+end
+
+local playWindowSketch = function(frame)
+    local enter = frame.atWindowStyle.Enter
+    local ghost = enter and enter.Ghost
+    if not ghost or ghost.Source ~= "Window" or not private.AmbientEffectsEnabled() then return false end
+    local pending = { alpha = frame:GetAlpha() }
+    frame.atWindowSketch = pending
+    frame:SetAlpha(0)
+    -- Settings creates its page after Show. Copy its artwork after that layout completes.
+    private.Tween(pending, 0, 1, 0.001, "linear", function() end, function()
+        frame:SetAlpha(pending.alpha)
+        frame.atWindowSketch = nil
+        ThemeApply.PlayEnterEffects(frame, enter)
+    end)
+    return true
+end
+
 ---draws a window in the theme's window style: shadow, rounded body, wash, edge, a line under its header,
 ---a fade in when shown and sparkles along the header when the theme has them; Grain (a texture spec over the body),
 ---EdgeArt (a texture spec in place of the edge) and Decor dress it up further
@@ -759,6 +785,8 @@ end
 ---@param closeButton Button|nil
 ---@param title FontString|nil -- defaults to the title of a PortraitFrameTemplate
 ThemeApply.Window = function(frame, style, closeButton, title)
+    stopWindowSketch(frame)
+    ThemeApply.StopEnterEffects(frame)
     for _, key in ipairs({ "NineSlice", "Bg", "TopTileStreaks", "PortraitContainer" }) do
         if frame[key] then
             frame[key]:Hide()
@@ -797,10 +825,15 @@ ThemeApply.Window = function(frame, style, closeButton, title)
         frame.AtShell = shell
         ThemeApply.AddShowAnimation(frame)
         frame:HookScript("OnShow", function()
-            ThemeApply.PlayEnterEffects(frame, frame.atWindowStyle.Enter)
+            stopWindowSketch(frame)
+            if not playWindowSketch(frame) then
+                ThemeApply.PlayEnterEffects(frame, frame.atWindowStyle.Enter)
+            end
         end)
         -- not when only a parent hid it, like UIParent while the interface is hidden
         frame:HookScript("OnHide", function()
+            stopWindowSketch(frame)
+            ThemeApply.StopEnterEffects(frame)
             if not frame:IsShown() and not frame.atWindowFadeComplete then
                 ThemeApply.PlayExit(frame, frame.atWindowStyle.Exit)
             end

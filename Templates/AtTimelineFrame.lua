@@ -391,6 +391,7 @@ end
 private.TimelineFrame.ApplyTheme = function(frame, arrival, isHorizontal)
     local style = private.GetElementStyle("Timeline")
     private.ThemeApply.Backdrop(frame, style.Backdrop)
+    if frame.Center then frame.Center:SetDrawLayer("BACKGROUND", -8) end
     frame.Background:SetShown(private.ThemeApply.Texture(frame.Background, style.Background))
     frame.Header:SetShown(private.ThemeApply.Texture(frame.Header, style.Header))
     if style.Header then
