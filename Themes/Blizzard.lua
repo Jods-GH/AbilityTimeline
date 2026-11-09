@@ -209,7 +209,7 @@ do
             motion.Glow:SetAlpha(0)
             motion.Swirl:SetAlpha(0)
         end
-        local paused, queued = state == private.manager.STATES.Paused, state == private.manager.STATES.Queued
+        local paused = state == private.manager.STATES.Paused
         if paused then
             if not motion.pauseVisible or motion.pauseHiding then
                 motion.PauseHide:Stop()
@@ -225,14 +225,10 @@ do
             motion.pauseVisible, motion.pauseHiding = paused, false
             motion.PauseShow:Stop(); motion.PauseHide:Stop()
         end
-        local markers = frame.queuedMarkers
-        local queueVisible = not motion.pauseVisible and (queued or (markers and markers:IsShown()))
         frame.StateBadge:SetShown(motion.pauseVisible and true or false)
         if motion.pauseVisible then ThemeApply.Texture(frame.StateBadge, frame.atStateArt.PausedIcon) end
-        local overlay = motion.pauseVisible and frame.atStateArt.Paused or
-            queueVisible and frame.atStateArt.Queued
+        local overlay = motion.pauseVisible and frame.atStateArt.Paused
         frame.StateOverlay:SetShown(ThemeApply.Texture(frame.StateOverlay, overlay))
-        frame.IconOverlay:SetShown(not queueVisible)
         return positionRemaining
     end
 
@@ -308,7 +304,7 @@ do
             if state == private.manager.STATES.Paused then
                 overlay, badge = style.Paused, style.PausedIcon
             elseif state == private.manager.STATES.Queued then
-                overlay, badge = style.Queued, style.QueuedIcon
+                badge = style.QueuedIcon
             end
         end
         frame.StateOverlay:SetShown(ThemeApply.Texture(frame.StateOverlay, overlay))
@@ -575,7 +571,6 @@ local ATLAS_ART = {
     ["combattimeline-fx-highlight-mask"] = { File = "blizzard_highlight_mask" },
     ["combattimeline-fx-pause"] = { File = "blizzard_timeline", Coords = { 0.423828125, 0.5078125, 0.05859375, 0.142578125 } },
     ["combattimeline-fx-pause-icon"] = { File = "blizzard_timeline", Coords = { 0.0009765625, 0.0244140625, 0.798828125, 0.82421875 } },
-    ["combattimeline-fx-queued"] = { File = "blizzard_timeline", Coords = { 0.509765625, 0.59375, 0.05859375, 0.142578125 } },
     ["combattimeline-fx-queued-icon"] = { File = "blizzard_timeline", Coords = { 0.6943359375, 0.7109375, 0.0322265625, 0.048828125 } },
     ["combattimeline-line-break-mask"] = { File = "blizzard_break_mask" },
     ["combattimeline-line-icontrail"] = { File = "blizzard_timeline", Coords = { 0.884765625, 0.916015625, 0.0009765625, 0.0029296875 } },
@@ -602,7 +597,6 @@ local STATES = {
     ReferenceSize = 35,
     Paused = component("combattimeline-fx-pause"),
     PausedIcon = component("combattimeline-fx-pause-icon"),
-    Queued = component("combattimeline-fx-queued"),
     QueuedIcon = component("combattimeline-fx-queued-icon"),
 }
 local HIGHLIGHT = component("combattimeline-fx-highlight", {
