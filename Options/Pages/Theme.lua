@@ -73,6 +73,8 @@ end
 
 local isShown = false
 local selectedKey
+-- the search, kept when the page renders again as rows show or hide with the theme tried on
+local query = ""
 local cards = {}
 
 ---whether the theme page is shown, automatic selections don't switch the theme while it previews one
@@ -228,6 +230,7 @@ local render = function(scroll, header)
     local search = AceGUI:Create("AtEditBox")
     search:SetLabel("")
     search:DisableButton(true)
+    search:SetText(query)
     searchRow:AddChild(search)
     header:AddChild(searchRow)
     local searchTimer
@@ -236,12 +239,20 @@ local render = function(scroll, header)
             searchTimer:Cancel()
         end
         searchTimer = C_Timer.NewTimer(variables.searchDelay, function()
+            query = text
             if isShown then
                 fillList(scroll, text)
             end
         end)
     end)
-    fillList(scroll, "")
+    fillList(scroll, query)
+end
+
+-- a weather theme picked by hand lets the player choose its time of day and intensity, the Weather selection follows
+-- the realm's time and the weather outside
+local isNotWeatherByHand = function()
+    local theme = private.Themes[private.GetCurrentThemeKey()]
+    return not (theme and theme.Weather) or private.GetShownSelection() == "Weather"
 end
 
 private.RegisterSettingsPage({
@@ -262,6 +273,7 @@ private.RegisterSettingsPage({
     OnHide = function()
         isShown = false
         cards = {}
+        query = ""
         if selectedKey and selectedKey ~= getSavedSelection() then
             askToKeepTheme(selectedKey)
         end
@@ -285,6 +297,51 @@ private.RegisterSettingsPage({
             sorting = { private.ANIMATION_LEVELS.FULL, private.ANIMATION_LEVELS.DIMMED, private.ANIMATION_LEVELS.OFF },
             get = private.GetAnimationLevel,
             set = private.SetAnimationLevel,
+        },
+        {
+            kind = "Slider",
+            name = L("ThemeGlassTint"),
+            desc = L("ThemeGlassTintDescription"),
+            minValue = 0,
+            maxValue = 100,
+            valueStep = 1,
+            hidden = function()
+                local glass = private.GetElementStyle("Timeline").Glass
+                return not (glass and glass.Tint)
+            end,
+            get = private.GetGlassTint,
+            set = private.SetGlassTint,
+        },
+        {
+            kind = "Dropdown",
+            name = L("ThemeTimeOfDay"),
+            desc = L("ThemeTimeOfDayDescription"),
+            values = {
+                Realm = L("ThemeTimeOfDayRealm"),
+                Morning = L("ThemeTimeOfDayMorning"),
+                Midday = L("ThemeTimeOfDayMidday"),
+                Evening = L("ThemeTimeOfDayEvening"),
+                Night = L("ThemeTimeOfDayNight"),
+            },
+            sorting = { "Realm", "Morning", "Midday", "Evening", "Night" },
+            hidden = isNotWeatherByHand,
+            get = function()
+                return private.GetThemeSettings().period or "Realm"
+            end,
+            set = function(value)
+                private.SetChosenPeriod(value ~= "Realm" and value or nil)
+            end,
+        },
+        {
+            kind = "Slider",
+            name = L("ThemeWeatherIntensity"),
+            desc = L("ThemeWeatherIntensityDescription"),
+            minValue = 0,
+            maxValue = 100,
+            valueStep = 1,
+            hidden = isNotWeatherByHand,
+            get = private.GetChosenIntensity,
+            set = private.SetChosenIntensity,
         },
         {
             kind = "Button",

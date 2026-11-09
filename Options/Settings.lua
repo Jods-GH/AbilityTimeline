@@ -619,6 +619,9 @@ local createWindow = function()
                 renderedThemeKey = private.GetCurrentThemeKey()
                 if searchText ~= "" or not (shownPage and shownPage.Render) then
                     C_Timer.After(0, rerender)
+                else
+                    -- its rows can still show or hide with the theme (the Theme page's glass and weather rows)
+                    C_Timer.After(0, refreshRows)
                 end
             end
         end

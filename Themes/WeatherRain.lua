@@ -1,17 +1,34 @@
 local appName, app = ...
 ---@class AbilityTimeline
 local private = app
-private.RegisterThemeTextures("WeatherRain", { "raindrop", "ripple", "waterdrop" })
+private.RegisterThemeTextures("WeatherRain", { "raindrop", "ripple" })
 
--- slate grey and rain blue with a pale silver, picked from tools/sim/scenarios/weather_rain.js: a drizzle with rings
--- spreading over the timeline, heavier the harder it rains, icons appear in a splash of water, splash at every
--- tick and burst into a spray of water when they leave; mist in the morning, lamplight in the evening, lightning at night
+-- slate grey and rain blue with a pale silver, picked from tools/sim/scenarios/weather_rain.js: the timeline is a pane
+-- of smoked glass over the world (G1, 2026-11-09) with the rain landing on it in beads, its ambient following the
+-- intensity from drops striking it over a drizzle, puddles, rain on the glass (B5) and a downpour to a thunderstorm;
+-- icons show through mist on the glass that thins away (E16), a drop strikes them at every tick and they mist over,
+-- leaving beads of water behind, when they leave (X23); the timeline and windows show and hide the same way; the
+-- glass misted in the morning, a lamp in it in the evening, lightning over it at night (T4)
 local RAINDROP = private.ThemeApply.File("raindrop")
-local RIPPLE_TEXTURE = private.ThemeApply.File("ripple")
-local MOTE = private.ThemeApply.File("mote")
-local GLOW = private.ThemeApply.File("glow")
+local RIPPLE = private.ThemeApply.File("ripple")
 local WATER = { "Accent", "Accent2" }
-local WATERDROP = private.ThemeApply.File("waterdrop")
+local GLASS_BEAD = private.ThemeApply.File("glass_bead")
+
+---beads of water sitting on the glass over an icon, round and see-through, drawn as they are, drying away
+local beads = function(count, size, life)
+    return {
+        Texture = GLASS_BEAD,
+        Colors = { "Water" },
+        Count = count,
+        Size = size,
+        Life = life,
+        Speed = { { 0, 0 }, { 0, 0 } },
+        Alpha = 1,
+        BlendMode = "BLEND",
+        Steady = true,
+        Spot = { 0.08, 0.92, 0.08, 0.92 },
+    }
+end
 
 ---rain slanting down anywhere over the frame, short lived as it crosses the timeline in about a quarter of a second,
 ---slow for a drizzle, the more the harder it rains
@@ -31,122 +48,111 @@ local rain = function(rate, max, slow)
     }
 end
 
--- rings spreading where drops land
-local PUDDLES = {
-    Texture = RIPPLE_TEXTURE,
-    Colors = { "Accent2" },
-    Area = "All",
-    Rate = 1.5,
-    Max = 6,
-    Size = { 8, 16 },
-    Life = { 0.6, 0.9 },
-    Speed = { { 0, 0 }, { 0, 0 } },
-    Alpha = 0.35,
-    Intensity = { 0.5, 1.5 },
-}
-local DRIZZLE = rain(3, 10, true)
+---rain that lands on the glass, chance of its streaks leaving a bead where they end
+local landing = function(spec, chance)
+    spec.Land = { Behavior = "GlassBead", Chance = chance }
+    return spec
+end
 
----drops splashing up and falling back at once
-local splash = function(count)
+---rings spreading where drops strike
+local ripples = function(rate, max, size, life, alpha)
     return {
-        Texture = MOTE,
-        Colors = WATER,
-        Count = count,
-        Size = { 3, 6 },
-        Life = { 0.35, 0.6 },
-        Speed = { { -70, 70 }, { 40, 120 } },
-        Gravity = -500,
-        Alpha = 0.9,
+        Texture = RIPPLE,
+        Colors = { "Accent2" },
+        Area = "All",
+        Rate = rate,
+        Max = max,
+        Size = size,
+        Life = life,
+        Speed = { { 0, 0 }, { 0, 0 } },
+        Alpha = alpha,
+        Intensity = { 0.5, 1.5 },
     }
 end
 
--- what each period adds to the timeline
-local MIST = {
-    Texture = MOTE,
-    Colors = { "Accent2" },
-    Area = "All",
-    Rate = 0.8,
-    Max = 5,
-    Size = { 18, 30 },
-    Life = { 4, 6 },
-    Speed = { { 6, 12 }, { -1, 1 } },
-    Alpha = 0.16,
-}
-local LAMPLIGHT = {
-    Texture = MOTE,
-    Colors = { "Accent2" },
-    Rate = 1,
-    Max = 4,
-    Size = { 5, 9 },
-    Life = { 1.5, 2.5 },
-    Speed = { { 0, 0 }, { 0, 0 } },
-    Alpha = 0.7,
-}
-local LIGHTNING = {
-    Texture = GLOW,
-    Colors = { "Accent2" },
-    Area = "All",
-    Rate = 0.15,
-    Max = 1,
-    Size = { 120, 160 },
-    Life = { 0.25, 0.35 },
-    Speed = { { 0, 0 }, { 0, 0 } },
-    Alpha = 0.25,
+-- the drizzle hitting the glass, half its streaks leaving a bead where they end
+local DRIZZLE = landing(rain(3, 10, true), 0.5)
+local DOWNPOUR = landing(rain(8, 24), 0.25)
+
+---what the rain does on the timeline from an intensity on (the game's: light up to about 0.1, medium up to 0.5)
+local level = function(from, sparkles, glass)
+    return { From = from, Elements = { Timeline = { Sparkles = sparkles, Glass = glass } } }
+end
+local BY_INTENSITY = {
+    -- drops striking the glass, a small ring where each hits and a bead left behind, no streaks
+    level(0, landing(ripples(2, 6, { 6, 11 }, { 0.3, 0.45 }, 0.3), 1)),
+    -- a drizzle, nearly straight, some of it staying on the glass
+    level(0.04, landing(rain(4, 12, true), 0.3)),
+    -- the drizzle with rings spreading where it lands
+    level(0.1, { landing(rain(3, 10, true), 0.4), ripples(1.5, 6, { 8, 16 }, { 0.6, 0.9 }, 0.35) }),
+    -- rain on the glass, half of it beading up
+    level(0.3, DRIZZLE),
+    -- a downpour, slanting fast, a quarter of it staying
+    level(0.5, DOWNPOUR),
+    -- a thunderstorm: the downpour and lightning flashing over the glass
+    level(0.8, DOWNPOUR, { Flash = { Every = { 5, 12 }, Time = 0.5, Color = "Mist", Alpha = 0.24 } }),
 }
 
-local SHEEN = { File = "panel", Slice = 8, Color = "Accent", Alpha = 0.3, BlendMode = "ADD" }
-local SPLASH_IN = { Scale = 0.96, Burst = splash(14) }
-local WASH_AWAY = {
-    Ghost = { File = "panel", Slice = 8, Color = "Body", Rise = -14, Flash = SHEEN, Time = 0.45 },
-    Burst = splash(16),
+-- smoked glass: the world darkened behind it, fog in it, bands of reflected light and a lit rim, a few drops sitting on
+-- it and now and then one running down, more of them the harder it rains
+local GLASS = {
+    Tint = { Color = "Smoke", Strength = 0.6, Veil = { Color = "Mist", Alpha = 0.16 } },
+    Grain = { File = "glassfog", Color = "Mist", Alpha = 0.05, Size = 256 },
+    Reflections = { File = "glassreflect", Color = "Mist", Alpha = 0.2, Angle = 64, Period = 500, Length = 900, Drift = 6 },
+    Rim = { Color = "Mist", Alpha = { 0.45, 0.1 } },
+    Drops = {
+        Density = 0.6, Size = { 3, 8 }, Max = 28, BeadSize = { 2, 4 }, Life = { 7, 12 }, Color = "Shadow", Alpha = 0.85,
+        Shine = { Color = "Water", Alpha = 0.7 }, Intensity = { 0.5, 1.5 },
+        Runners = { Count = 2, Size = { 6, 9 }, Speed = { 30, 70 }, Wait = { 2, 6 }, Slide = { 0.25, 1 }, Catch = { 0.2, 0.9 }, Every = 7 },
+    },
 }
 
----the style of spell and big icons: washed away downwards, pulse for the timeline icons only, big icons are already
----in sight
+-- the windows are the same smoked glass, darker so their text reads over the world, fewer drops sitting on them and
+-- one running now and then; the rain over them lands on them
+local WINDOW_GLASS = {
+    Tint = { Color = "Smoke", Strength = 0.85, Veil = { Color = "Mist", Alpha = 0.1 } },
+    Grain = { File = "glassfog", Color = "Mist", Alpha = 0.04, Size = 256 },
+    Reflections = { File = "glassreflect", Color = "Mist", Alpha = 0.12, Angle = 64, Period = 700, Length = 1200, Drift = 6 },
+    Rim = { Color = "Mist", Alpha = { 0.45, 0.12 } },
+    Drops = {
+        Density = 0.12, Size = { 3, 8 }, Max = 30, BeadSize = { 2, 4 }, Life = { 7, 12 }, Color = "Shadow", Alpha = 0.85,
+        Shine = { Color = "Water", Alpha = 0.7 },
+        Runners = { Count = 1, Size = { 6, 9 }, Speed = { 30, 70 }, Wait = { 3, 8 }, Slide = { 0.25, 1 }, Catch = { 0.2, 0.9 }, Every = 7 },
+    },
+}
+
+-- icons, the timeline and windows all show and hide the same way:
+-- appearing, it shows through a patch of mist on the glass that thins away, leaving a few beads that dry
+local MIST_IN = {
+    Ghost = { File = "fog_patch", Color = "Mist", Alpha = 0.75, Fade = { 1, 0 }, Time = 0.45 },
+    Burst = beads(4, { 6, 10 }, { 0.9, 1.4 }),
+}
+-- leaving, mist gathers on the glass over it as it fades and leaves beads of water there that dry (the timeline and
+-- windows have no image of their own to fade, only the mist and beads show where they were)
+local MIST_OUT = {
+    Ghost = { Source = "Icon", Fade = { 1, 0 }, Flash = { File = "fog_patch", Color = "Mist", Alpha = 0.9, BlendMode = "ADD" }, Time = 0.4 },
+    -- short lived: groups keep the slot until the beads are gone
+    Burst = beads(6, { 6, 11 }, { 0.7, 1 }),
+    BurstDelay = 0.2,
+}
+
+---the style of spell and big icons: shown through and lost in mist on the glass, pulse for the timeline icons only,
+---big icons are already in sight
 local iconStyle = function(pulse)
     return {
-        -- Water beads fall in sequence with a small splash-like hop.
+        -- beads of water falling in sequence with a small hop
         QueuedMarkers = pulse and {
-            Art = { File = "waterdrop", BlendMode = "BLEND" }, Colors = { "Water", "Accent2", "Water" },
-            Size = 18, Spacing = 12, Offset = 5, Rotation = -math.pi / 2,
+            Art = { File = "glass_bead", BlendMode = "BLEND" }, Colors = { "Water", "Accent2", "Water" },
+            Size = 14, Spacing = 12, Offset = 5,
             Enter = { Time = 0.26, Stagger = 0.1, Y = 7, Hop = 2 },
         } or false,
-        -- drops of water splash up round it and fall back as it fades in, the same water as its leave, fewer and lower
-        Enter = {
-            Burst = {
-                Texture = WATERDROP,
-                Colors = { "Water", "Water", "Accent2" },
-                Count = 10,
-                Size = { 16, 26 },
-                Life = { 0.4, 0.6 },
-                Speed = { { -70, 70 }, { 40, 130 } },
-                Gravity = -700,
-                Alpha = 0.95,
-                Align = true,
-                BlendMode = "BLEND",
-                Steady = true,
-            },
-        },
-        -- gone in a blink, a spray of water bursting up out of where it was and raining back down
-        Exit = {
-            Ghost = { Source = "Icon", Fade = { 1, 0 }, Time = 0.15 },
-            Burst = {
-                Texture = WATERDROP,
-                Colors = { "Water", "Water", "Accent2" },
-                Count = 18,
-                Size = { 10, 17 },
-                Life = { 0.45, 0.75 },
-                Speed = { { -100, 100 }, { 70, 200 } },
-                Gravity = -1000,
-                Alpha = 0.95,
-                Align = true,
-                BlendMode = "BLEND",
-                Steady = true,
-                Spot = { 0.35, 0.65, 0.3, 0.5 },
-            },
-        },
-        -- drops bouncing up off it as it passes a tick
-        Pulse = pulse and { Glow = { Color = "Accent", Alpha = 0.35 }, Scale = false, Burst = splash(6) } or false,
+        Enter = MIST_IN,
+        Exit = MIST_OUT,
+        -- a drop strikes the glass on it as it passes a tick: a faint ring and a bead or two left behind
+        Pulse = pulse and {
+            Flare = { File = "ripple", Color = "Mist", Alpha = 0.35, Size = { 0.5, 1.2 }, Time = 0.45 },
+            Burst = beads(2, { 6, 9 }, { 0.6, 0.9 }),
+        } or false,
         Text = {
             Font = { Media = false, Object = "GameFontHighlight", Flags = { OUTLINE = true }, Color = "Text", Shadow = true },
             Background = { Show = false, Media = false, File = "pill", Slice = 8, Color = "Body", Alpha = 0.75, Offset = { x = 8, y = 4 } },
@@ -154,9 +160,9 @@ local iconStyle = function(pulse)
     }
 end
 
----the sky of a period: its colors and what it adds to the timeline
-local period = function(palette, extra)
-    return { Palette = palette, Elements = { Timeline = { Sparkles = { DRIZZLE, PUDDLES, extra } } } }
+---the sky of a period: its colors and how the glass changes with it
+local period = function(palette, glass)
+    return { Palette = palette, Elements = { Timeline = { Glass = glass } } }
 end
 
 private.RegisterTheme({
@@ -165,6 +171,7 @@ private.RegisterTheme({
     Description = private.getLocalisation("ThemeWeatherRainDescription"),
     Weather = "Rain",
     Effects = true,
+    ByIntensity = BY_INTENSITY,
     Palette = {
         Body = { 0.06, 0.08, 0.1, 0.96 },
         Card = { 0.45, 0.7, 0.9, 0.05 },
@@ -184,13 +191,25 @@ private.RegisterTheme({
         FooterFill = { 0, 0.01, 0.02, 0.3 },
         Shadow = { 0, 0.01, 0.02, 0.9 },
         Water = { 0.78, 0.9, 1, 1 },
+        Smoke = { 0.14, 0.17, 0.22, 1 },
+        Mist = { 0.78, 0.84, 0.92, 1 },
     },
     TimeOfDay = {
-        Morning = period({ Body = { 0.08, 0.08, 0.11, 0.96 }, Accent = { 0.62, 0.7, 0.85, 1 }, Accent2 = { 0.9, 0.8, 0.82, 1 } }, MIST),
-        Evening = period({ Body = { 0.1, 0.07, 0.07, 0.96 }, Accent = { 0.75, 0.6, 0.55, 1 }, Accent2 = { 1, 0.7, 0.45, 1 } }, LAMPLIGHT),
+        -- misted over
+        Morning = period({
+            Body = { 0.08, 0.08, 0.11, 0.96 }, Accent = { 0.62, 0.7, 0.85, 1 }, Accent2 = { 0.9, 0.8, 0.82, 1 },
+            Smoke = { 0.2, 0.2, 0.25, 1 }, Mist = { 0.9, 0.86, 0.9, 1 },
+        }, { Tint = { Strength = 0.55, Veil = { Alpha = 0.34 } }, Grain = { Alpha = 0.12, Size = 200 } }),
+        -- a warm lamp reflected in the pane, away from where icons arrive
+        Evening = period({
+            Body = { 0.1, 0.07, 0.07, 0.96 }, Accent = { 0.75, 0.6, 0.55, 1 }, Accent2 = { 1, 0.7, 0.45, 1 },
+            Smoke = { 0.2, 0.15, 0.14, 1 }, Mist = { 0.95, 0.82, 0.72, 1 },
+        }, { Lamp = { File = "glow", Color = "Accent2", Alpha = 0.14, Size = 150, At = { 0.5, 0.8 } } }),
+        -- lightning flashing over the glass
         Night = period({
             Body = { 0.02, 0.03, 0.05, 0.96 }, Accent = { 0.35, 0.5, 0.7, 1 }, Accent2 = { 0.6, 0.68, 0.8, 1 }, Muted = { 0.45, 0.52, 0.6, 1 },
-        }, LIGHTNING),
+            Smoke = { 0.07, 0.09, 0.13, 1 }, Mist = { 0.7, 0.78, 0.9, 1 },
+        }, { Flash = { Every = { 8, 16 }, Time = 0.5, Color = "Mist", Alpha = 0.24 } }),
     },
     Fonts = {
         Title = { Size = 18 },
@@ -201,19 +220,21 @@ private.RegisterTheme({
         Time = { Open = 0.3, Enter = 0.35 },
     },
     Windows = {
-        Window = { WashHeight = 200, Sparkles = rain(10, 30), Enter = SPLASH_IN, Exit = WASH_AWAY },
-        Dialog = { WashHeight = 200, Sparkles = rain(8, 24), Enter = SPLASH_IN, Exit = WASH_AWAY },
+        Window = { WashHeight = 200, Glass = WINDOW_GLASS, Sparkles = landing(rain(10, 30), 0.3), Enter = MIST_IN, Exit = MIST_OUT },
+        Dialog = { WashHeight = 200, Glass = WINDOW_GLASS, Sparkles = landing(rain(8, 24), 0.3), Enter = MIST_IN, Exit = MIST_OUT },
     },
     Elements = {
         Timeline = {
             Backdrop = { Background = "None", Border = "None" },
-            Background = { File = "panel", Slice = 8, Color = "Body" },
-            Edge = { File = "panel_edge", Slice = 8, Color = "Accent2", Alpha = 0.3 },
+            -- the glass is the bar, its rim its edge
+            Background = false,
+            Edge = false,
+            Glass = GLASS,
             Now = false,
             Wash = { Color = "Accent", Alpha = 0.1 },
-            Sparkles = { DRIZZLE, PUDDLES },
-            Enter = SPLASH_IN,
-            Exit = WASH_AWAY,
+            Sparkles = DRIZZLE,
+            Enter = MIST_IN,
+            Exit = MIST_OUT,
         },
         Tick = {
             Line = { Color = "Accent", Alpha = 0.25 },
@@ -229,8 +250,6 @@ private.RegisterTheme({
                 Font = { Media = false, Object = "GameFontHighlight", Flags = { OUTLINE = true }, Color = "Text" },
                 Background = { Show = false, Media = false, File = "pill", Slice = 8, Color = "Body", Alpha = 0.75, Offset = { x = 12, y = 6 } },
             },
-            Enter = { Burst = splash(8) },
-            Exit = { Burst = splash(10) },
         },
     },
 })

@@ -262,6 +262,24 @@ local function ApplyFlow(frame, flow, arrival, isHorizontal)
     end
 end
 
+---Sparkles with ExtraSparkles (what a period of the day adds, kept apart so the weather's intensity levels can change
+---Sparkles under it) emitting side by side; the same pair again gives the same list, as every step of a palette fade
+---applies it, so slow emitters keep what they owe
+---@param frame Frame
+---@param style table
+---@return table|nil
+local SparklesOf = function(frame, style)
+    local base, extra = style.Sparkles, style.ExtraSparkles
+    if not extra then return base end
+    if frame.sparkleBase ~= base or frame.sparkleExtra ~= extra then
+        local list = {}
+        for _, spec in ipairs(base and (base[1] and base or { base }) or {}) do table.insert(list, spec) end
+        for _, spec in ipairs(extra[1] and extra or { extra }) do table.insert(list, spec) end
+        frame.sparkleBase, frame.sparkleExtra, frame.sparkleList = base, extra, list
+    end
+    return frame.sparkleList
+end
+
 ---draws the current theme's look of the timeline on a frame made by AddThemeLayers, icons arriving at arrival
 ---@param frame Frame
 ---@param arrival string
@@ -288,7 +306,8 @@ private.TimelineFrame.ApplyTheme = function(frame, arrival, isHorizontal)
         end
     end
     ApplyFlow(frame, style.Flow, arrival, isHorizontal)
-    frame.Sparkles:Start(style.Sparkles)
+    frame.Glass:Apply(style.Glass)
+    frame.Sparkles:Start(SparklesOf(frame, style))
 end
 
 private.TimelineFrame.GetArrivalPoint = GetArrivalPoint
@@ -457,6 +476,7 @@ private.TimelineFrame.AddThemeLayers = function(frame)
     breathe:SetToAlpha(0.45)
     breathe:SetDuration(1.8)
     breathe:SetSmoothing("IN_OUT")
+    frame.Glass = private.Glass.Create(frame)
 
     -- sparkles drift off the end icons arrive at, or with Area "All" anywhere over the timeline
     frame.Sparkles = private.CreateParticles(frame, function(particle, spec)

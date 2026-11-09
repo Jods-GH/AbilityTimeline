@@ -4,12 +4,17 @@ local private = app
 private.RegisterThemeTextures("WeatherMiscellaneous", { "mistbank" })
 
 -- the game's other weather (Enum.WeatherType.Miscellaneous, which kinds it covers isn't documented), picked from
--- tools/sim/scenarios/weather_misc.js: grey and a pale violet, banks of mist drifting over the timeline, things appear
--- out of the mist, puff out mist at every tick and are swallowed by it; a low glow in the evening, faint stars at night
+-- tools/sim/scenarios/weather_misc.js: grey and a pale violet, the timeline a pane of glass over the world with fog
+-- pressed against it drifting past and covered in fine condensation that gathers and slowly runs (G3, the fog bank and
+-- the condensation together, 2026-11-09); a light haze, banks of mist and thick fog as it gets denser, the mist leaving
+-- condensation where it drifts off (B9); icons, the timeline and windows condense into view (E9), puff out mist at every
+-- tick and are swallowed by it (X2); the fog heaviest in the morning, a lamp glowing through it in the evening, darker
+-- with faint stars at night (T4 with T2's life)
 local MISTBANK = private.ThemeApply.File("mistbank")
 local MOTE = private.ThemeApply.File("mote")
 local GLOW = private.ThemeApply.File("glow")
 local GLINT = private.ThemeApply.File("glint")
+local GLASS_BEAD = private.ThemeApply.File("glass_bead")
 local HAZE = { "Accent", "Accent2" }
 
 ---banks of mist drifting slowly anywhere over the frame
@@ -27,6 +32,12 @@ local mist = function(rate, max)
     }
 end
 
+---mist that leaves condensation where it drifts off the glass, a fine bead where most of it ends
+local condensing = function(spec)
+    spec.Land = { Behavior = "GlassBead", Chance = 0.6, Size = { 1.5, 3 } }
+    return spec
+end
+
 ---wisps of mist puffing out at once
 local puff = function(count)
     return {
@@ -39,6 +50,59 @@ local puff = function(count)
         Alpha = 0.5,
     }
 end
+
+---fine condensation on the glass over an icon, drying away
+local dew = function(count)
+    return {
+        Texture = GLASS_BEAD,
+        Colors = { "Water" },
+        Count = count,
+        Size = { 4, 7 },
+        Life = { 0.9, 1.4 },
+        Speed = { { 0, 0 }, { 0, 0 } },
+        Alpha = 1,
+        BlendMode = "BLEND",
+        Steady = true,
+        Spot = { 0.08, 0.92, 0.08, 0.92 },
+    }
+end
+
+-- fog pressed against the glass drifting past, the world barely showing, the glass covered in fine condensation that
+-- gathers and slowly runs
+local DEW = {
+    Density = 1.2, Size = { 1.5, 3.5 }, Max = 40, BeadSize = { 1.5, 3 }, Life = { 6, 10 }, Color = "Shadow", Alpha = 0.7,
+    Shine = { Color = "Water", Alpha = 0.5 },
+    Runners = { Count = 3, Size = { 4, 6 }, Speed = { 10, 25 }, Wait = { 3, 8 }, Slide = { 0.4, 1.4 }, Catch = { 0.4, 1.2 }, Every = 5 },
+}
+local GLASS = {
+    Tint = { Color = "Smoke", Strength = 0.45, Veil = { Color = "Mist", Alpha = 0.45 } },
+    Grain = { File = "glassfog", Color = "Mist", Alpha = 0.18, Size = 260, Drift = { 8, 0 } },
+    Rim = { Color = "Mist", Alpha = { 0.35, 0.1 } },
+    Drops = DEW,
+}
+-- the windows darker and clearer so their text reads, the fog thinner
+local WINDOW_GLASS = {
+    Tint = { Color = "Smoke", Strength = 0.85, Veil = { Color = "Mist", Alpha = 0.15 } },
+    Grain = { File = "glassfog", Color = "Mist", Alpha = 0.07, Size = 300, Drift = { 6, 0 } },
+    Rim = { Color = "Mist", Alpha = { 0.35, 0.1 } },
+    Drops = {
+        Density = 0.3, Size = { 1.5, 3.5 }, Max = 40, BeadSize = { 1.5, 3 }, Life = { 6, 10 }, Color = "Shadow", Alpha = 0.7,
+        Shine = { Color = "Water", Alpha = 0.5 },
+        Runners = { Count = 1, Size = { 4, 6 }, Speed = { 10, 25 }, Wait = { 4, 10 }, Slide = { 0.4, 1.4 }, Catch = { 0.4, 1.2 }, Every = 5 },
+    },
+}
+
+---what the mist does on the timeline from an intensity on
+local level = function(from, sparkles, glass)
+    return { From = from, Elements = { Timeline = { Sparkles = sparkles, Glass = glass } } }
+end
+local MIST_BANKS = condensing(mist(0.6, 5))
+local BY_INTENSITY = {
+    level(0, condensing(mist(0.4, 3))),
+    level(0.3, MIST_BANKS),
+    -- thick fog, the glass misted heavier
+    level(0.6, condensing(mist(1, 8)), { Tint = { Veil = { Alpha = 0.55 } }, Grain = { Alpha = 0.22 } }),
+}
 
 -- what each period adds to the timeline: a low glow through the mist in the evening, faint stars at night
 local DUSK_GLOW = {
@@ -63,8 +127,16 @@ local STARS = {
     Alpha = 0.35,
 }
 
-local OUT_OF_MIST = { Scale = 0.95, Ghost = { File = "panel", Slice = 8, Color = "Accent2", Alpha = 0.6, Fade = { 0.6, 0 }, Time = 0.5 } }
-local INTO_MIST = { Ghost = { File = "panel", Slice = 8, Color = "Body", Fade = { 1, 0 }, Time = 0.5 }, Burst = puff(10) }
+-- icons, the timeline and windows show slowly through mist on the glass that thins away, leaving fine condensation
+local CONDENSE_IN = {
+    Ghost = { File = "fog_patch", Color = "Mist", Alpha = 0.85, Fade = { 1, 0 }, Time = 0.55 },
+    Burst = dew(5),
+}
+-- and shrink into the mist and are gone, a few wisps left
+local SWALLOWED = {
+    Ghost = { Source = "Icon", Scale = { 1, 0.4 }, Time = 0.4 },
+    Burst = puff(8),
+}
 
 ---the style of spell and big icons: out of the mist and back into it, pulse for the timeline icons only, big icons are
 ---already in sight
@@ -76,12 +148,8 @@ local iconStyle = function(pulse)
             Size = 20, Spacing = 12, Offset = 5,
             Enter = { Time = 0.4, Stagger = 0.1, X = -3, Grow = 0.5 },
         } or false,
-        Enter = { Scale = 0.95, Ghost = { Color = "Accent2", Alpha = 0.6, Fade = { 0.6, 0 }, Time = 0.45 } },
-        -- shrinks into the mist and is gone, a few wisps left
-        Exit = {
-            Ghost = { Source = "Icon", Scale = { 1, 0.4 }, Time = 0.4 },
-            Burst = puff(8),
-        },
+        Enter = CONDENSE_IN,
+        Exit = SWALLOWED,
         -- a puff of mist spreading out from it as it passes a tick
         Pulse = pulse and {
             Glow = false,
@@ -95,12 +163,18 @@ local iconStyle = function(pulse)
     }
 end
 
+---the sky of a period: its colors, how the glass changes with it and what it adds to the timeline
+local period = function(palette, glass, extra)
+    return { Palette = palette, Elements = { Timeline = { Glass = glass, ExtraSparkles = extra } } }
+end
+
 private.RegisterTheme({
     Name = "WeatherMiscellaneous",
     DisplayName = "Mist",
     Description = private.getLocalisation("ThemeWeatherMiscellaneousDescription"),
     Weather = "Miscellaneous",
     Effects = true,
+    ByIntensity = BY_INTENSITY,
     Palette = {
         Body = { 0.08, 0.08, 0.1, 0.95 },
         Card = { 0.75, 0.78, 0.85, 0.05 },
@@ -119,19 +193,21 @@ private.RegisterTheme({
         Wash = { 0.75, 0.78, 0.85, 0.1 },
         FooterFill = { 0, 0, 0.02, 0.3 },
         Shadow = { 0, 0, 0.02, 0.85 },
+        Smoke = { 0.16, 0.16, 0.2, 1 },
+        Mist = { 0.88, 0.88, 0.94, 1 },
+        Water = { 0.86, 0.88, 0.95, 1 },
     },
     TimeOfDay = {
-        Morning = { Palette = { Body = { 0.1, 0.09, 0.11, 0.95 }, Accent = { 0.88, 0.82, 0.85, 1 }, Accent2 = { 0.8, 0.62, 0.7, 1 } } },
-        Evening = {
-            Palette = { Body = { 0.1, 0.07, 0.09, 0.95 }, Accent = { 0.85, 0.7, 0.65, 1 }, Accent2 = { 0.75, 0.45, 0.6, 1 } },
-            Elements = { Timeline = { Sparkles = { mist(0.6, 5), DUSK_GLOW } } },
-        },
-        Night = {
-            Palette = {
-                Body = { 0.03, 0.03, 0.06, 0.95 }, Accent = { 0.55, 0.6, 0.75, 1 }, Accent2 = { 0.45, 0.4, 0.7, 1 }, Muted = { 0.45, 0.47, 0.58, 1 },
-            },
-            Elements = { Timeline = { Sparkles = { mist(0.6, 5), STARS } } },
-        },
+        -- the fog heaviest
+        Morning = period({ Body = { 0.1, 0.09, 0.11, 0.95 }, Accent = { 0.88, 0.82, 0.85, 1 }, Accent2 = { 0.8, 0.62, 0.7, 1 } },
+            { Tint = { Veil = { Alpha = 0.55 } } }),
+        -- a lamp glowing through the fog
+        Evening = period({ Body = { 0.1, 0.07, 0.09, 0.95 }, Accent = { 0.85, 0.7, 0.65, 1 }, Accent2 = { 0.75, 0.45, 0.6, 1 } },
+            { Lamp = { File = "glow", Color = "Accent2", Alpha = 0.14, Size = 160, At = { 0.5, 0.2 } } }, DUSK_GLOW),
+        -- darker, faint stars
+        Night = period({
+            Body = { 0.03, 0.03, 0.06, 0.95 }, Accent = { 0.55, 0.6, 0.75, 1 }, Accent2 = { 0.45, 0.4, 0.7, 1 }, Muted = { 0.45, 0.47, 0.58, 1 },
+        }, { Tint = { Strength = 0.7 } }, STARS),
     },
     Fonts = {
         Title = { Size = 18 },
@@ -142,19 +218,21 @@ private.RegisterTheme({
         Time = { Open = 0.35, Enter = 0.45 },
     },
     Windows = {
-        Window = { WashHeight = 200, Sparkles = mist(0.8, 6), Enter = OUT_OF_MIST, Exit = INTO_MIST },
-        Dialog = { WashHeight = 200, Sparkles = mist(0.6, 5), Enter = OUT_OF_MIST, Exit = INTO_MIST },
+        Window = { WashHeight = 200, Glass = WINDOW_GLASS, Sparkles = condensing(mist(0.8, 6)), Enter = CONDENSE_IN, Exit = SWALLOWED },
+        Dialog = { WashHeight = 200, Glass = WINDOW_GLASS, Sparkles = condensing(mist(0.6, 5)), Enter = CONDENSE_IN, Exit = SWALLOWED },
     },
     Elements = {
         Timeline = {
             Backdrop = { Background = "None", Border = "None" },
-            Background = { File = "panel", Slice = 8, Color = "Body" },
-            Edge = { File = "panel_edge", Slice = 8, Color = "Accent", Alpha = 0.3 },
+            -- the glass is the bar, its rim its edge
+            Background = false,
+            Edge = false,
+            Glass = GLASS,
             Now = false,
             Wash = { Color = "Accent2", Alpha = 0.1 },
-            Sparkles = mist(0.6, 5),
-            Enter = OUT_OF_MIST,
-            Exit = INTO_MIST,
+            Sparkles = MIST_BANKS,
+            Enter = CONDENSE_IN,
+            Exit = SWALLOWED,
         },
         Tick = {
             Line = { Color = "Accent", Alpha = 0.2 },

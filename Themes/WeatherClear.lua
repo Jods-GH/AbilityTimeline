@@ -3,9 +3,11 @@ local appName, app = ...
 local private = app
 private.RegisterThemeTextures("WeatherClear", { "sunshaft" })
 
--- a clear sky and sun gold, picked from tools/sim/scenarios/weather_clear.js: shafts of sunlight and motes over the
--- timeline, icons come down out of the light and rise back into it, the timeline grows in with motes and rises away; the
--- sky changes with the time of day, mist in the morning, warm motes in the evening and stars at night
+-- a clear sky and sun gold, picked from tools/sim/scenarios/weather_clear.js: the timeline is a pane of clean glass over
+-- the world (G1, 2026-11-09), bright reflections sliding slowly over it and the sun's warmth at its top, shafts of
+-- sunlight and motes over it (B2); icons, the timeline and windows show with points of sun sparkling on them (E23) and
+-- rise back into the light (X0); the light in the glass follows the sun, low and rosy with mist in the morning, a warm
+-- sunset with motes in the evening, the glass dark with stars at night (T4 with T2's life)
 local MOTE = private.ThemeApply.File("mote")
 local SUNSHAFT = private.ThemeApply.File("sunshaft")
 local GLINT = private.ThemeApply.File("glint")
@@ -89,12 +91,29 @@ local STARS = {
     Alpha = 0.7,
 }
 
+-- clean glass: barely tinted, bright reflections sliding slowly over it, the sun's warmth at its top
+local GLASS = {
+    Tint = { Color = "Smoke", Strength = 0.35, Veil = { Color = "Mist", Alpha = 0.05 } },
+    Reflections = { File = "glassreflect", Color = "Mist", Alpha = 0.3, Angle = 60, Period = 520, Length = 900, Drift = 5 },
+    Lamp = { File = "glow", Color = "Accent", Alpha = 0.12, Size = 160, At = { 0.5, 0.95 } },
+    Rim = { Color = "Mist", Alpha = { 0.6, 0.15 } },
+}
+-- the windows darker so their text reads
+local WINDOW_GLASS = {
+    Tint = { Color = "Smoke", Strength = 0.8, Veil = { Color = "Mist", Alpha = 0.04 } },
+    Reflections = { File = "glassreflect", Color = "Mist", Alpha = 0.16, Angle = 60, Period = 700, Length = 1200, Drift = 5 },
+    Rim = { Color = "Mist", Alpha = { 0.55, 0.15 } },
+}
+
 local FLASH = { File = "panel", Slice = 8, Color = "Accent", Alpha = 0.35, BlendMode = "ADD" }
--- the timeline and windows grow in with motes flying off, and rise away in a gold flash
-local DAWN = { Scale = 0.94, Burst = burst(14) }
-local DUSK = {
-    Ghost = { File = "panel", Slice = 8, Color = "Body", Rise = 12, Flash = FLASH, Time = 0.45 },
-    Burst = burst(16),
+-- icons, the timeline and windows show with bright points of sun sparkling on them for a moment
+local SPARKLE_IN = {
+    Burst = { Texture = GLINT, Colors = { "White", "Accent", "White" }, Count = 4, Size = { 20, 30 }, Life = { 0.4, 0.8 }, Speed = { { 0, 0 }, { 0, 0 } }, Alpha = 1 },
+}
+-- and rise back into the light in a gold flash, motes flying off
+local INTO_THE_LIGHT = {
+    Ghost = { Source = "Icon", Scale = { 1, 1.1 }, Rise = 10, Flash = FLASH, Time = 0.4 },
+    Burst = burst(8),
 }
 
 ---the style of spell and big icons: out of the light and back into it, pulse for the timeline icons only,
@@ -107,15 +126,8 @@ local iconStyle = function(pulse)
             Size = 16, Spacing = 12, Offset = 5,
             Enter = { Time = 0.3, Stagger = 0.1, Y = 5 },
         } or false,
-        -- its leave backwards: an image of it flashing gold comes down into place as it fades in, motes gathering onto it
-        Enter = {
-            Ghost = { Source = "Icon", Scale = { 1.1, 1 }, Rise = { 10, 0 }, Fade = { 0, 1 }, Flash = FLASH, Time = 0.4 },
-            Vortex = { Texture = MOTE, Colors = SUNLIGHT, Count = 8, Radius = 0.9, Size = { 5, 9 }, Turns = 0, Time = 0.4 },
-        },
-        Exit = {
-            Ghost = { Source = "Icon", Scale = { 1, 1.1 }, Rise = 10, Flash = FLASH, Time = 0.4 },
-            Burst = burst(8),
-        },
+        Enter = SPARKLE_IN,
+        Exit = INTO_THE_LIGHT,
         -- Classic's halo in the sun's gold
         Pulse = pulse and { Glow = { Color = "Accent" } } or false,
         Text = {
@@ -125,9 +137,9 @@ local iconStyle = function(pulse)
     }
 end
 
----the sky of a period: its colors and what it adds to the timeline
-local period = function(palette, extra)
-    return { Palette = palette, Elements = { Timeline = { Sparkles = { SHAFTS, SKY[2], extra } } } }
+---the sky of a period: its colors, the light in the glass and what it adds to the timeline
+local period = function(palette, glass, extra)
+    return { Palette = palette, Elements = { Timeline = { Glass = glass, ExtraSparkles = extra } } }
 end
 
 private.RegisterTheme({
@@ -154,18 +166,23 @@ private.RegisterTheme({
         Wash = { 1, 0.82, 0.4, 0.12 },
         FooterFill = { 0, 0.02, 0.05, 0.3 },
         Shadow = { 0, 0.02, 0.05, 0.85 },
+        Smoke = { 0.12, 0.16, 0.22, 1 },
+        Mist = { 1, 0.97, 0.9, 1 },
     },
     TimeOfDay = {
+        -- the sun low and rosy at one side, mist
         Morning = period({
             Body = { 0.08, 0.08, 0.15, 0.95 }, Accent = { 1, 0.68, 0.62, 1 }, Accent2 = { 0.7, 0.75, 1, 1 }, Muted = { 0.7, 0.66, 0.8, 1 },
-        }, MIST),
+        }, { Lamp = { Alpha = 0.14, At = { 0.15, 0.85 } } }, MIST),
+        -- a warm sunset in the glass, motes rising
         Evening = period({
             Body = { 0.12, 0.06, 0.08, 0.95 }, Accent = { 1, 0.55, 0.25, 1 }, Accent2 = { 0.85, 0.45, 0.6, 1 }, Muted = { 0.78, 0.6, 0.58, 1 },
-        }, DUSK_MOTES),
+        }, { Lamp = { Alpha = 0.2, Size = 180, At = { 0.85, 0.7 } } }, DUSK_MOTES),
+        -- the glass dark, only faint reflections, stars
         Night = period({
             Body = { 0.02, 0.03, 0.08, 0.95 }, Accent = { 0.75, 0.82, 1, 1 }, Accent2 = { 0.45, 0.5, 0.9, 1 }, Muted = { 0.5, 0.55, 0.72, 1 },
             Text = { 0.85, 0.88, 1, 1 },
-        }, STARS),
+        }, { Tint = { Strength = 0.65 }, Reflections = { Alpha = 0.1 }, Lamp = { Alpha = 0 } }, STARS),
     },
     Fonts = {
         Title = { Size = 18 },
@@ -176,19 +193,21 @@ private.RegisterTheme({
         Time = { Open = 0.3, Enter = 0.4 },
     },
     Windows = {
-        Window = { WashHeight = 200, Sparkles = motes(1.2, 10), Enter = DAWN, Exit = DUSK },
-        Dialog = { WashHeight = 200, Sparkles = motes(1, 8), Enter = DAWN, Exit = DUSK },
+        Window = { WashHeight = 200, Glass = WINDOW_GLASS, Sparkles = motes(1.2, 10), Enter = SPARKLE_IN, Exit = INTO_THE_LIGHT },
+        Dialog = { WashHeight = 200, Glass = WINDOW_GLASS, Sparkles = motes(1, 8), Enter = SPARKLE_IN, Exit = INTO_THE_LIGHT },
     },
     Elements = {
         Timeline = {
             Backdrop = { Background = "None", Border = "None" },
-            Background = { File = "panel", Slice = 8, Color = "Body" },
-            Edge = { File = "panel_edge", Slice = 8, Color = "Accent2", Alpha = 0.35 },
+            -- the glass is the bar, its rim its edge
+            Background = false,
+            Edge = false,
+            Glass = GLASS,
             Now = false,
             Wash = { Color = "Accent", Alpha = 0.12 },
             Sparkles = SKY,
-            Enter = DAWN,
-            Exit = DUSK,
+            Enter = SPARKLE_IN,
+            Exit = INTO_THE_LIGHT,
         },
         Tick = {
             Line = { Color = "Accent2", Alpha = 0.25 },

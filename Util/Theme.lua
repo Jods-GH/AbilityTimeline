@@ -28,6 +28,7 @@ local META_KEYS = {
     Spec = true,
     Weather = true,
     TimeOfDay = true,
+    ByIntensity = true,
 }
 
 local EMPTY = {}
@@ -35,6 +36,8 @@ local themedWidgets = setmetatable({}, { __mode = "k" })
 local currentKey
 local resolved
 local resolvedPeriod
+-- the intensity levels (ByIntensity) the resolved theme was merged with, as a string such as "3"
+local resolvedLevels
 local paletteFade
 -- the other themes DrawInTheme drew in, resolved until the next refresh
 local otherThemes = {}
@@ -137,12 +140,43 @@ local PERIOD_FADE = 20
 private.PERIOD_FADE = PERIOD_FADE
 -- the period /at test time pretends, nil for the real one
 local testPeriod
+-- what the Theme page is trying on (ApplyTheme without saving), nil once the saved theme shows again
+local previewSelection
 
----the period of the realm's day it is now, "Morning", "Midday", "Evening" or "Night"
+---the selection shown: the one tried on the Theme page, else the player's
+---@return string
+private.GetShownSelection = function()
+    return previewSelection or private.GetThemeSelection()
+end
+
+---whether the player picked the weather themes by hand rather than the Weather selection; they then choose the time of
+---day and the intensity of the weather themselves
+---@return boolean
+local isWeatherByHand = function()
+    return private.GetShownSelection() ~= "Weather"
+end
+
+---the period the player chose for the weather themes picked by hand, nil to follow the realm's time
+---@return string|nil
+private.GetChosenPeriod = function()
+    return isWeatherByHand() and private.GetThemeSettings().period or nil
+end
+
+---@param period string|nil -- a name of TIME_PERIODS, nil for the realm's time
+private.SetChosenPeriod = function(period)
+    private.GetThemeSettings().period = period
+    private.RefreshTheme(2)
+end
+
+---the period of the realm's day it is now, "Morning", "Midday", "Evening" or "Night", or the one the player chose
 ---@return string
 private.GetTimePeriod = function()
     if testPeriod then
         return testPeriod
+    end
+    local chosen = private.GetChosenPeriod()
+    if chosen then
+        return chosen
     end
     local hour, minute = GetGameTime()
     local now = hour * 60 + minute
@@ -155,11 +189,37 @@ private.GetTimePeriod = function()
     return period
 end
 
+---the level of a theme's ByIntensity the weather's intensity is at: the last whose From it has reached
+---@param theme table
+---@return number|nil
+local intensityLevel = function(theme)
+    if not theme.ByIntensity then return nil end
+    local intensity, level = private.GetWeatherIntensity(), nil
+    for i, entry in ipairs(theme.ByIntensity) do
+        if intensity >= (entry.From or 0) then
+            level = i
+        end
+    end
+    return level
+end
+
+---the intensity levels of key's chain, compared to see whether the theme changes with the intensity
+---@param key string
+---@return string
+local levelsOf = function(key)
+    local levels = ""
+    for _, theme in ipairs(getChain(key)) do
+        levels = levels .. (intensityLevel(theme) or "-")
+    end
+    return levels
+end
+
 ---@param key string
 ---@return table
 local resolve = function(key)
     local client = private.isRetail and "Retail" or "Classic"
     resolvedPeriod = private.GetTimePeriod()
+    resolvedLevels = levelsOf(key)
     local style = {}
     for _, theme in ipairs(getChain(key)) do
         merge(style, styleOf(theme))
@@ -168,6 +228,11 @@ local resolve = function(key)
         end
         if theme.TimeOfDay and theme.TimeOfDay[resolvedPeriod] then
             merge(style, styleOf(theme.TimeOfDay[resolvedPeriod]))
+        end
+        -- how hard it rains (snows, blows): the level the weather's intensity has reached
+        local level = intensityLevel(theme)
+        if level then
+            merge(style, styleOf(theme.ByIntensity[level]))
         end
     end
     local variables = {}
@@ -262,15 +327,32 @@ private.UpdateWeather = function()
     return name
 end
 
----how strong the current theme's weather is, 0 to 1: the game's intensity while the weather around the player is the
----theme's, otherwise 1, so a weather theme chosen by hand shows its full weather
+---how strong the current theme's weather is, 0 to 1: with the Weather selection the game's intensity while the weather
+---around the player is the theme's, otherwise 1; a weather theme picked by hand shows the intensity the player set
 ---@return number
 private.GetWeatherIntensity = function()
+    if not testWeather and isWeatherByHand() then
+        return private.GetChosenIntensity() / 100
+    end
     local theme = private.Themes[private.GetCurrentThemeKey()]
     if weatherName and theme and theme.Weather == weatherName then
         return weatherIntensity
     end
     return 1
+end
+
+---the intensity the player set for weather themes picked by hand, 0 to 100
+---@return number
+private.GetChosenIntensity = function()
+    -- a moderate rain (Rain's rain on the glass) until the player sets one
+    return private.GetThemeSettings().intensity or 40
+end
+
+---@param value number
+private.SetChosenIntensity = function(value)
+    private.GetThemeSettings().intensity = value
+    private.Glass.Refresh()
+    private.RefreshIntensityLevel(2, true)
 end
 
 ---the theme made for a weather type such as "Rain"
@@ -501,12 +583,12 @@ private.DrawInTheme = function(key, draw, ...)
     if key == private.GetCurrentThemeKey() or not private.IsThemeAvailable(key) then
         return draw(...)
     end
-    local outerKey, outerResolved, outerPeriod = currentKey, resolved, resolvedPeriod
+    local outerKey, outerResolved, outerPeriod, outerLevels = currentKey, resolved, resolvedPeriod, resolvedLevels
     currentKey = key
     otherThemes[key] = otherThemes[key] or resolve(key)
     resolved = otherThemes[key]
     local ok, err = pcall(draw, ...)
-    currentKey, resolved, resolvedPeriod = outerKey, outerResolved, outerPeriod
+    currentKey, resolved, resolvedPeriod, resolvedLevels = outerKey, outerResolved, outerPeriod, outerLevels
     if not ok then
         geterrorhandler()(err)
     end
@@ -584,6 +666,7 @@ private.ApplyTheme = function(key, save)
     if save ~= false then
         private.GetThemeSettings().key = key
     end
+    previewSelection = save == false and key or nil
     key = private.ResolveThemeKey(key)
     currentKey = private.IsThemeAvailable(key) and key or private.GetDefaultThemeKey()
     private.RefreshTheme()
@@ -593,6 +676,7 @@ end
 ---@param fade number|nil
 private.RestoreSavedTheme = function(fade)
     currentKey = nil
+    previewSelection = nil
     private.RefreshTheme(fade)
 end
 
@@ -646,11 +730,25 @@ private.RefreshTimeOfDay = function()
     resolvedPeriod = private.GetTimePeriod()
 end
 
+---fades into another level of the theme's ByIntensity when the weather's intensity reached it, also while the Theme
+---page is shown with force (the player's intensity slider)
+---@param fade number
+---@param force boolean|nil
+private.RefreshIntensityLevel = function(fade, force)
+    if not resolved or (private.isThemePageShown() and not force) then
+        return
+    end
+    if levelsOf(private.GetCurrentThemeKey()) ~= resolvedLevels then
+        private.RefreshTheme(fade)
+    end
+end
+
 ---checks what the theme follows that has no event of its own, the time of day and the weather's intensity
 private.CheckThemeConditions = function()
     private.UpdateWeather()
     private.RefreshAutoTheme()
     private.RefreshTimeOfDay()
+    private.RefreshIntensityLevel(WEATHER_FADE)
 end
 
 ---@param key string|nil defaults to the current theme

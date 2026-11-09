@@ -47,6 +47,7 @@ Util\Media.lua
 Util\Tween.lua
 Util\Particles.lua
 Util\ThemeApply.lua
+Util\Glass.lua
 Util\QueuedMarkers.lua
 Util\Transitions.lua
 Util\Debug.lua

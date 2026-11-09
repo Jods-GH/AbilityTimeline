@@ -41,7 +41,8 @@ end
 ---a grid, stepped through over the particle's life, frames 1 holds the first, Aspect: drawn that many times wider than
 ---tall, Tall: that many times taller than wide, Mirror: drawn mirrored left to right, Intensity: { at 0, at 1 }
 ---multiplies Rate and Max by the weather's intensity, BlendMode: "BLEND" draws them as they are instead of as light,
----Steady: no twinkle, whole until the last 30% of their life, as drops of water), or a list of such specs emitting
+---Steady: no twinkle, whole until the last 30% of their life, as drops of water, Land: { Behavior, ... } whose
+---LandParticle(host, x, y, particle, land) is called where a particle ends), or a list of such specs emitting
 ---side by side, only while
 ---ambient effects are enabled. Particles of the specs before live out their life, so a new theme takes over softly
 ---@param spec table|nil
@@ -173,6 +174,13 @@ function emitterMethods:Step(elapsed)
         particle.age = particle.age + elapsed
         if particle.age >= particle.life then
             self:Recycle(i)
+            -- lands where it ended, e.g. a raindrop leaving a bead on the timeline's glass
+            if spec.Land then
+                local behavior = private.ThemeApply.GetBehavior(spec.Land)
+                if behavior and behavior.LandParticle then
+                    behavior.LandParticle(self.host, particle.x, particle.y, particle, spec.Land)
+                end
+            end
         else
             particle.vy = particle.vy + (spec.Gravity or 0) * elapsed
             particle.x = particle.x + particle.vx * elapsed

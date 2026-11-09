@@ -916,7 +916,8 @@ end
 
 ---draws a window in the theme's window style: shadow, rounded body, wash, edge, a line under its header,
 ---a fade in when shown and sparkles along the header when the theme has them; Grain (a texture spec over the body),
----EdgeArt (a texture spec in place of the edge) and Decor dress it up further
+---EdgeArt (a texture spec in place of the edge) and Decor dress it up further; Glass (as the timeline's,
+---Util/Glass.lua) makes the body a pane of glass over the world instead
 ---@param frame Frame
 ---@param style table -- a Windows style of the theme
 ---@param closeButton Button|nil
@@ -961,6 +962,7 @@ ThemeApply.Window = function(frame, style, closeButton, title)
         shell.EdgeArt = shell:CreateTexture(nil, "BORDER", nil, -7)
         shell.EdgeArt:SetAllPoints(shell)
         shell.Decor = {}
+        shell.Glass = private.Glass.Create(shell)
         frame.AtShell = shell
         ThemeApply.AddShowAnimation(frame)
         frame:HookScript("OnShow", function()
@@ -992,14 +994,16 @@ ThemeApply.Window = function(frame, style, closeButton, title)
     else
         shell:SetBackdrop(nil)
     end
-    shell.Fill:SetShown(not style.Backdrop)
+    -- a glass body shows the world through it, its rim is its edge
+    shell.Fill:SetShown(not style.Backdrop and not style.Glass)
     shell.Fill:SetVertexColor(ThemeApply.Color(style.Fill))
     shell.Edge:SetVertexColor(ThemeApply.Color(style.Edge))
     shell.Grain:SetShown(ThemeApply.Texture(shell.Grain, style.Grain))
     shell.HeaderArt:SetShown(ThemeApply.Texture(shell.HeaderArt, style.HeaderArt))
     if style.HeaderArt then shell.HeaderArt:SetHeight(style.HeaderArt.Height or 40) end
     shell.EdgeArt:SetShown(ThemeApply.Texture(shell.EdgeArt, style.EdgeArt))
-    shell.Edge:SetShown(not style.EdgeArt and not style.Backdrop)
+    shell.Edge:SetShown(not style.EdgeArt and not style.Backdrop and not style.Glass)
+    shell.Glass:Apply(style.Glass)
     applyDecor(shell, style.Decor)
     shell.Wash:SetHeight(style.WashHeight or 120)
     shell.Wash:SetVertexColor(ThemeApply.Color(style.Wash))

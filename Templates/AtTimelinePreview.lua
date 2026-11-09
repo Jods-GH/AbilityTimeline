@@ -56,6 +56,7 @@ local function OnRelease(self)
     private.ThemeApply.ConfigureTimelineArt(self.frame, {}, "LEFT", true)
     self.frame.NowPulse:Stop()
     self.frame.Sparkles:Stop()
+    self.frame.Glass:Apply(nil)
     self.frame.FlowDriver:SetScript("OnUpdate", nil)
     self.frame.flow = nil
 end
