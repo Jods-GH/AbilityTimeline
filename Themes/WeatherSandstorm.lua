@@ -108,13 +108,8 @@ local iconStyle = function(pulse)
                 Alpha = 1,
             },
         },
-        -- an echo of it blown off by a gust as it passes a tick
-        Pulse = pulse and {
-            Glow = false,
-            Scale = false,
-            Ghost = { Source = "Icon", Scale = { 1, 1.2 }, Fade = { 0.5, 0 }, Time = 0.35 },
-            Burst = blown(5),
-        } or false,
+        -- a sandy halo with a few grains blown off by a gust as it passes a tick
+        Pulse = pulse and { Glow = { Color = "Accent" }, Scale = false, Burst = blown(4) } or false,
         Text = {
             Font = { Media = false, Object = "GameFontHighlight", Flags = { OUTLINE = true }, Color = "Text", Shadow = true },
             Background = { Show = false, Media = false, File = "pill", Slice = 8, Color = "Body", Alpha = 0.75, Offset = { x = 8, y = 4 } },

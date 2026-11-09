@@ -80,12 +80,8 @@ local iconStyle = function(pulse)
             Flare = { File = "arcane_swirl", Color = "Accent", Alpha = 0.8, BlendMode = "ADD", Size = { 1.5, 0.3 }, Spin = -5, Time = 0.55 },
             Burst = burst(8),
         },
-        -- an echo of it flashing violet and spreading out as it passes a tick
-        Pulse = pulse and {
-            Glow = false,
-            Scale = false,
-            Ghost = { Source = "Icon", Scale = { 1, 1.35 }, Fade = { 0.6, 0 }, Flash = FLASH, Time = 0.4 },
-        } or false,
+        -- a violet halo charging up as a few glyphs draw in, as it passes a tick
+        Pulse = pulse and { Glow = { Color = "Accent" }, Scale = false, Vortex = vortex(5, 0.6) } or false,
         Text = {
             Font = { Media = false, Object = "GameFontHighlight", Flags = { OUTLINE = true }, Color = "Text", Shadow = true },
             Background = { Show = false, Media = false, File = "pill", Slice = 8, Color = "Body", Alpha = 0.75, Offset = { x = 8, y = 4 } },

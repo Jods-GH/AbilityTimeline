@@ -116,8 +116,8 @@ local iconStyle = function(pulse)
             Ghost = { Source = "Icon", Scale = { 1, 1.1 }, Rise = 10, Flash = FLASH, Time = 0.4 },
             Burst = burst(8),
         },
-        -- a beat in gold as it passes a tick
-        Pulse = pulse and { Glow = { Color = "Accent", Alpha = 0.7 }, Scale = 1.1 } or false,
+        -- Classic's halo in the sun's gold
+        Pulse = pulse and { Glow = { Color = "Accent" } } or false,
         Text = {
             Font = { Media = false, Object = "GameFontHighlight", Flags = { OUTLINE = true }, Color = "Text", Shadow = true },
             Background = { Show = false, Media = false, File = "pill", Slice = 8, Color = "Body", Alpha = 0.75, Offset = { x = 8, y = 4 } },

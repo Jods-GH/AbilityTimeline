@@ -801,8 +801,6 @@ ThemeApply.PlayPulse = function(frame, pulse, icon, iconFile)
     if not pulse or private.GetAnimationLevel() == private.ANIMATION_LEVELS.OFF then return end
     if not frame.AtPulse then
         frame.AtPulse = frame:CreateTexture(nil, "BACKGROUND", nil, -7)
-        frame.AtPulse:SetTexture(ThemeApply.File("glow"))
-        frame.AtPulse:SetBlendMode("ADD")
         frame.AtPulse:Hide()
         local glow = frame.AtPulse:CreateAnimationGroup()
         glow:SetToFinalAlpha(true)
@@ -827,7 +825,15 @@ ThemeApply.PlayPulse = function(frame, pulse, icon, iconFile)
         frame.AtPulse:ClearAllPoints()
         frame.AtPulse:SetPoint("TOPLEFT", -spread, spread)
         frame.AtPulse:SetPoint("BOTTOMRIGHT", spread, -spread)
-        frame.AtPulse:SetVertexColor(ThemeApply.Color(glow.Color, glow.Alpha))
+        -- a texture spec of its own, or the round glow
+        if glow.File then
+            ThemeApply.Texture(frame.AtPulse, glow)
+        else
+            frame.AtPulse:ClearTextureSlice()
+            frame.AtPulse:SetTexture(ThemeApply.File("glow"))
+            frame.AtPulse:SetBlendMode("ADD")
+            frame.AtPulse:SetVertexColor(ThemeApply.Color(glow.Color, glow.Alpha))
+        end
         frame.AtPulseGlow.Appear:SetDuration(time * 0.3)
         frame.AtPulseGlow.Fade:SetDuration(time * 0.7)
         frame.AtPulse:Show()

@@ -126,18 +126,8 @@ local iconStyle = function(pulse)
             Shards = { Source = "Icon", Edge = SHARD_EDGE, Speed = { 40, 110 }, Gravity = -500, Time = 0.4 },
             Burst = burst(8),
         },
-        -- glinting white and throwing off splinters as it passes a tick, like a Shatter
-        Pulse = pulse and {
-            Glow = false,
-            Scale = false,
-            Ghost = {
-                Source = "Icon",
-                Fade = { 1, 0 },
-                Flash = { File = "panel", Slice = 8, Color = "Accent2", Alpha = 0.5, BlendMode = "ADD" },
-                Time = 0.25,
-            },
-            Burst = burst(4),
-        } or false,
+        -- an icy halo throwing off a few splinters as it passes a tick, like a Shatter
+        Pulse = pulse and { Glow = { Color = "Accent" }, Scale = false, Burst = burst(3) } or false,
         Text = {
             Font = { Media = false, Object = "GameFontHighlight", Flags = { OUTLINE = true }, Color = "Text", Shadow = true },
             Background = { Show = false, Media = false, File = "pill", Slice = 8, Color = "Body", Alpha = 0.75, Offset = { x = 8, y = 4 } },

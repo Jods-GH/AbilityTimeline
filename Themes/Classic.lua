@@ -120,8 +120,10 @@ private.RegisterTheme({
             Mask = false,
             Overlay = false,
             MergeSeparator = { Color = { r = 0, g = 0, b = 0, a = 1 }, Width = 1 },
-            -- a golden beat as it passes a tick, like the proc glow it replaces
-            Pulse = { Glow = { Color = { 1, 0.85, 0.4, 1 }, Alpha = 0.7 }, Scale = 1.1 },
+            -- a golden halo hugging the square icon as it passes a tick
+            Pulse = {
+                Glow = { File = "shadow", Slice = 24, Spread = 12, BlendMode = "ADD", Color = { 1, 0.8, 0.25, 1 }, Alpha = 0.9 },
+            },
             Border = BORDER,
             Text = {
                 Anchor = "LEFT",

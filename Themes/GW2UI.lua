@@ -100,10 +100,8 @@ local iconStyle = function(pulse)
         } or false,
         Enter = BRUSH_IN,
         Exit = { Ghost = { Source = "Icon", Fade = { 1, 0 }, Time = 0.3 } },
-        Pulse = pulse and {
-            Glow = false,
-            Ghost = { Color = "Accent2", Alpha = 0.1, Fade = { 1, 0 }, Time = 0.14 },
-        } or false,
+        -- Classic's halo in the cream of GW2's headers
+        Pulse = pulse and { Glow = { Color = "Accent2" } } or false,
         Text = { Font = { Media = false, Path = "$GWFont" } },
     }
 end

@@ -90,10 +90,8 @@ local iconStyle = function(pulse)
         } or false,
         Enter = FADE_IN,
         Exit = { Ghost = { Source = "Icon", Fade = { 1, 0 }, Time = 0.18 } },
-        Pulse = pulse and {
-            Glow = false,
-            Ghost = { Color = "Accent", Alpha = 0.12, Fade = { 1, 0 }, Time = 0.15 },
-        } or false,
+        -- Classic's halo
+        Pulse = pulse and {} or false,
         Text = { Font = { Media = false, Path = "$EuiFont" } },
     }
 end
