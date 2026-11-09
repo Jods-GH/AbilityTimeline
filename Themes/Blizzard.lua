@@ -64,15 +64,11 @@ do
             motion.Labels:SetAllPoints(frame)
             motion.Markers = CreateFrame("Frame", nil, motion.Container)
             motion.Markers:SetAllPoints(frame)
-            motion.Glow = motion.Container:CreateTexture(nil, "OVERLAY", nil, 2)
-            motion.Glow:SetPoint("TOPLEFT", frame.SpellIcon, "TOPLEFT", -8, 7)
-            motion.Glow:SetPoint("BOTTOMRIGHT", frame.SpellIcon, "BOTTOMRIGHT", 8, -8)
+            -- above the dispel and boss mod borders, which take OVERLAY 6 and below
+            motion.Glow = motion.Container:CreateTexture(nil, "OVERLAY", nil, 7)
             motion.Swirl = motion.Container:CreateTexture(nil, "OVERLAY", nil, 3)
             motion.Swirl:SetPoint("CENTER", frame.SpellIcon, "CENTER")
-            motion.Swirl:SetSize(108, 108)
             motion.Mask = motion.Container:CreateMaskTexture()
-            motion.Mask:SetPoint("TOPLEFT", frame.SpellIcon, "TOPLEFT", -1, 1)
-            motion.Mask:SetPoint("BOTTOMRIGHT", frame.SpellIcon, "BOTTOMRIGHT", 1, -1)
             motion.Swirl:AddMaskTexture(motion.Mask)
             local group = motion.Container:CreateAnimationGroup()
             group:SetLooping("REPEAT")
@@ -143,6 +139,7 @@ do
         ThemeApply.Mask(motion.Mask, spec.Highlight.Mask)
         motion.Glow:SetAlpha(0)
         motion.Swirl:SetAlpha(0)
+        behavior.LayoutIconArt(frame)
         motion.Container:Show()
         motion.Labels:Show()
         motion.Markers:Show()
@@ -316,6 +313,15 @@ do
         if stateArt and frame.StateOverlay then
             local offsets = stateArt.Offsets or { left = -7, top = 6, right = 7, bottom = -7 }
             ThemeApply.PlaceIconArt(frame, frame.StateOverlay, offsets, stateArt.ReferenceSize)
+        end
+        -- the highlight is drawn for 35px icons, it grows with the icon like the overlay
+        local motion = frame.timelineMotion
+        if motion and motion.spec then
+            local highlight = motion.spec.Highlight
+            ThemeApply.PlaceIconArt(frame, motion.Glow, highlight.Glow.Offsets, highlight.Glow.ReferenceSize)
+            ThemeApply.PlaceIconArt(frame, motion.Mask, highlight.Mask.Offsets, highlight.Mask.ReferenceSize)
+            local size = highlight.Swirl.Size * frame:GetWidth() / highlight.Swirl.ReferenceSize
+            motion.Swirl:SetSize(size, size)
         end
     end
 
@@ -609,8 +615,10 @@ local TIMELINE_MOTION = {
     Pulse = { Grow = 1.1, Shrink = 0.9, Time = 0.2, Delay = 0.6 },
     Highlight = {
         Glow = HIGHLIGHT,
-        Swirl = component("combattimeline-fx-highlight-fx", { BlendMode = "ADD" }),
-        Mask = component("combattimeline-fx-highlight-mask"),
+        Swirl = component("combattimeline-fx-highlight-fx", { BlendMode = "ADD", Size = 108, ReferenceSize = 35 }),
+        Mask = component("combattimeline-fx-highlight-mask", {
+            ReferenceSize = 35, Offsets = { left = -1, top = 1, right = 1, bottom = -1 },
+        }),
     },
 }
 
