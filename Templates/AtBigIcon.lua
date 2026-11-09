@@ -5,7 +5,7 @@ local AceGUI             = LibStub("AceGUI-3.0")
 local Type               = "AtBigIcon"
 local Version            = 1
 local variables          = {
-	cooldown_scale = 2,
+	cooldown_text_scale = 2,
 	icon_text_width = 95,
 	icon_text_offset_x = 0,
 	icon_text_offset_y = 10,
@@ -93,16 +93,11 @@ local SetMergedIcons = function(self, members)
 	if frame.AtEnterHost then frame.pendingEnter = true end
 	private.ThemeApply.StopEnterEffects(frame)
 	frame.mergeKey = key
-	local zoom = 1 - (style.Zoom or 0)
-	local minCoord, maxCoord = 0.5 - 0.5 * zoom, 0.5 + 0.5 * zoom
-	local coordWidth = (maxCoord - minCoord) / count
+	width, height = private.ThemeApply.IconSize(frame)
 	for i, slice in ipairs(frame.MergeSlices) do
 		if count > 1 and i <= count then
-			slice:ClearAllPoints()
-			slice:SetPoint("TOPLEFT", frame, "TOPLEFT", (i - 1) * width / count, 0)
-			slice:SetSize(width / count, height)
+			private.ThemeApply.LayoutIconSlice(slice, frame.SpellIcon, i, count, width, height)
 			slice:SetTexture(members[i].frame.eventInfo.iconFileID)
-			slice:SetTexCoord(minCoord + (i - 1) * coordWidth, minCoord + i * coordWidth, minCoord, maxCoord)
 			slice:Show()
 		else
 			slice:Hide()
@@ -111,7 +106,7 @@ local SetMergedIcons = function(self, members)
 	for i, separator in ipairs(frame.MergeSeparators) do
 		if i < count then
 			separator:ClearAllPoints()
-			separator:SetPoint("TOP", frame, "TOPLEFT", i * width / count, 0)
+			separator:SetPoint("TOP", frame.SpellIcon, "TOPLEFT", i * width / count, 0)
 			separator:SetSize(private.GetElementStyle("SpellIcon").MergeSeparator.Width, height)
 			separator:Show()
 		else
@@ -135,48 +130,16 @@ local function ApplySettings(self)
 	private.ThemeApply.Font(frame.SpellName, style.Text.Font)
 	applyEventColor(frame)
 	private.ThemeApply.Font(frame.CooldownText, private.GetElementStyle("Cooldown").Font)
+	local font, fontSize, flags = frame.CooldownText:GetFont()
+	frame.CooldownText:SetFont(font, fontSize * variables.cooldown_text_scale, flags)
 	local skinned = private.SyncMasque(frame)
 	private.ThemeApply.IconArt(frame, frame.SpellIcon, style, frame.TextureHolder, skinned)
-	if not skinned then
-		frame.Cooldown:ClearAllPoints()
-		frame.Cooldown:SetAllPoints(frame)
-	end
-	-- the swipe takes the shape of the icon's mask
-	local mask = frame.iconMasked and style.Mask
-	local atlas = mask and mask.Atlas and private.ThemeApply.AtlasInfo(mask.Atlas)
-	frame.Cooldown:SetSwipeTexture(atlas and (atlas.file or atlas.filename) or
-		mask and mask.File and private.ThemeApply.File(mask.File) or
-		"Interface\\Buttons\\WHITE8X8", 0, 0, 0, 0.64)
+	private.ThemeApply.CooldownArt(frame, style, skinned)
 
-	local borderWidth = style.BorderWidth
 	for _, separator in ipairs(frame.MergeSeparators) do
 		private.ThemeApply.Texture(separator, private.GetElementStyle("SpellIcon").MergeSeparator)
 	end
-	if not style.Border.File then
-		frame.BossModsBorderEdges[1]:SetHeight(borderWidth)
-		frame.BossModsBorderEdges[2]:SetHeight(borderWidth)
-		frame.BossModsBorderEdges[3]:SetWidth(borderWidth)
-		frame.BossModsBorderEdges[4]:SetWidth(borderWidth)
-	end
-	local eventID = frame.eventID
-	for i, edges in ipairs(frame.DispellTypeBorderEdges) do
-		private.ThemeApply.DispelBorder(frame, i, style.Border, eventID)
-		if not style.Border.File then
-			edges[1]:SetHeight(borderWidth)
-			edges[2]:SetHeight(borderWidth)
-			edges[3]:SetWidth(borderWidth)
-			edges[4]:SetWidth(borderWidth)
-		end
-		for _, edgeTexture in ipairs(edges) do
-			edgeTexture:SetShown(iconSettings.border == private.IconBorderSettings.dispell)
-		end
-	end
-	for i = 2, #frame.BorderGlows do
-		frame.BorderGlows[i]:SetShown(iconSettings.border == private.IconBorderSettings.dispell and style.Border.Glow and true or false)
-	end
-
-	private.ThemeApply.BossModsBorder(frame, style.Border,
-		iconSettings.border == private.IconBorderSettings.bossmods and private.manager.getEventBorderColor(eventID) or nil)
+	private.ThemeApply.IconBorders(frame, iconSettings, frame.eventID)
 
 	local dispelIcon = style.DispelIcon
 	for _, texture in ipairs(frame.DispellTypeIcons) do
@@ -295,7 +258,7 @@ end
 local function Constructor()
 	local count = AceGUI:GetNextWidgetNum(Type)
 	local frame = CreateFrame("Frame", "BIGICON" .. count, private.BIGICON_FRAME.frame)
-	-- the scaled swipe rounds a pixel past the icon, clipped here so it can cover the icon to its edge
+	-- contain native swipe rounding at the icon bounds
 	frame.CooldownClip = CreateFrame("Frame", nil, frame)
 	frame.CooldownClip:SetAllPoints(frame)
 	frame.CooldownClip:SetClipsChildren(true)
@@ -303,11 +266,7 @@ local function Constructor()
 	frame.Cooldown:SetDrawSwipe(true)
 	frame.Cooldown:SetDrawEdge(true)
 	frame.Cooldown:SetAllPoints(frame)
-	frame.Cooldown:SetScale(variables.cooldown_scale)
 	frame.Cooldown:SetHideCountdownNumbers(true)
-
-	frame.CooldownText = frame.Cooldown:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
-	frame.CooldownText:SetPoint("CENTER", frame.Cooldown, "CENTER", 0, 0)
 
 	frame.TextureHolder = CreateFrame("Frame", nil, frame)
 	frame.TextureHolder:SetAllPoints(frame)
@@ -315,6 +274,8 @@ local function Constructor()
 
 	frame.SpellIcon = frame:CreateTexture(nil, "BACKGROUND")
 	frame.SpellIcon:SetAllPoints(frame)
+	frame.CooldownText = frame.TextureHolder:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
+	frame.CooldownText:SetPoint("CENTER", frame.SpellIcon, "CENTER", 0, 0)
 	frame.MergeSlices = {}
 	frame.MergeSeparators = {}
 	for i = 1, private.MAX_MERGED_TIMER_ICONS do

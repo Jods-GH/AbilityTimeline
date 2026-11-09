@@ -8,6 +8,7 @@ private.ThemeApply = {}
 local ThemeApply = private.ThemeApply
 
 local behaviors = {}
+local iconFrames = setmetatable({}, { __mode = "k" })
 
 ---Theme-owned implementations selected by a spec's Behavior key.
 ThemeApply.RegisterBehavior = function(name, behavior)
@@ -364,11 +365,13 @@ ThemeApply.Mask = function(maskTexture, mask)
     if not mask then
         return false
     elseif mask.Atlas and ThemeApply.AtlasInfo(mask.Atlas) then
+        maskTexture:SetTexCoord(0, 1, 0, 1)
         maskTexture:SetAtlas(mask.Atlas)
         return true
     elseif mask.File or mask.Texture then
         local wrap = mask.WrapMode or "CLAMPTOBLACKADDITIVE"
         maskTexture:SetTexture(mask.File and ThemeApply.File(mask.File) or mask.Texture, wrap, wrap)
+        maskTexture:SetTexCoord(unpack(mask.Coords or { 0, 1, 0, 1 }))
         return true
     end
     return false
@@ -387,41 +390,100 @@ local EDGE_POINTS = {
 ---the icon's overlay and under its badges. an event with several dispel types shows all their borders, the first type
 ---is drawn on top like its dispel icon
 ---@param frame Frame
----@param whole boolean
-local layoutBorderEdges = function(frame, whole)
-    if frame.edgesWhole == whole then return end
+---@param border table
+local layoutBorderEdges = function(frame, border)
+    local source = border.Source
+    local whole = (source or border.File) and true or false
+    if frame.edgesWhole == whole and frame.atBorderSource == source then return end
     for group, edges in ipairs({ frame.BossModsBorderEdges or {}, unpack(frame.DispellTypeBorderEdges or {}) }) do
         for index, edge in ipairs(edges) do
-            local parent = edge:GetParent()
             edge.atLayer = edge.atLayer or edge:GetDrawLayer()
+            edge.atBorderDuplicate = whole and index > 1
             edge:ClearAllPoints()
             if whole then
-                edge:SetAllPoints(frame.SpellIcon)
+                edge:SetAllPoints(source or frame.SpellIcon)
                 edge:SetDrawLayer("OVERLAY", 7 - group)
             else
                 for _, point in ipairs(EDGE_POINTS[index]) do
-                    edge:SetPoint(point, parent, point)
+                    edge:SetPoint(point, frame.SpellIcon, point)
                 end
                 edge:SetDrawLayer(edge.atLayer, 8 - group)
             end
         end
     end
     frame.edgesWhole = whole
+    frame.atBorderSource = source
+end
+
+---styles only addon-owned cooldowns; Masque owns every part of a skinned cooldown
+ThemeApply.CooldownArt = function(frame, style, skinned)
+    frame.CooldownClip:SetClipsChildren(not skinned)
+    if skinned then return end
+    local cooldown = frame.Cooldown
+    cooldown:ClearAllPoints()
+    cooldown:SetAllPoints(frame)
+    local swipe = style.Swipe or (frame.iconMasked and style.Mask)
+    local atlas = swipe and swipe.Atlas and ThemeApply.AtlasInfo(swipe.Atlas)
+    -- Prefer the standalone replacement when one exists, rather than the entire atlas sheet.
+    local texture = swipe and (swipe.File and ThemeApply.File(swipe.File) or swipe.Texture) or
+        atlas and (atlas.file or atlas.filename) or "Interface\\Buttons\\WHITE8X8"
+    cooldown:SetSwipeTexture(texture, 0, 0, 0, 0.64)
+    if cooldown.SetTexCoordRange then
+        local coords = swipe and swipe.Coords
+        local left, right, top, bottom = 0, 1, 0, 1
+        if coords then
+            left, right, top, bottom = unpack(coords)
+        elseif atlas and not (swipe.File or swipe.Texture) then
+            left, right, top, bottom = atlas.leftTexCoord, atlas.rightTexCoord, atlas.topTexCoord, atlas.bottomTexCoord
+        end
+        cooldown:SetTexCoordRange(CreateVector2D(left, top), CreateVector2D(right, bottom))
+    end
+    cooldown:SetDrawEdge(not frame.iconMasked)
+    cooldown:SetUseCircularEdge(false)
+    cooldown:SetEdgeScale(1)
+    cooldown:SetEdgeTexture("Interface\\Cooldown\\UI-HUD-ActionBar-SecondaryCooldown", 1, 1, 1, 1)
+    cooldown:SetDrawBling(false)
+end
+
+---cuts a merged image from the visible icon's geometry and crop, including Masque offsets
+ThemeApply.LayoutIconSlice = function(slice, icon, index, count, width, height)
+    slice:ClearAllPoints()
+    slice:SetPoint("TOPLEFT", icon, "TOPLEFT", (index - 1) * width / count, 0)
+    slice:SetSize(width / count, height)
+    local ulx, uly, llx, lly, urx, ury, lrx, lry = icon:GetTexCoord()
+    local left, right = (index - 1) / count, index / count
+    slice:SetTexCoord(ulx + (urx - ulx) * left, uly + (ury - uly) * left,
+        llx + (lrx - llx) * left, lly + (lry - lly) * left,
+        ulx + (urx - ulx) * right, uly + (ury - uly) * right,
+        llx + (lrx - llx) * right, lly + (lry - lly) * right)
+end
+
+---the size of the visible icon image, the frame's own size while the image isn't laid out yet
+ThemeApply.IconSize = function(frame)
+    local width, height = frame.SpellIcon:GetSize()
+    if width == 0 or height == 0 then
+        return frame:GetSize()
+    end
+    return width, height
+end
+
+---places a texture around the icon image, offsets scale per axis with the icon against referenceSize
+ThemeApply.PlaceIconArt = function(frame, texture, offsets, referenceSize)
+    local width, height = frame:GetSize()
+    local x = referenceSize and width / referenceSize or 1
+    local y = referenceSize and height / referenceSize or 1
+    texture:ClearAllPoints()
+    texture:SetPoint("TOPLEFT", frame.SpellIcon, "TOPLEFT", (offsets.left or 0) * x, (offsets.top or 0) * y)
+    texture:SetPoint("BOTTOMRIGHT", frame.SpellIcon, "BOTTOMRIGHT", (offsets.right or 0) * x, (offsets.bottom or 0) * y)
 end
 
 ---keeps native overlay padding proportional to the icon, including big/group icon resizes
 ThemeApply.LayoutIconArt = function(frame)
     local style = frame.atIconStyle
     if not style or frame.atIconSkinned then return end
-    local place = function(texture, offsets, referenceSize)
-        local factor = referenceSize and frame:GetWidth() / referenceSize or 1
-        texture:ClearAllPoints()
-        texture:SetPoint("TOPLEFT", frame.SpellIcon, "TOPLEFT", (offsets.left or 0) * factor, (offsets.top or 0) * factor)
-        texture:SetPoint("BOTTOMRIGHT", frame.SpellIcon, "BOTTOMRIGHT", (offsets.right or 0) * factor, (offsets.bottom or 0) * factor)
-    end
     local overlay = style.Overlay
     if overlay and frame.IconOverlay then
-        place(frame.IconOverlay, overlay.Offsets or {}, overlay.ReferenceSize)
+        ThemeApply.PlaceIconArt(frame, frame.IconOverlay, overlay.Offsets or {}, overlay.ReferenceSize)
     end
     callBehavior(frame.atIconBehavior, "LayoutIconArt", frame)
 end
@@ -440,38 +502,59 @@ end
 ---@param overlayParent Frame
 ---@param skinned boolean
 ThemeApply.IconArt = function(frame, icon, style, overlayParent, skinned)
+    iconFrames[frame] = true
     frame.atIconStyle = style
     frame.atIconSkinned = skinned
+    frame.atIconBorder = skinned and frame.MasqueBorderStyle or style.Border
     if not frame.atIconLayoutHook then
         frame:HookScript("OnSizeChanged", ThemeApply.LayoutIconArt)
         frame.atIconLayoutHook = true
     end
     if skinned then
         icon.zoomApplied = nil
-    elseif icon.zoomApplied ~= 1 - style.Zoom then
-        if icon.zoomApplied then
+    else
+        icon:ClearAllPoints()
+        icon:SetAllPoints(frame)
+        if icon.zoomApplied ~= 1 - style.Zoom then
             private.ResetZoom(icon)
+            private.SetZoom(icon, 1 - style.Zoom)
+            icon.zoomApplied = 1 - style.Zoom
         end
-        private.SetZoom(icon, 1 - style.Zoom)
-        icon.zoomApplied = 1 - style.Zoom
     end
 
-    if not frame.IconMask then
-        frame.IconMask = frame:CreateMaskTexture()
-        frame.IconMask:SetAllPoints(icon)
+    if not frame.AtIconMask then
+        frame.AtIconMask = frame:CreateMaskTexture()
+        frame.AtIconMask:SetAllPoints(icon)
     end
-    local masked = not skinned and ThemeApply.Mask(frame.IconMask, style.Mask)
+    local masked = not skinned and ThemeApply.Mask(frame.AtIconMask, style.Mask)
     if masked ~= (frame.iconMasked or false) then
-        for _, texture in ipairs({ icon, unpack(frame.MergeSlices or {}) }) do
+        local textures = { icon, unpack(frame.MergeSlices or {}) }
+        for _, texture in ipairs(frame.MergeSeparators or {}) do textures[#textures + 1] = texture end
+        for _, texture in ipairs(textures) do
             if masked then
-                texture:AddMaskTexture(frame.IconMask)
+                texture:AddMaskTexture(frame.AtIconMask)
             else
-                texture:RemoveMaskTexture(frame.IconMask)
+                texture:RemoveMaskTexture(frame.AtIconMask)
             end
         end
         frame.iconMasked = masked
     end
-    layoutBorderEdges(frame, style.Border.File and true or false)
+    -- Merged images and their separators use the same full-icon skin masks as the original image.
+    local skinMasks = {}
+    if skinned then
+        for i = 1, icon:GetNumMaskTextures() do
+            local mask = icon:GetMaskTexture(i)
+            if mask ~= frame.AtIconMask then skinMasks[#skinMasks + 1] = mask end
+        end
+    end
+    local mergedTextures = { unpack(frame.MergeSlices or {}) }
+    for _, texture in ipairs(frame.MergeSeparators or {}) do mergedTextures[#mergedTextures + 1] = texture end
+    for _, texture in ipairs(mergedTextures) do
+        for _, mask in ipairs(frame.atSkinMasks or {}) do texture:RemoveMaskTexture(mask) end
+        for _, mask in ipairs(skinMasks) do texture:AddMaskTexture(mask) end
+    end
+    frame.atSkinMasks = skinMasks
+    layoutBorderEdges(frame, frame.atIconBorder)
 
     if not frame.IconOverlay then
         frame.IconOverlay = overlayParent:CreateTexture(nil, "OVERLAY", nil, -8)
@@ -492,7 +575,7 @@ ThemeApply.IconArt = function(frame, icon, style, overlayParent, skinned)
         frame.IconOverlay:Hide()
     end
     local glow = style.Glow
-    if glow and ThemeApply.Texture(frame.IconGlow, glow) then
+    if not skinned and glow and ThemeApply.Texture(frame.IconGlow, glow) then
         frame.IconGlow:ClearAllPoints()
         frame.IconGlow:SetPoint("TOPLEFT", icon, "TOPLEFT", -glow.Spread, glow.Spread)
         frame.IconGlow:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", glow.Spread, -glow.Spread)
@@ -508,7 +591,7 @@ ThemeApply.IconArt = function(frame, icon, style, overlayParent, skinned)
             frame.BorderGlows[i] = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
         end
     end
-    local borderGlow = style.Border.Glow
+    local borderGlow = frame.atIconBorder.Glow
     for _, texture in ipairs(frame.BorderGlows) do
         texture:ClearAllPoints()
         if borderGlow then
@@ -520,6 +603,26 @@ ThemeApply.IconArt = function(frame, icon, style, overlayParent, skinned)
     ThemeApply.IconState(frame, frame.state, frame.eventInfo or
         (frame.eventID and private.manager.getEventInfo(frame.eventID)))
     ThemeApply.LayoutIconArt(frame)
+end
+
+---reports only addon/skin geometry and artwork, never event textures or secret visibility
+ThemeApply.DebugIconGeometry = function(print)
+    for frame in pairs(iconFrames) do
+        if frame:IsShown() then
+            local width, height = frame:GetSize()
+            local iconWidth, iconHeight = frame.SpellIcon:GetSize()
+            print("icon:", frame:GetName(), "frame:", width, height, "image:", iconWidth, iconHeight,
+                "scale:", frame:GetScale(), "Masque:", frame.atIconSkinned, "masked:", frame.iconMasked)
+            local source = frame.atBorderSource
+            print("border:", source and (source:GetAtlas() or source:GetTexture()) or frame.atIconBorder.File,
+                "whole:", frame.edgesWhole)
+            if frame.CooldownText then
+                local cooldown = frame.Cooldown
+                print("swipe:", cooldown:GetWidth(), cooldown:GetHeight(), "scale:", cooldown:GetScale(),
+                    "edge:", cooldown:GetDrawEdge(), "edge scale:", cooldown:GetEdgeScale())
+            end
+        end
+    end
 end
 
 ---the color of a dispel type of private.dispellTypeList in the theme's palette
@@ -534,7 +637,7 @@ end
 ---@param spec table|false|nil
 local tintBorder = function(texture, spec, r, g, b, a)
     if not spec then return end
-    if spec.File then
+    if spec.File or spec.Source then
         texture:SetVertexColor(r, g, b, (a or 1) * (spec.Alpha or 1))
     else
         texture:SetVertexColor(1, 1, 1, 1)
@@ -547,8 +650,19 @@ end
 ---@param texture Texture
 ---@param spec table|false|nil
 local paintBorder = function(texture, spec, r, g, b, a)
-    if not spec then
+    if not spec or texture.atBorderDuplicate then
         texture:SetTexture(nil)
+    elseif spec.Source then
+        local source = spec.Source
+        texture:ClearTextureSlice()
+        local atlas = source:GetAtlas()
+        if atlas then
+            texture:SetAtlas(atlas)
+        else
+            texture:SetTexture(source:GetTexture())
+        end
+        texture:SetTexCoord(source:GetTexCoord())
+        texture:SetBlendMode(source:GetBlendMode())
     elseif spec.File then
         texture:SetTexture(ThemeApply.File(spec.File))
         texture:SetTexCoord(0, 1, 0, 1)
@@ -571,6 +685,7 @@ end
 ---@param border table
 ---@param eventID number|nil
 ThemeApply.DispelBorder = function(frame, index, border, eventID)
+    border = frame.atIconBorder or border
     local dispelType = private.dispellTypeList[index]
     local r, g, b, a = ThemeApply.DispelColor(dispelType)
     local apply = function(texture, spec)
@@ -591,6 +706,7 @@ end
 ---@param border table
 ---@param color table|nil
 ThemeApply.BossModsBorder = function(frame, border, color)
+    border = frame.atIconBorder or border
     for _, edge in ipairs(frame.BossModsBorderEdges) do
         if color then
             borderTexture(edge, border, color.r, color.g, color.b, color.a)
@@ -602,6 +718,32 @@ ThemeApply.BossModsBorder = function(frame, border, color)
         borderTexture(glow, border.Glow, color.r, color.g, color.b, color.a)
     end
     glow:SetShown(color ~= nil and border.Glow and true or false)
+end
+
+---refreshes geometry and event visibility together, without reading secret dispel values
+ThemeApply.IconBorders = function(frame, settings, eventID)
+    frame.atIconSettings = settings
+    local border = frame.atIconBorder
+    local width = frame.atIconStyle.BorderWidth
+    for group, edges in ipairs({ frame.BossModsBorderEdges, unpack(frame.DispellTypeBorderEdges) }) do
+        if not frame.edgesWhole then
+            edges[1]:SetHeight(width)
+            edges[2]:SetHeight(width)
+            edges[3]:SetWidth(width)
+            edges[4]:SetWidth(width)
+        end
+        if group > 1 then
+            ThemeApply.DispelBorder(frame, group - 1, border, eventID)
+            for _, edge in ipairs(edges) do
+                edge:SetShown(settings.border == private.IconBorderSettings.dispell)
+            end
+        end
+    end
+    for i = 2, #frame.BorderGlows do
+        frame.BorderGlows[i]:SetShown(settings.border == private.IconBorderSettings.dispell and border.Glow and true or false)
+    end
+    ThemeApply.BossModsBorder(frame, border,
+        settings.border == private.IconBorderSettings.bossmods and private.manager.getEventBorderColor(eventID) or nil)
 end
 
 ---hides a button's normal, pushed, highlight and disabled textures

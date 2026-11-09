@@ -300,6 +300,7 @@ end
 ---@param members table|nil -- widgets of all merged events with this icon first, nil or a single member shows the icon normally
 local SetMergedIcons        = function(self, members)
 	local frame = self.frame
+	self.mergedMembers = members
 	local count = members and math.min(#members, variables.MaxMergedIcons) or 1
 	local key
 	if count > 1 then
@@ -321,19 +322,12 @@ local SetMergedIcons        = function(self, members)
 		return
 	end
 
-	local width, height = frame:GetWidth(), frame:GetHeight()
+	local width, height = private.ThemeApply.IconSize(frame)
 	local sliceWidth = width / count
-	-- same crop as the regular icon zoom, split horizontally
-	local zoom = 1 - (private.GetElementStyle("SpellIcon").Zoom or 0)
-	local minCoord, maxCoord = 0.5 - 0.5 * zoom, 0.5 + 0.5 * zoom
-	local coordWidth = (maxCoord - minCoord) / count
 	for i, slice in ipairs(frame.MergeSlices) do
 		if i <= count then
-			slice:ClearAllPoints()
-			slice:SetPoint("TOPLEFT", frame, "TOPLEFT", (i - 1) * sliceWidth, 0)
-			slice:SetSize(sliceWidth, height)
+			private.ThemeApply.LayoutIconSlice(slice, frame.SpellIcon, i, count, width, height)
 			slice:SetTexture(members[i].frame.eventInfo.iconFileID)
-			slice:SetTexCoord(minCoord + (i - 1) * coordWidth, minCoord + i * coordWidth, minCoord, maxCoord)
 			slice:Show()
 		else
 			slice:Hide()
@@ -342,7 +336,7 @@ local SetMergedIcons        = function(self, members)
 	for i, separator in ipairs(frame.MergeSeparators) do
 		if i < count then
 			separator:ClearAllPoints()
-			separator:SetPoint("TOP", frame, "TOPLEFT", i * sliceWidth, 0)
+			separator:SetPoint("TOP", frame.SpellIcon, "TOPLEFT", i * sliceWidth, 0)
 			separator:SetSize(private.GetElementStyle("SpellIcon").MergeSeparator.Width, height)
 			separator:Show()
 		else
@@ -429,32 +423,7 @@ local function ApplySettings(self)
 		private.ThemeApply.Texture(separator, style.MergeSeparator)
 	end
 
-	local borderWidth = style.BorderWidth
-	if not style.Border.File then
-		frame.BossModsBorderEdges[1]:SetHeight(borderWidth)
-		frame.BossModsBorderEdges[2]:SetHeight(borderWidth)
-		frame.BossModsBorderEdges[3]:SetWidth(borderWidth)
-		frame.BossModsBorderEdges[4]:SetWidth(borderWidth)
-	end
-	local eventID = frame.eventInfo and frame.eventInfo.id
-	for i, edges in ipairs(frame.DispellTypeBorderEdges) do
-		private.ThemeApply.DispelBorder(frame, i, style.Border, eventID)
-		if not style.Border.File then
-			edges[1]:SetHeight(borderWidth)
-			edges[2]:SetHeight(borderWidth)
-			edges[3]:SetWidth(borderWidth)
-			edges[4]:SetWidth(borderWidth)
-		end
-		for _, edgeTexture in ipairs(edges) do
-			edgeTexture:SetShown(iconSettings.border == private.IconBorderSettings.dispell)
-		end
-	end
-	for i = 2, #frame.BorderGlows do
-		frame.BorderGlows[i]:SetShown(iconSettings.border == private.IconBorderSettings.dispell and style.Border.Glow and true or false)
-	end
-
-	private.ThemeApply.BossModsBorder(frame, style.Border,
-		iconSettings.border == private.IconBorderSettings.bossmods and private.manager.getEventBorderColor(eventID) or nil)
+	private.ThemeApply.IconBorders(frame, iconSettings, frame.eventInfo and frame.eventInfo.id)
 
 	local dispelIcon = style.DispelIcon
 	for _, texture in ipairs(frame.dispellTypeIcons) do
@@ -491,6 +460,8 @@ local function ApplySettings(self)
 	end
 	private.ThemeApply.ConfigureTimelineMotion(frame, style)
 	private.ThemeApply.ConfigureQueuedMarkers(frame, style.QueuedMarkers)
+	frame.mergeKey = nil
+	if frame.eventInfo then self:SetMergedIcons(self.mergedMembers) end
 end
 
 ---@param self AtAbilitySpellIcon
@@ -502,6 +473,7 @@ end
 
 ---@param self AtAbilitySpellIcon
 local function OnRelease(self)
+	self.mergedMembers = nil
 	private.ThemeApply.StopEnterEffects(self.frame)
 	private.ThemeApply.IconPriority(self.frame, false)
 	private.ThemeApply.UpdateIconTrail(self.frame, false)

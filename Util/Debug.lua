@@ -228,11 +228,15 @@ private.debugTheme = function()
             print("drawn backdrop: none")
         end
         for _, key in ipairs({ "Background", "Edge", "Wash", "Now", "Header", "Mark", "Flow" }) do
+            -- Header and Mark are only created by the themes that use them
             local texture = frame[key]
-            print(key, texture:IsShown(), tostring(texture:GetTexture()), ("%.2f %.2f %.2f %.2f"):format(texture:GetVertexColor()))
+            if texture then
+                print(key, texture:IsShown(), tostring(texture:GetTexture()), ("%.2f %.2f %.2f %.2f"):format(texture:GetVertexColor()))
+            end
         end
         print("background alpha:", frame.Background:GetAlpha(), "blend:", frame.Background:GetBlendMode(),
             "desaturated:", frame.Background:IsDesaturated())
     end
+    private.ThemeApply.DebugIconGeometry(print)
     openThemeDebugReport(table.concat(lines, "\n"))
 end

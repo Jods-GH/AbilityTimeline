@@ -122,7 +122,7 @@ do
                 region:SetParent(parent)
             end
         end
-        for _, key in ipairs({ "SpellIcon", "IconMask", "IconOverlay", "IconShade", "IconGlow",
+        for _, key in ipairs({ "SpellIcon", "AtIconMask", "IconOverlay", "IconShade", "IconGlow",
             "StateOverlay" }) do
             move(frame[key], motion.Container)
         end
@@ -316,17 +316,10 @@ do
     end
 
     behavior.LayoutIconArt = function(frame)
-        local style = frame.atIconStyle
-        local place = function(texture, offsets, referenceSize)
-            local factor = referenceSize and frame:GetWidth() / referenceSize or 1
-            texture:ClearAllPoints()
-            texture:SetPoint("TOPLEFT", frame.SpellIcon, "TOPLEFT", (offsets.left or 0) * factor, (offsets.top or 0) * factor)
-            texture:SetPoint("BOTTOMRIGHT", frame.SpellIcon, "BOTTOMRIGHT", (offsets.right or 0) * factor, (offsets.bottom or 0) * factor)
-        end
-        local stateArt = style.StateArt
+        local stateArt = frame.atIconStyle.StateArt
         if stateArt and frame.StateOverlay then
-            local offsets = overlay and overlay.Offsets or { left = -7, top = 6, right = 7, bottom = -7 }
-            place(frame.StateOverlay, offsets, stateArt.ReferenceSize)
+            local offsets = stateArt.Offsets or { left = -7, top = 6, right = 7, bottom = -7 }
+            ThemeApply.PlaceIconArt(frame, frame.StateOverlay, offsets, stateArt.ReferenceSize)
         end
     end
 
