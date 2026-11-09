@@ -248,13 +248,8 @@ local render = function(scroll, header)
     fillList(scroll, query)
 end
 
--- a weather theme picked by hand lets the player choose its time of day and intensity, the Weather selection follows
--- the realm's time and the weather outside
-local isNotWeatherByHand = function()
-    local theme = private.Themes[private.GetCurrentThemeKey()]
-    return not (theme and theme.Weather) or private.GetShownSelection() == "Weather"
-end
-
+-- the Theme page is only the theme cards and their search, so as many themes as possible fit; what the player sets for
+-- the theme in use (animations, the glass, a weather theme's time of day and intensity) is on Theme Options
 private.RegisterSettingsPage({
     key = "Theme",
     order = 15,
@@ -284,6 +279,64 @@ private.RegisterSettingsPage({
             previewKey = nil
         end
     end,
+    rows = {},
+})
+
+-- a weather theme picked by hand lets the player choose its time of day and intensity, the Weather selection follows
+-- the realm's time and the weather outside
+local isNotWeatherByHand = function()
+    local theme = private.Themes[private.GetCurrentThemeKey()]
+    return not (theme and theme.Weather) or private.GetShownSelection() == "Weather"
+end
+
+local hasNoGlass = function()
+    local glass = private.GetElementStyle("Timeline").Glass
+    return not (glass and glass.Tint)
+end
+
+-- the options and their defaults: modified and reset let the window mark a changed one and reset it from its details
+local GLASS_TINT_DEFAULT, INTENSITY_DEFAULT = 60, 40
+local options = {
+    animations = {
+        modified = function() return private.GetAnimationLevel() ~= private.ANIMATION_LEVELS.FULL end,
+        reset = function() private.SetAnimationLevel(private.ANIMATION_LEVELS.FULL) end,
+    },
+    glassTint = {
+        modified = function() return not hasNoGlass() and private.GetGlassTint() ~= GLASS_TINT_DEFAULT end,
+        reset = function() private.SetGlassTint(GLASS_TINT_DEFAULT) end,
+    },
+    period = {
+        modified = function() return not isNotWeatherByHand() and private.GetThemeSettings().period ~= nil end,
+        reset = function() private.SetChosenPeriod(nil) end,
+    },
+    intensity = {
+        modified = function() return not isNotWeatherByHand() and private.GetChosenIntensity() ~= INTENSITY_DEFAULT end,
+        reset = function() private.SetChosenIntensity(INTENSITY_DEFAULT) end,
+    },
+}
+local OPTION_ORDER = { "animations", "glassTint", "period", "intensity" }
+
+-- the theme's own preview, the theme in use
+local optionsPreview
+
+private.RegisterSettingsPage({
+    key = "ThemeOptions",
+    order = 16,
+    name = L("SettingsPageThemeOptions"),
+    desc = L("SettingsPageThemeOptionsDescription"),
+    GetPreview = function()
+        if not optionsPreview then
+            optionsPreview = AceGUI:Create("AtThemePreview")
+            optionsPreview:Setup(getSavedSelection)
+        end
+        return optionsPreview.frame
+    end,
+    OnHide = function()
+        if optionsPreview then
+            optionsPreview:Release()
+            optionsPreview = nil
+        end
+    end,
     rows = {
         {
             kind = "Dropdown",
@@ -297,6 +350,8 @@ private.RegisterSettingsPage({
             sorting = { private.ANIMATION_LEVELS.FULL, private.ANIMATION_LEVELS.DIMMED, private.ANIMATION_LEVELS.OFF },
             get = private.GetAnimationLevel,
             set = private.SetAnimationLevel,
+            modified = options.animations.modified,
+            reset = options.animations.reset,
         },
         {
             kind = "Slider",
@@ -305,12 +360,11 @@ private.RegisterSettingsPage({
             minValue = 0,
             maxValue = 100,
             valueStep = 1,
-            hidden = function()
-                local glass = private.GetElementStyle("Timeline").Glass
-                return not (glass and glass.Tint)
-            end,
+            hidden = hasNoGlass,
             get = private.GetGlassTint,
             set = private.SetGlassTint,
+            modified = options.glassTint.modified,
+            reset = options.glassTint.reset,
         },
         {
             kind = "Dropdown",
@@ -331,6 +385,8 @@ private.RegisterSettingsPage({
             set = function(value)
                 private.SetChosenPeriod(value ~= "Realm" and value or nil)
             end,
+            modified = options.period.modified,
+            reset = options.period.reset,
         },
         {
             kind = "Slider",
@@ -342,6 +398,26 @@ private.RegisterSettingsPage({
             hidden = isNotWeatherByHand,
             get = private.GetChosenIntensity,
             set = private.SetChosenIntensity,
+            modified = options.intensity.modified,
+            reset = options.intensity.reset,
+        },
+        {
+            kind = "Button",
+            name = L("ResetThemeOptions"),
+            desc = L("ResetThemeOptionsDescription"),
+            buttonText = L("SettingsReset"),
+            hidden = function()
+                for _, key in ipairs(OPTION_ORDER) do
+                    if options[key].modified() then return false end
+                end
+                return true
+            end,
+            func = function()
+                for _, key in ipairs(OPTION_ORDER) do
+                    if options[key].modified() then options[key].reset() end
+                end
+                private.RefreshSettingsPage()
+            end,
         },
         {
             kind = "Button",

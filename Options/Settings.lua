@@ -12,6 +12,7 @@ local ThemeApply = private.ThemeApply
 -- Heading, Checkbox, Slider, Dropdown, Color, Button, Input (set when enter is pressed) or Media (a SharedMedia pick
 -- of its mediaType), and instead of
 -- get and set they can name themePath (a value of the current theme) or profileKey (a dotted path into db.profile).
+-- A row with get and set can give modified() and reset() so it shows as changed and can be reset like a theme value.
 -- A row's image (a screenshot, 512x256) is shown while it is hovered, in place of the page's live preview, as is the
 -- frame its preview function returns; preview false shows neither. A Dropdown
 -- with multiselect gets and sets a table of keys
@@ -142,7 +143,9 @@ local getValue = function(row)
     return row.get()
 end
 
+---whether a row differs from its default: a theme value the player changed, or a row's own modified()
 local isModified = function(row)
+    if row.modified then return row.modified() == true end
     return row.themePath ~= nil and private.IsThemeModified(row.themePath)
 end
 
@@ -381,7 +384,11 @@ showEntry = function(entry)
     local onReset
     if isModified(row) then
         onReset = function()
-            private.ResetThemeModifications(row.themePath)
+            if row.reset then
+                row.reset()
+            else
+                private.ResetThemeModifications(row.themePath)
+            end
             rerender()
         end
     end
