@@ -137,8 +137,13 @@ if L then
     L["SpellnameEnableShadowDescription"] = "Draws a shadow behind the spell name."
     L["SpellnameDefaultColor"] = "Default Text Color"
     L["SpellnameDefaultColorDescription"] = "The color of the spell name while nothing else colors it, like the dispel type of the ability."
-    L["SpellnameUseEventColor"] = "Use Ability Color"
-    L["SpellnameUseEventColorDescription"] = "Colors the spell name in the color Blizzard or the boss mod gave the ability, instead of the default text color."
+    L["SpellnameColorOrder"] = "Text Color Priority"
+    L["SpellnameColorOrderDescription"] = "What colors the spell name. Drag to reorder: the first entry that has a color for the ability is used, entries below Default Text Color are never used. A color you gave a reminder or boss timer rule always wins."
+    L["ColorSourceBigWigsText"] = "BigWigs Text Color"
+    L["ColorSourceBigWigsBar"] = "BigWigs Bar Color"
+    L["ColorSourceDBM"] = "DBM Timer Color"
+    L["ColorSourceDispel"] = "Dispel Type"
+    L["ColorSourceDefault"] = "Default Text Color"
 
 
     L["CooldownFont"] = "Timer Font"
@@ -153,8 +158,6 @@ if L then
     L['TextBackgroundOffsetXDescription'] = "Moves the background left or right from the spell name."
     L['TextBackgroundOffsetY'] = "Text Background Offset Y"
     L['TextBackgroundOffsetYDescription'] = "Moves the background up or down from the spell name."
-    L['DispellTextColor'] = "Color Name by Dispel Type"
-    L['DispellTextColorDescription'] = "Colors the spell name by the dispel type of the ability. On spell icons and big icons this needs Use Ability Color turned on."
     L['UseTooltip'] = "Tooltip"
     L['UseTooltipDescription'] = "Whether hovering the icon shows the ability's tooltip, and where."
 

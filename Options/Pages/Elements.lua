@@ -12,6 +12,8 @@ local variables = {
     previewIcon = 237538,
     -- the index of the magic dispel type in private.dispellTypeList
     magicIndex = 3,
+    -- the db.profile table with the colorOrder of an element's spell name
+    colorSettings = { SpellIcon = "text_settings", BigIcon = "big_icon_text_settings", TextHighlight = "highlight_text_settings" },
 }
 
 ---a row named by the localisation of key and of key .. "Description"
@@ -87,9 +89,11 @@ local showMarkers = function(frame)
     end
 end
 
+local colorSources
+
 ---sets up a preview: what a test event can't show is applied after the widget's own ApplySettings every time, as
 ---that resets it on every theme refresh: the markers, a magic dispel border and boss mod border, the dispel color of
----its name. It is also kept above the settings window, its strata setting would put it behind it
+---its name by its first color source. It is also kept above the settings window, its strata setting would put it behind it
 ---@param kind string -- SpellIcon, BigIcon or TextHighlight
 ---@param widget table
 ---@param settings string|nil -- the db.profile table of an icon's settings
@@ -112,8 +116,14 @@ local setupPreview = function(kind, widget, settings)
                 private.ThemeApply.BossModsBorder(frame, border, variables.bossModsColor)
             end
         end
-        if private.db.profile.dispellTextColor then
-            frame.SpellName:SetTextColor(variables.dispelColor.r, variables.dispelColor.g, variables.dispelColor.b)
+        local shown = colorSources(variables.colorSettings[kind])
+        for _, source in ipairs(private.db.profile[variables.colorSettings[kind]].colorOrder) do
+            local color = source == "dispel" and variables.dispelColor or
+                source ~= "default" and shown[source] and variables.bossModsColor
+            if color then
+                frame.SpellName:SetTextColor(color.r, color.g, color.b)
+            end
+            if color or source == "default" then break end
         end
     end
     local onRelease = widget.OnRelease
@@ -280,13 +290,55 @@ local profileToggle = function(key, path)
     return row("Checkbox", key, { profileKey = path, onChange = refreshPreviews })
 end
 
-local dispellTextColor = row("Checkbox", "DispellTextColor", {
-    profileKey = "dispellTextColor",
-    onChange = function(value)
+-- the key every color source is shown under, per settings table
+local shownSources = {}
+
+---the sources a spell name is colored by. A source answering for several keys of the order (a fallback for an addon
+---not loaded) is shown once, under the highest of them; keys no source answers for are not shown
+---@param settings string
+---@return table<string, string>
+colorSources = function(settings)
+    local values = { default = L("ColorSourceDefault") }
+    shownSources[settings] = {}
+    for _, key in ipairs(private.db.profile[settings].colorOrder) do
+        local source = private.manager.getColorSource(key)
+        if source and not shownSources[settings][source] then
+            shownSources[settings][source] = key
+            values[key] = L(source.name)
+        end
+    end
+    return values
+end
+
+---@param settings string
+---@return fun(order: string[])
+local onColorOrderChanged = function(settings)
+    return function(order)
+        -- the keys of a source that are not shown follow the shown one
+        local shown, followers, sorted = shownSources[settings], {}, {}
+        for _, key in ipairs(order) do
+            local source = private.manager.getColorSource(key)
+            if source and shown[source] ~= key then
+                followers[source] = followers[source] or {}
+                table.insert(followers[source], key)
+            end
+        end
+        for _, key in ipairs(order) do
+            local source = private.manager.getColorSource(key)
+            if not source or shown[source] == key then
+                table.insert(sorted, key)
+                for _, follower in ipairs(source and followers[source] or {}) do
+                    table.insert(sorted, follower)
+                end
+            end
+        end
+        for index, key in ipairs(sorted) do
+            order[index] = key
+        end
         refreshPreviews()
-        private.ToggleEventColorisation(value)
-    end,
-})
+        private.RefreshEventColorisation()
+    end
+end
 
 ---the theme's text anchor of kind fits the direction its text can go, e.g. a spell icon's text is never above it
 ---@param path string
@@ -312,7 +364,7 @@ local TEXT_ANCHORS = {
 
 ---the rows of a spell name's text
 ---@param kind string
----@param options table -- anchors (TEXT_ANCHORS entry), flags, eventColor (the db.profile table of useEventColor)
+---@param options table -- anchors (TEXT_ANCHORS entry), flags
 ---@return table[]
 local textRows = function(kind, options)
     local style = "Elements." .. kind .. ".Text"
@@ -342,16 +394,13 @@ local textRows = function(kind, options)
             sorting = { "MONOCHROME", "OUTLINE", "THICKOUTLINE", "SLUG" },
         }))
     end
-    if options.eventColor then
-        table.insert(rows, row("Checkbox", "SpellnameUseEventColor",
-            { profileKey = options.eventColor .. ".useEventColor", onChange = refreshPreviews }))
-    end
-    table.insert(rows, row("Color", "SpellnameDefaultColor", {
-        themePath = style .. ".Font.Color",
-        hidden = options.eventColor and function()
-            return private.db.profile[options.eventColor].useEventColor
-        end,
+    local settings = variables.colorSettings[kind]
+    table.insert(rows, row("Order", "SpellnameColorOrder", {
+        profileKey = settings .. ".colorOrder",
+        values = function() return colorSources(settings) end,
+        onChange = onColorOrderChanged(settings),
     }))
+    table.insert(rows, row("Color", "SpellnameDefaultColor", { themePath = style .. ".Font.Color" }))
     table.insert(rows, row("Checkbox", "SpellnameEnableShadow", { themePath = style .. ".Font.Shadow" }))
     table.insert(rows, row("Checkbox", "SpellnameBackground", { themePath = style .. ".Background.Show" }))
     table.insert(rows, row("Media", "SpellnameBackgroundTexture", {
@@ -399,7 +448,6 @@ local markerRows = function(kind, settings)
         markerAnchor("DispellIconAnchor", style .. ".DispelIcon.Anchor", dispelOff),
         markerOffset("DispellIconOffsetX", style .. ".DispelIcon.Offset.x", dispelOff),
         markerOffset("DispellIconOffsetY", style .. ".DispelIcon.Offset.y", dispelOff),
-        dispellTextColor,
         heading("SettingsSectionRole"),
         profileToggle("IconRoleIcons", settings .. ".roleIcons"),
         markerSize("RoleIconSize", style .. ".RoleIcons.Size", roleOff),
@@ -534,7 +582,7 @@ end
 
 local spellIconRows = join(
     iconRows("SpellIcon", "icon_settings", true),
-    textRows("SpellIcon", { anchors = TEXT_ANCHORS[false], flags = true, eventColor = "text_settings" }),
+    textRows("SpellIcon", { anchors = TEXT_ANCHORS[false], flags = true }),
     markerRows("SpellIcon", "icon_settings"))
 
 private.RegisterSettingsPage({
@@ -568,8 +616,7 @@ for _, vertical in ipairs({ true, false }) do
     bigIconRows[vertical] = join(
         bigIconGeneralRows,
         iconRows("BigIcon", "big_icon_settings", false),
-        textRows("BigIcon",
-            { anchors = TEXT_ANCHORS[vertical], flags = true, eventColor = "text_settings" }),
+        textRows("BigIcon", { anchors = TEXT_ANCHORS[vertical], flags = true }),
         markerRows("BigIcon", "big_icon_settings"))
 end
 
@@ -604,7 +651,6 @@ private.RegisterSettingsPage(turnedOffInEditMode({
             onChange = refreshPreviews,
         }),
         profileToggle("TextDispellIcon", "highlight_text_settings.dispellIcons"),
-        dispellTextColor,
     }, textRows("TextHighlight", {})),
 }, function() return layoutSettings("text_highlight_enabled") end, "EnableTextHighlight"))
 

@@ -226,26 +226,58 @@ private.manager.getEventIDFromSource = function(source, sourceID)
    return sourceIndex[source][sourceID]
 end
 
-private.manager.getEventColor = function(eventID)
-   local event = activeTimers[eventID]
-   if not event then return end
-   -- a color of our own (boss mod, reminder or boss timer rule) wins over the timeline's
-   if event.textColor then
-      return event.textColor
-   end
+local getDispelColor = function(event)
    local icons = event.info.icons
-   if issecretvalue(icons) then
-      return event.provider and event.provider.getColor(event.sourceID)
-   end
-   if private.db.profile.dispellTextColor and icons and icons ~= 0 then
+   if not issecretvalue(icons) and icons and icons ~= 0 then
       for _, value in ipairs(private.dispellTypeList) do
          if bit.band(icons, value.mask) ~= 0 then
             return CreateColor(private.ThemeApply.DispelColor(value))
          end
       end
    end
-   if event.provider then
-      return event.provider.getColor(event.sourceID)
+   -- secret icons are colored through the timeline's own event color (EventColorisation)
+   return event.provider and event.provider.getColor(event.sourceID)
+end
+
+-- the sources a spell name is colored by, tried in the order of an element's colorOrder. Plugins register their own:
+-- { name = locale key, getColor = fun(event), fallbackFor = { [key] = true } }
+local colorSources = {
+   dispel = { name = "ColorSourceDispel", getColor = getDispelColor },
+}
+
+---@param key string
+---@param source table
+private.manager.registerColorSource = function(key, source)
+   colorSources[key] = source
+end
+
+---the source answering for key: its own, or while that isn't registered (its addon isn't loaded) one that is a
+---fallback for it
+---@param key string
+---@return table|nil
+private.manager.getColorSource = function(key)
+   if colorSources[key] then return colorSources[key] end
+   for _, source in pairs(colorSources) do
+      if source.fallbackFor and source.fallbackFor[key] then
+         return source
+      end
+   end
+end
+
+---@param eventID number
+---@param order string[] -- the colorOrder of the element, "default" ends it
+private.manager.getEventColor = function(eventID, order)
+   local event = activeTimers[eventID]
+   if not event then return end
+   -- a color the user gave a reminder or boss timer rule always wins
+   if event.customColor then
+      return event.customColor
+   end
+   for _, key in ipairs(order) do
+      if key == "default" then return end
+      local source = private.manager.getColorSource(key)
+      local color = source and source.getColor(event)
+      if color then return color end
    end
 end
 
@@ -297,6 +329,7 @@ private.manager.addEvent = function(eventInfo)
       pausedElapsed = eventInfo.paused and 0 or nil,
       textColor = eventInfo.textColor,
       borderColor = eventInfo.borderColor,
+      customColor = eventInfo.customColor,
       iconEventID = eventInfo.iconEventID,
       provider = eventInfo.provider,
       hidden = eventInfo.hidden or false,
@@ -311,7 +344,7 @@ private.manager.addEvent = function(eventInfo)
    return eventID
 end
 
----changes how an added event shows: spellName, allowedDisplays, countdown, glow, glowColor, glowAlways, textColor,
+---changes how an added event shows: spellName, allowedDisplays, countdown, glow, glowColor, glowAlways, customColor,
 ---borderColor
 ---@param eventID number
 ---@param overrides table
@@ -323,7 +356,7 @@ private.manager.setEventOverrides = function(eventID, overrides)
          event.info[key] = overrides[key]
       end
    end
-   event.textColor = overrides.textColor or event.textColor
+   event.customColor = overrides.customColor or event.customColor
    event.borderColor = overrides.borderColor or event.borderColor
 end
 

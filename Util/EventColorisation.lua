@@ -52,3 +52,18 @@ private.ToggleEventColorisation = function(enable)
     end
 end
 
+---the timeline's events are colored by dispel type while any element colors its spell names by it
+private.RefreshEventColorisation = function()
+    for _, key in ipairs({ "text_settings", "big_icon_text_settings", "highlight_text_settings" }) do
+        for _, source in ipairs(private.db.profile[key].colorOrder) do
+            if source == "dispel" then
+                private.ToggleEventColorisation(true)
+                return
+            elseif source == "default" then
+                break
+            end
+        end
+    end
+    private.ToggleEventColorisation(false)
+end
+

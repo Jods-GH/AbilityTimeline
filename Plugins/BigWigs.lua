@@ -6,6 +6,15 @@ if not C_AddOns.IsAddOnLoaded("BigWigs") then return end
 
 local SOURCE = private.manager.SOURCES.BigWigs
 
+private.manager.registerColorSource("bossmodText", {
+    name = "ColorSourceBigWigsText",
+    getColor = function(event) return event.source == SOURCE and event.textColor end,
+})
+private.manager.registerColorSource("bossmodBar", {
+    name = "ColorSourceBigWigsBar",
+    getColor = function(event) return event.source == SOURCE and event.borderColor end,
+})
+
 local excludedTimers = {
     ["Pull"] = true,
     ["Llamada de jefe"] = true, -- ES-Ex for Pull

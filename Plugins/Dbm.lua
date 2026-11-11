@@ -5,6 +5,13 @@ local private = app
 if not C_AddOns.IsAddOnLoaded("DBM-Core") then return end
 
 local SOURCE = private.manager.SOURCES.DBM
+
+-- DBM has a single color per timer, it answers for the BigWigs colors while BigWigs isn't loaded
+private.manager.registerColorSource("dbm", {
+    name = "ColorSourceDBM",
+    getColor = function(event) return event.source == SOURCE and event.textColor end,
+    fallbackFor = { bossmodText = true, bossmodBar = true },
+})
 local timerInfos = {}
 private.DisableBlizzTimersDBM = false
 local excludedTimers = {

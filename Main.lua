@@ -73,7 +73,6 @@ function AbilityTimeline:OnInitialize()
     -- SetCVar("encounterWarningsEnabled", "1")
 
     --init
-    private.ToggleEventColorisation(private.db.profile.dispellTextColor)
     if private.initDbmSkin then
         private.initDbmSkin()
     end

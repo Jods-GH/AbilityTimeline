@@ -37,7 +37,7 @@ private.GetTimerRuleOverrides = function(rule)
     local color = ownColor and CreateColor(ownColor.r, ownColor.g, ownColor.b)
     return {
         spellName = rule.name ~= "" and rule.name or nil,
-        textColor = color,
+        customColor = color,
         borderColor = color,
         allowedDisplays = rule.displays,
         countdown = rule.countdown,

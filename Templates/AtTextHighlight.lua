@@ -91,12 +91,10 @@ HandleTexts = function(widget, eventInfo, remainingDuration)
         end
     end
     frame.SpellName:SetTextColor(private.ThemeApply.Color(private.GetElementStyle("TextHighlight").Text.Font.Color))
-    if count > 1 then
-        widget.frame.SpellName:SetTextColor(private.ThemeApply.Color(private.GetElementStyle("TextHighlight").Text.Font.Color))
-    elseif private.db.profile.text_settings.useEventColor then
-        local color = private.manager.getEventColor(eventInfo.id)
+    if count == 1 then
+        local color = private.manager.getEventColor(eventInfo.id, private.db.profile.highlight_text_settings.colorOrder)
         if color then
-            widget.frame.SpellName:SetTextColor(color.r, color.g, color.b)
+            frame.SpellName:SetTextColor(color.r, color.g, color.b)
         end
     end
 end

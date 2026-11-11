@@ -263,6 +263,9 @@ local createControl = function(row)
         end
         control:SetList(values, sorting)
         control:SetValue(getValue(row))
+    elseif row.kind == "Order" then
+        control = AceGUI:Create("AtOrderList")
+        control:SetList(type(row.values) == "function" and row.values() or row.values, getValue(row))
     elseif row.kind == "Media" then
         control = AceGUI:Create("AtMediaPicker")
         control:SetMediaType(row.mediaType)

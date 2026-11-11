@@ -54,11 +54,11 @@ local HandleCooldown     = function(self, remainingTime)
 	private.CooldownText.Apply(self, self.CooldownText, "BigIcon", remainingTime, info, nil, self.atSourceCountdownGlow)
 end
 
----applies the event color to the spell name when enabled
+---applies the event color to the spell name
 ---@param frame Frame
 local applyEventColor = function(frame)
-	if frame.eventID and private.db.profile.text_settings.useEventColor then
-		local color = private.manager.getEventColor(frame.eventID)
+	if frame.eventID then
+		local color = private.manager.getEventColor(frame.eventID, private.db.profile.big_icon_text_settings.colorOrder)
 		if color then
 			frame.SpellName:SetTextColor(color.r, color.g, color.b)
 		end

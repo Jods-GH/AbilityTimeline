@@ -94,6 +94,7 @@ Templates\Widgets\AtSlider.lua
 Templates\Widgets\AtEditBox.lua
 Templates\Widgets\AtColorPicker.lua
 Templates\Widgets\AtDropdown.lua
+Templates\Widgets\AtOrderList.lua
 Templates\Widgets\AtGroups.lua
 Templates\Widgets\AtSettingRow.lua
 Templates\Widgets\AtMediaPicker.lua

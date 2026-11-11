@@ -241,15 +241,11 @@ ApplySpellName              = function(self, disableOnUpdate)
 		end
 	else
 		self.frame.SpellName:SetText(eventInfo.spellName)
-		if private.db.profile.text_settings.useEventColor then
-			local color = private.manager.getEventColor(eventInfo.id)
-			if color then
-				self.frame.SpellName:SetTextColor(color.r, color.g, color.b)
-			elseif not disableOnUpdate then
-				private.Debug("Not using  color for text for eventID: " .. eventInfo.id)
-			end
+		local color = private.manager.getEventColor(eventInfo.id, private.db.profile.text_settings.colorOrder)
+		if color then
+			self.frame.SpellName:SetTextColor(color.r, color.g, color.b)
 		elseif not disableOnUpdate then
-			private.Debug("Event coloring disabled for text for eventID: " .. eventInfo.id)
+			private.Debug("Not using  color for text for eventID: " .. eventInfo.id)
 		end
 	end
 end
