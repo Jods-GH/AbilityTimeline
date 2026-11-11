@@ -229,6 +229,8 @@ end
 function Session:Render(parent, editor, ui)
     local function changed() self.error, self.conflicts = nil, nil; ui.Refresh() end
     local current = self.editing
+    -- the sections the tour points at
+    self.parts = {}
     local canvas = AceGUI:Create("AtCountdownLayout")
     canvas:PauseLayout()
     canvas:Configure("stack", 10)
@@ -246,6 +248,7 @@ function Session:Render(parent, editor, ui)
         parent = outer
         group:ResumeLayout()
         group:DoLayout()
+        return group.frame
     end
     if not current then
         local function cards(list)
@@ -253,19 +256,21 @@ function Session:Render(parent, editor, ui)
                 if index > 1 then ui.Note(parent, L("CountdownOr")) end
                 local widget = AceGUI:Create("AtCountdownSituation")
                 widget:SetSummary(ui.Card(node))
-                widget:SetCallback("OnEdit", function() self:Edit(list, index); changed() end)
+                widget:SetCallback("OnEdit", function() self:Edit(list, index); ui.Tour("ruleKind"); changed() end)
                 widget:SetCallback("OnRemove", function() self:Remove(list, index); changed() end)
                 parent:AddChild(widget)
             end
             local add = list == "except" and "CountdownAddException" or #self.include > 0 and "CountdownAddKind" or "CountdownAddFirstKind"
-            ui.Action(parent, L(add), function() self:Add(list); changed() end)
+            local button = ui.Action(parent, L(add), function() self:Add(list); ui.Tour("ruleKind"); changed() end)
+            if list == "include" then self.parts.add = button.frame end
         end
         editor:SetTitle(L("CountdownSelectTimersTitle"), ui.Scope)
-        inside(0, 0, 0, 0, function()
+        self.parts.include = inside(0, 0, 0, 0, function()
             if #self.include == 0 then ui.Note(parent, L("CountdownAddKindHint")) end
             cards("include")
         end, L("CountdownUseFor"), "plain")
-        inside(0, 0, 0, 0, function() cards("except") end, L("CountdownButNotFor"), "section")
+        self.parts.except = inside(0, 0, 0, 0, function() cards("except") end, L("CountdownButNotFor"), "section")
+        self.parts.apply = editor.frame.Done
         if self.error then ui.Note(parent, self.error)
         elseif self:Valid() and not ui.Matches(self:Value()) then ui.Note(parent, L("CountdownNothingMatches")) end
         if self.conflicts then
@@ -274,7 +279,8 @@ function Session:Render(parent, editor, ui)
             ui.Action(parent, L("CountdownKeepLook"), function() ui.Apply(false) end)
         end
         editor:SetActions({
-            Done = { text = L("CountdownApplyTimers"), disabled = not self:Valid(), callback = function() ui.Apply() end },
+            Done = { text = L("CountdownApplyTimers"), disabled = not self:Valid(), tooltip = L("CountdownInvalidSelection"),
+                callback = function() ui.Apply() end },
             Copy = { text = L("CountdownCancel"), callback = ui.Cancel },
         })
         canvas:ResumeLayout()
@@ -296,6 +302,7 @@ function Session:Render(parent, editor, ui)
             control:SetUserData("grow", mode == "state")
             if not mode and #items % 2 == 1 and index == #items then control:SetFullWidth(true) end
             control:SetCallback("OnClick", item.callback)
+            if item.value == "between" then self.parts.between = control.frame end
             group:AddChild(control)
         end
         parent:AddChild(group)
@@ -308,6 +315,7 @@ function Session:Render(parent, editor, ui)
         widget:SetStep(({ source = 1, state = 2, timing = 3 })[section])
         widget:SetCallback("OnEdit", callback)
         parent:AddChild(widget)
+        return widget.frame
     end
     local parts = {}
     for _, test in ipairs(node.children) do parts[test.field] = test end
@@ -353,6 +361,7 @@ function Session:Render(parent, editor, ui)
             items[#items + 1] = { text = captions[value], value = value, selected = phrase == value,
                 diagram = ({ any = { 0, 1 }, upto = { 0, 0.45 }, least = { 0.45, 1 }, between = { 0.25, 0.75 } })[value], callback = function()
                 Selection.SetTimePhrase(editable(field), value)
+                if value == "between" then ui.Tour("ruleBetween") end
                 changed()
             end }
         end
@@ -368,15 +377,15 @@ function Session:Render(parent, editor, ui)
         if section == "timing" then value = #times > 0 and table.concat(times, L("CountdownFilterJoin")) or L("CountdownTimeAny")
         elseif not parts[section] or parts[section].any then value = L(section == "source" and "CountdownCanvasAnySource" or "CountdownCanvasAnyState")
         else value = ui.Names(parts[section]) end
-        summary(L(({ source = "CountdownCanvasSource", state = "CountdownCanvasState", timing = "CountdownCanvasTiming" })[section]), value, current.section == section,
-            function() current.section = current.section ~= section and section or nil; changed() end, section)
+        self.parts[section] = { summary(L(({ source = "CountdownCanvasSource", state = "CountdownCanvasState", timing = "CountdownCanvasTiming" })[section]), value, current.section == section,
+            function() current.section = current.section ~= section and section or nil; changed() end, section) }
         if current.section == section then
-            inside(24, 0, 0, 4, function()
+            self.parts[section][2] = inside(24, 0, 0, 4, function()
                 if section == "timing" then
                     for _, field in ipairs({ "duration", "elapsed", "remaining" }) do
-                        summary(timeNames[field], Selection.TimeSummary(parts[field]), current.timing == field,
+                        local row = summary(timeNames[field], Selection.TimeSummary(parts[field]), current.timing == field,
                             function() current.timing = current.timing ~= field and field or nil; changed() end)
-                        if current.timing == field then inside(8, 8, 4, 8, function() timing(field) end) end
+                        if current.timing == field then self.parts.range = { row, inside(8, 8, 4, 8, function() timing(field) end) } end
                     end
                 else facet(section) end
             end)
@@ -386,10 +395,12 @@ function Session:Render(parent, editor, ui)
     local filled = Selection.Valid(node)
     if self.error or not filled then ui.Note(parent, self.error or L("CountdownInvalidSelection")) end
     editor:SetActions({
-        Done = { text = L("CountdownSaveFilters"), disabled = not filled or not restricts(node), callback = function() self:Close(true); changed() end },
-        Copy = { text = L("CountdownCancel"), callback = function() self:Close(false); changed() end },
-        Remove = not current.added and { text = L("CountdownRemove"), callback = function() self:Remove(current.list, current.index); changed() end } or nil,
+        Done = { text = L("CountdownSaveFilters"), disabled = not filled or not restricts(node),
+            tooltip = L(restricts(node) and "CountdownInvalidSelection" or "CountdownNothingPicked"), callback = function() self:Close(true); ui.Tour("ruleKindClosed"); changed() end },
+        Copy = { text = L("CountdownCancel"), callback = function() self:Close(false); ui.Tour("ruleKindClosed"); changed() end },
+        Remove = not current.added and { text = L("CountdownRemove"), callback = function() self:Remove(current.list, current.index); ui.Tour("ruleKindClosed"); changed() end } or nil,
     })
+    self.parts.close = { editor.frame.Done, editor.frame.Copy, editor.frame.Remove }
     canvas:ResumeLayout()
     canvas:DoLayout()
 end

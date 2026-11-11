@@ -156,6 +156,7 @@ local function Constructor()
                 button:SetShown(action ~= nil or not actions)
                 button:SetText(action and action.text or private.getLocalisation("Countdown" .. name))
                 button:SetEnabled(not action or not action.disabled)
+                button:SetAlpha(button:IsEnabled() and 1 or 0.45)
             end
             ApplySettings(self)
         end,
@@ -168,19 +169,23 @@ local function Constructor()
             else widget:Fire("On" .. name) end
         end)
     end
-    frame.Copy:SetScript("OnEnter", function()
-        if widget.actions then return end
-        GameTooltip:SetOwner(frame.Copy, "ANCHOR_TOPRIGHT")
-        GameTooltip:AddLine(private.getLocalisation("CountdownDuplicate"))
-        GameTooltip:Show()
-    end)
-    frame.Remove:SetScript("OnEnter", function()
-        if widget.actions then return end
-        GameTooltip:SetOwner(frame.Remove, "ANCHOR_TOPRIGHT")
-        GameTooltip:AddLine(private.getLocalisation("CountdownRemoveChange"))
-        GameTooltip:Show()
-    end)
-    for _, button in ipairs({ frame.Copy, frame.Remove }) do button:SetScript("OnLeave", function() GameTooltip:Hide() end) end
+    -- a disabled action tells why it is
+    local tooltips = { Copy = "CountdownDuplicate", Remove = "CountdownRemoveChange" }
+    for _, name in ipairs({ "Done", "Copy", "Remove" }) do
+        local button = frame[name]
+        button:SetMotionScriptsWhileDisabled(true)
+        button:HookScript("OnEnter", function()
+            local action = widget.actions and widget.actions[name]
+            local text
+            if action then text = not button:IsEnabled() and action.tooltip
+            else text = tooltips[name] and private.getLocalisation(tooltips[name]) end
+            if not text then return end
+            GameTooltip:SetOwner(button, "ANCHOR_TOPRIGHT")
+            GameTooltip:AddLine(text, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        button:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    end
     frame:SetScript("OnHide", function()
         if not frame:IsShown() and not widget:IsReleasing() then widget:Fire("OnClose") end
     end)

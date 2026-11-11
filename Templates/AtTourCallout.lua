@@ -147,6 +147,23 @@ local createCallout = function()
         callout.info.onClose()
     end)
     callout.dim = createDim()
+    -- one glow around several targets together; outside of them, so a scroll frame they are in doesn't cut it off
+    callout.box = CreateFrame("Frame", nil, UIParent)
+    callout.box:Hide()
+    local fitBox = function()
+        local rects = getRects(callout.box.targets, UIParent)
+        if not rects[1] then return false end
+        local left, bottom, right, top = unpack(rects[1])
+        for _, rect in ipairs(rects) do
+            left, bottom = math.min(left, rect[1]), math.min(bottom, rect[2])
+            right, top = math.max(right, rect[3]), math.max(top, rect[4])
+        end
+        callout.box:ClearAllPoints()
+        callout.box:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", left, bottom)
+        callout.box:SetSize(right - left, top - bottom)
+        return true
+    end
+    callout.box:SetScript("OnUpdate", fitBox)
 
     -- the window grows with its text
     callout.Layout = function(self)
@@ -178,15 +195,24 @@ local createCallout = function()
     ---lets the targets glow and darkens everything around them, strata is the layer the dark goes up to
     ---@param targets Frame[]|nil
     ---@param strata string|nil -- FULLSCREEN without
-    callout.Highlight = function(self, targets, strata)
+    ---@param together boolean|nil -- one glow around all of them
+    callout.Highlight = function(self, targets, strata, together)
         self:ClearHighlight()
         if not targets or #targets == 0 then return end
+        callout.dim:SetFrameStrata(strata or "FULLSCREEN")
+        if together then
+            self.box.targets = targets
+            if not fitBox() then return end
+            self.box:SetFrameStrata(strata or "FULLSCREEN")
+            self.box:SetFrameLevel(callout.dim:GetFrameLevel() + 10)
+            self.box:Show()
+            targets = { self.box }
+        end
         self.targets = targets
         for _, target in ipairs(targets) do
             startGlow(target)
         end
         callout.dim.targets = targets
-        callout.dim:SetFrameStrata(strata or "FULLSCREEN")
         callout.dim:Show()
     end
 
@@ -195,6 +221,7 @@ local createCallout = function()
             CustomGlow.PixelGlow_Stop(target, GLOW_KEY)
         end
         self.targets = nil
+        self.box:Hide()
         callout.dim:Hide()
     end
 
@@ -203,12 +230,17 @@ local createCallout = function()
     ---@param anchor Frame|nil
     ---@param side string|nil -- TOP, BOTTOM, LEFT or RIGHT
     callout.Place = function(self, anchor, side)
+        local x, y
+        if anchor then
+            x, y = anchor:GetCenter()
+            -- not laid out yet, the callout stays where it is
+            if not x then return end
+        end
         frame:ClearAllPoints()
         if not anchor then
             frame:SetPoint("CENTER", UIParent, "CENTER", 0, 120)
             return
         end
-        local x, y = anchor:GetCenter()
         local scale = anchor:GetEffectiveScale() / UIParent:GetEffectiveScale()
         if not side then
             local screenWidth, screenHeight = UIParent:GetSize()

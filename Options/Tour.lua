@@ -6,7 +6,7 @@ local L = private.getLocalisation
 
 -- the welcome tour: a callout walks through the settings window, Edit Mode, the Adventure Guide and the timings editor.
 -- Steps are { key, context (settings, editmode, journal or editor), page, prepare, target, targetOptional, anchor, side,
--- waitFor, advanceOn, isDone, skip, skipsAhead, onShow, onLeave, onNext }, their texts the localisations Tour<key>Title
+-- box, waitFor, advanceOn, isDone, skip, skipsAhead, onShow, onLeave, onNext }, their texts the localisations Tour<key>Title
 -- and Tour<key>Text. target returns a frame or a list of them. A step out of its context or with none of its targets
 -- shown is passed over, unless targetOptional. A step with waitFor goes on once the player did what it asks and its Next
 -- skips it, advanceOn (an event or a list of them) goes on as Next does. Next reads "Skip Step" where it skips what the
@@ -114,6 +114,63 @@ local dialogFrame = function(window)
     end
 end
 
+---the window of the Timer Rules page while it edits a rule, view is what it shows: the rule, its timer selection or
+---one kind of timer of that
+---@param view string -- rule, timers or kind
+---@return function
+local ruleWindow = function(view)
+    return function()
+        local editor, rule, chooser = private.GetTimerRuleEditor()
+        local shown = rule and (not chooser and "rule" or chooser.editing and "kind" or "timers")
+        return editor and shown == view and editor.frame
+    end
+end
+
+---a section of the rule window while it shows view, the rule's own sections or those of its timer selection
+---@param view string -- rule, timers or kind
+---@param key string
+---@return function
+local rulePart = function(view, key)
+    return function()
+        if not ruleWindow(view)() then return end
+        local _, _, chooser, parts = private.GetTimerRuleEditor()
+        return (view == "rule" and parts or chooser.parts or {})[key]
+    end
+end
+
+---opens a part of the kind of timer being edited, and one of its times
+---@param section string -- source, state or timing
+---@param time string|nil -- duration, elapsed or remaining
+---@return function
+local openKindSection = function(section, time)
+    return function()
+        local _, _, chooser = private.GetTimerRuleEditor()
+        local editing = chooser and chooser.editing
+        if not editing or editing.section == section and (not time or editing.timing == time) then return end
+        editing.section = section
+        if time then editing.timing = time end
+        private.RefreshSettingsPage()
+    end
+end
+
+---whether the kind of timer being edited limits the time already passed to a range
+---@return boolean
+local limitsElapsed = function()
+    local _, _, chooser = private.GetTimerRuleEditor()
+    local editing = chooser and chooser.editing
+    local kind = editing and chooser[editing.list][editing.index]
+    for _, test in ipairs(kind and kind.children or {}) do
+        if test.field == "elapsed" and not test.any and test.op == "between" then return true end
+    end
+    return false
+end
+
+---@return Frame|nil
+local getRuleWindow = function()
+    local editor = private.GetTimerRuleEditor()
+    return editor and editor.frame
+end
+
 ---shows the first boss of the season's first instance in the Adventure Guide
 local openSeasonEncounter = function()
     for _, instance in ipairs(private.CurrentInstances or {}) do
@@ -183,6 +240,149 @@ local steps = {
         end,
     },
     { key = "Elements", context = "settings", target = navButtons("SpellIcons", "BigIcon", "TextHighlight") },
+    { key = "Rules", context = "settings", target = navButtons("CooldownChanges"), advanceOn = "pageCooldownChanges" },
+    -- the steps of the Timer Rules page glow around all of a step's parts together
+    {
+        key = "RulesLanes",
+        context = "settings",
+        page = "CooldownChanges",
+        target = function()
+            local lanes = private.GetTimerRulesPage()
+            if not lanes then return end
+            local parts = {}
+            for _, list in ipairs({ lanes.ticks, lanes.labels, lanes.buttons }) do
+                for _, part in ipairs(list) do table.insert(parts, part) end
+            end
+            return parts
+        end,
+        box = true,
+    },
+    {
+        key = "RulesDisplay",
+        context = "settings",
+        page = "CooldownChanges",
+        target = function() return select(2, private.GetTimerRulesPage()) end,
+        box = true,
+    },
+    {
+        key = "RulesZoom",
+        context = "settings",
+        page = "CooldownChanges",
+        target = function()
+            local lanes = private.GetTimerRulesPage()
+            local bar = lanes and lanes.zoomBar
+            return bar and { bar.label, bar.track, bar.caption, bar.edit }
+        end,
+        box = true,
+    },
+    {
+        key = "RulesUndo",
+        context = "settings",
+        page = "CooldownChanges",
+        target = function() return { detailsPart("Undo")(), detailsPart("Redo")(), detailsPart("ResetPage")() } end,
+        box = true,
+    },
+    {
+        key = "RulesAdd",
+        context = "settings",
+        page = "CooldownChanges",
+        target = getContent,
+        anchor = getWindowFrame,
+        side = "TOP",
+        waitFor = "ruleOpen",
+        isDone = ruleWindow("rule"),
+    },
+    -- only while a rule is open, the callouts beside its window
+    { key = "RulesLook", context = "settings", target = rulePart("rule", "look"), anchor = getRuleWindow, box = true },
+    { key = "RulesShowOn", context = "settings", target = rulePart("rule", "showOn"), anchor = getRuleWindow, box = true },
+    { key = "RulesWhen", context = "settings", target = rulePart("rule", "when"), anchor = getRuleWindow, box = true },
+    {
+        key = "RulesAdvanced",
+        context = "settings",
+        target = rulePart("rule", "advanced"),
+        anchor = getRuleWindow,
+        box = true,
+        waitFor = "ruleAdvanced",
+        isDone = function()
+            local _, rule = private.GetTimerRuleEditor()
+            return rule ~= nil and rule.advanced == true
+        end,
+    },
+    -- only once Advanced is on
+    {
+        key = "RulesChoose",
+        context = "settings",
+        target = rulePart("rule", "choose"),
+        anchor = getRuleWindow,
+        box = true,
+        advanceOn = "ruleTimers",
+        skipsAhead = true,
+    },
+    -- the selection going away, cancelled or applied, goes on with the steps of the rule
+    { key = "RulesUseFor", context = "settings", target = rulePart("timers", "include"), anchor = getRuleWindow, box = true,
+        advanceOn = { "ruleKind", "ruleShown" } },
+    { key = "RulesButNotFor", context = "settings", target = rulePart("timers", "except"), anchor = getRuleWindow,
+        box = true, advanceOn = { "ruleKind", "ruleShown" } },
+    {
+        key = "RulesAddKind",
+        context = "settings",
+        target = rulePart("timers", "add"),
+        anchor = getRuleWindow,
+        box = true,
+        waitFor = "ruleKind",
+        advanceOn = "ruleShown",
+    },
+    -- each opens its part of the kind of timer, closing the kind goes on with the selection
+    { key = "RulesFrom", context = "settings", prepare = openKindSection("source"), target = rulePart("kind", "source"),
+        anchor = getRuleWindow, box = true, advanceOn = "ruleKindClosed" },
+    { key = "RulesWhile", context = "settings", prepare = openKindSection("state"), target = rulePart("kind", "state"),
+        anchor = getRuleWindow, box = true, advanceOn = "ruleKindClosed" },
+    { key = "RulesTiming", context = "settings", prepare = openKindSection("timing"), target = rulePart("kind", "timing"),
+        anchor = getRuleWindow, box = true, advanceOn = "ruleKindClosed" },
+    -- until the time already passed is drawn, the steps point at all times
+    {
+        key = "RulesRange",
+        context = "settings",
+        prepare = openKindSection("timing", "elapsed"),
+        target = function() return rulePart("kind", "range")() or rulePart("kind", "timing")() end,
+        anchor = getRuleWindow,
+        box = true,
+        advanceOn = "ruleKindClosed",
+    },
+    {
+        key = "RulesBetween",
+        context = "settings",
+        prepare = openKindSection("timing", "elapsed"),
+        target = function() return rulePart("kind", "between")() or rulePart("kind", "timing")() end,
+        anchor = getRuleWindow,
+        box = true,
+        waitFor = "ruleBetween",
+        isDone = limitsElapsed,
+        advanceOn = "ruleKindClosed",
+    },
+    { key = "RulesKindClose", context = "settings", target = rulePart("kind", "close"), anchor = getRuleWindow,
+        box = true, waitFor = "ruleKindClosed" },
+    {
+        key = "RulesApply",
+        context = "settings",
+        target = rulePart("timers", "apply"),
+        anchor = getRuleWindow,
+        box = true,
+        waitFor = "ruleShown",
+        isDone = function() return select(3, private.GetTimerRuleEditor()) == nil end,
+    },
+    { key = "RulesEnabled", context = "settings", target = rulePart("rule", "enabled"), anchor = getRuleWindow, box = true },
+    { key = "RulesCopy", context = "settings", target = rulePart("rule", "copy"), anchor = getRuleWindow, box = true },
+    -- removing the rule closes its window
+    { key = "RulesRemove", context = "settings", target = rulePart("rule", "remove"), anchor = getRuleWindow, box = true,
+        advanceOn = "ruleClosed" },
+    {
+        key = "RulesClose",
+        context = "settings",
+        target = getRuleWindow,
+        waitFor = "ruleClosed",
+        onNext = function() getRuleWindow():Hide() end,
+    },
     { key = "Move", context = "settings", target = windowPart("MoveButton"), waitFor = "editModeEnter" },
     -- our frames only show in Edit Mode while its Boss Warnings are checked, the check box is in its collapsed options
     {
@@ -448,8 +648,21 @@ local nextStep = function()
         step.onNext()
     end
     -- what onNext did may have gone on already
-    if active and index == before and not (step.waitFor and isWaiting(step) and step.onNext) then
+    if active and index == before and not (isWaiting(step) and step.onNext) then
         showStep(index + 1, 1)
+    end
+end
+
+---@param step table
+---@param targets Frame[]
+local highlight = function(step, targets)
+    local callout = private.GetTourCallout()
+    -- Edit Mode's own windows and the settings of a selected frame stay above the dark
+    callout:Highlight(targets, step.context == "editmode" and "HIGH" or nil, step.box)
+    if targets[1] then
+        callout:Place(step.anchor and step.anchor() or step.box and callout.box or targets[1], step.anchor and step.side)
+    else
+        callout:Place(step.anchor and step.anchor() or getWindowFrame(), step.side or "TOP")
     end
 end
 
@@ -477,7 +690,7 @@ local present = function(step, targets)
         next = step.key == "EditorAdd" and isWaiting(step) and L("TourSkipReminders") or
             step.key == "EditorCleanup" and L("TourKeepExamples") or
             last and L("TourFinish") or skips and L("TourSkipStep") or L("TourNext"),
-        nextDisabled = (step.key == "EditorExport" or step.key == "EditorImport") and
+        nextDisabled = (step.key == "EditorExport" or step.key == "EditorImport" or step.key == "RulesBetween") and
             isWaiting(step),
         nextStyle = skips and "Plain" or "Primary",
         onBack = step.key == "EditorCleanup" and function()
@@ -488,13 +701,23 @@ local present = function(step, targets)
         onNext = last and finish or nextStep,
         onClose = finish,
     })
-    -- Edit Mode's own windows and the settings of a selected frame stay above the dark
-    callout:Highlight(targets, step.context == "editmode" and "HIGH" or nil)
-    if targets[1] then
-        callout:Place(step.anchor and step.anchor() or targets[1], step.anchor and step.side)
-    else
-        callout:Place(step.anchor and step.anchor() or getWindowFrame(), step.side or "TOP")
-    end
+    highlight(step, targets)
+end
+
+local refreshQueued = false
+
+---the page drew the parts of the shown step again, they glow instead of the released ones once they are laid out
+private.RefreshTourStep = function()
+    if refreshQueued then return end
+    refreshQueued = true
+    C_Timer.After(0, function()
+        refreshQueued = false
+        if not active or paused or shownStep ~= steps[index] then return end
+        local targets = getTargets(shownStep)
+        if #targets > 0 then
+            highlight(shownStep, targets)
+        end
+    end)
 end
 
 local hookWindow = function()
@@ -548,7 +771,8 @@ end
 
 ---@param event string -- test, testStop, search, page<key>, themeTried, themeDialog, bossWarnings, editModeEnter,
 ---editModeExit, timelineMoved, anchorMoved, journalOpen, journalClosed, editorOpen, editorClosed, reminderAdded,
----reminderMoved, bossTimersOpen, stageOpen, exportOpen, exportClosed, importOpen or importClosed
+---reminderMoved, bossTimersOpen, stageOpen, exportOpen, exportClosed, importOpen, importClosed, ruleOpen, ruleShown,
+---ruleAdvanced, ruleTimers, ruleKind, ruleBetween, ruleKindClosed or ruleClosed
 private.OnTourEvent = function(event)
     if not active or paused or showing then return end
     if event == "editorClosed" and not examplesConfirmed then

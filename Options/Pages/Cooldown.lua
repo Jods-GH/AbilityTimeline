@@ -9,6 +9,9 @@ local settingsText = private.DisplaySettingsText
 local state = { scope = "Shared", remaining = 10, zoom = 10, viewEnd = 0, loop = 0, source = "Addon", timerState = 0 }
 local previews, laneWidget = {}, nil
 local editor, chooser
+-- the sections of the rule window the tour points at, and the event it waits for until the page is drawn again
+local tourParts, tourEvent = {}, nil
+local displayRow
 local renderEditor, closeEditor
 
 local function words(keys)
@@ -255,6 +258,18 @@ pick = function(change)
     if change.selection then change.advanced = true end
     state.selected, state.base, chooser, state.confirmSimple = change.id, nil, nil, nil
     show()
+    private.OnTourEvent("ruleOpen")
+end
+
+---the rule window for the tour: the editor, the rule it edits, its timer selection while that is open and the frames
+---of its sections
+private.GetTimerRuleEditor = function()
+    return editor, selected(), chooser, tourParts
+end
+
+---the lanes and the display dropdown of the Timer Rules page for the tour
+private.GetTimerRulesPage = function()
+    return laneWidget, displayRow
 end
 
 local function push(parent, text, control, themePath)
@@ -625,6 +640,7 @@ local function section(parent, title, style, callback)
     callback(group)
     group:ResumeLayout()
     group:DoLayout()
+    return group.frame
 end
 
 local function chip(text, isSelected, callback)
@@ -645,13 +661,14 @@ local function advancedSwitch(body, value, callback)
     switch:SetUserData("preferredWidth", 36)
     switch:SetCallback("OnValueChanged", function(_, _, checked) callback(checked) end)
     body:AddHeaderWidget(switch)
+    return { caption.frame, switch.frame }
 end
 
 local function renderChange(scroll)
     local change = selected()
     if not change then return end
     if state.error then note(scroll, state.error) end
-    section(scroll, L("CountdownSectionLook"), "plain", function(body)
+    tourParts.look = section(scroll, L("CountdownSectionLook"), "plain", function(body)
         if change.property == "color" then
             color(body, L("CountdownMakeText"), change.value or Countdown.BaseColor(previewDisplay()), function(value) change.value = value; refresh(false) end)
         elseif change.property == "size" then
@@ -699,10 +716,11 @@ local function renderChange(scroll)
         end
     end)
     local advanced = change.advanced == true
-    section(scroll, L("CountdownSectionWhen"), "section", function(body)
-        advancedSwitch(body, advanced, function(checked)
+    tourParts.when = section(scroll, L("CountdownSectionWhen"), "section", function(body)
+        tourParts.advanced = advancedSwitch(body, advanced, function(checked)
             if not checked and not onlyTiming(change.selection) and state.confirmSimple ~= change.id then state.confirmSimple = change.id
             else state.confirmSimple = nil; setMode(change, checked) end
+            if checked then tourEvent = "ruleAdvanced" end
             refresh(true)
         end)
         if state.confirmSimple == change.id then note(body, L("CountdownModeConfirm")) end
@@ -718,8 +736,10 @@ local function renderChange(scroll)
             edit:SetText(L("CountdownChooseTimers"))
             edit:SetCallback("OnClick", function()
                 chooser = Selection.New(change.selection)
+                tourEvent = "ruleTimers"
                 refresh(true)
             end)
+            tourParts.choose = edit.frame
             line:AddChild(edit)
             body:AddChild(line)
             line:ResumeLayout()
@@ -732,7 +752,7 @@ local function renderChange(scroll)
             end, 0.01, nil, nil, 80)
         end
     end)
-    section(scroll, L("CountdownShowOn"), "section", function(body)
+    tourParts.showOn = section(scroll, L("CountdownShowOn"), "section", function(body)
         local line = AceGUI:Create("AtCountdownLayout")
         line:PauseLayout()
         line:Configure("wrap", 6)
@@ -814,7 +834,10 @@ closeEditor = function()
     local current = editor
     editor = nil
     chooser, state.error, state.base = nil, nil, nil
-    if current then current:Release() end
+    if current then
+        current:Release()
+        private.OnTourEvent("ruleClosed")
+    end
     updatePreviewContext()
     if laneWidget and laneWidget.model then
         laneWidget.model.context = context()
@@ -827,6 +850,7 @@ renderEditor = function()
     local change = selected()
     if not change and not state.base then closeEditor(); return end
     local scroll = editor.scroll
+    tourParts = {}
     scroll:PauseLayout()
     scroll:ReleaseChildren()
     if not change then
@@ -848,17 +872,21 @@ renderEditor = function()
             Note = note, TimeValues = timeValues, Action = action,
             Refresh = function() refresh(true) end, Apply = applySelection,
             Cancel = function() chooser = nil; refresh(true) end,
+            Tour = function(event) tourEvent = event end,
         })
     else
         editor:SetTitle(settingsText(string.format(L("CountdownEditChange"), label(change.property))), settingsText(scopes[state.scope]))
         editor:SetActions(nil)
         editor:SetEnabledToggle(change.enabled ~= false, function(value) change.enabled = value; refresh(true) end)
         renderChange(scroll)
+        tourParts.enabled, tourParts.copy, tourParts.remove = editor.toggle.frame, editor.frame.Copy, editor.frame.Remove
     end
     scroll:ResumeLayout()
     editor:DoLayout()
     scroll:DoLayout()
     editor:FitContent()
+    if change and not chooser then private.OnTourEvent("ruleShown") end
+    private.RefreshTourStep()
 end
 
 local function checkProfile()
@@ -871,7 +899,7 @@ local function checkProfile()
 end
 
 local function scopeRow(parent, key)
-    dropdown(parent, L(key), scopes, state.scope, function(value)
+    return dropdown(parent, L(key), scopes, state.scope, function(value)
         closeEditor()
         state.scope, state.selected = value, nil
         updatePreviewContext()
@@ -882,7 +910,7 @@ end
 local function renderChanges(scroll, header)
     checkProfile()
     track()
-    scopeRow(header, "CountdownPreview")
+    displayRow = scopeRow(header, "CountdownPreview").parent.frame
     laneWidget = AceGUI:Create("AtCountdownLanes")
     local lanes = {}
     for _, property in ipairs(Countdown.Lanes) do
@@ -969,6 +997,12 @@ local function renderChanges(scroll, header)
         end)
     end
     renderEditor()
+    local event = tourEvent
+    tourEvent = nil
+    C_Timer.After(0, function()
+        if event then private.OnTourEvent(event) end
+        private.RefreshTourStep()
+    end)
 end
 
 local function renderBase(scroll, header)
@@ -982,7 +1016,7 @@ local function hidePage()
     closeEditor()
     state.selected = nil
     updatePreviewContext()
-    laneWidget = nil
+    laneWidget, displayRow, tourEvent = nil, nil, nil
     for _, widget in pairs(previews) do private.StopGlow(widget.frame); widget.frame.atCountdownGlow = nil end
 end
 
