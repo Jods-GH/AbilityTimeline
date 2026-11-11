@@ -95,6 +95,8 @@ end
 ---@param settings string|nil -- the db.profile table of an icon's settings
 local setupPreview = function(kind, widget, settings)
     local applySettings = widget.ApplySettings
+    widget.frame.countdownPreview = { source = private.manager.SOURCES.Addon, state = private.manager.STATES.Active,
+        duration = 15, elapsed = 0, autoElapsed = true }
     widget.ApplySettings = function(self)
         applySettings(self)
         local frame = self.frame
@@ -137,7 +139,7 @@ local createPreview = {
                 private.ThemeApply.EnterTimelineMotion(widget.frame, widget.duration)
             end
             local remaining = (widget.startTime + widget.duration) - GetTime()
-            widget.HandleCooldown(widget.frame, math.ceil(remaining))
+            widget.HandleCooldown(widget.frame, remaining)
             private.ThemeApply.UpdateTimelineMotion(widget.frame, private.manager.STATES.Active, remaining, remaining,
                 private.TIMELINE_ZONES.MOVING)
         end)
@@ -154,7 +156,8 @@ local createPreview = {
                 widget.startTime, widget.duration = GetTime(), threshold
                 widget.frame.Cooldown:SetCooldown(widget.startTime, widget.duration)
             end
-            widget.HandleCooldown(widget.frame, math.ceil((widget.startTime + widget.duration) - GetTime()))
+            widget.frame.countdownPreview.duration = widget.duration
+            widget.HandleCooldown(widget.frame, (widget.startTime + widget.duration) - GetTime())
         end)
         return setupPreview("BigIcon", widget, "big_icon_settings")
     end,
@@ -169,21 +172,13 @@ local createPreview = {
                 widget.startTime, widget.duration = GetTime(), threshold
             end
             local remainingDuration = (widget.startTime + widget.duration) - GetTime()
-            local textColor = widget:GetTextColor(remainingDuration)
+            widget.frame.countdownPreview = { remaining = remainingDuration, duration = threshold, elapsed = threshold - remainingDuration,
+                source = private.manager.SOURCES.Addon, state = private.manager.STATES.Active }
+            widget:HandleTexts(eventInfo, remainingDuration)
             if private.db.profile.highlight_text_settings.dispellIcons then
                 local art = private.manager.getEventIconArt(8)
-                local icon
-                if art.Atlas then
-                    icon = string.format("|A:%s:20:20|a", art.Atlas)
-                else
-                    icon = string.format("|T%s:20:20:0:0:512:256:%d:%d:%d:%d|t", private.ThemeApply.File(art.File),
-                        art[1], art[2], art[3], art[4])
-                end
-                self.SpellName:SetFormattedText("%s %s in |c%s%i|r", icon, eventInfo.spellName, textColor,
-                    math.ceil(remainingDuration))
-            else
-                self.SpellName:SetFormattedText("%s in |c%s%i|r", eventInfo.spellName, textColor,
-                    math.ceil(remainingDuration))
+                private.ThemeApply.Texture(self.dispellTypeTexture, art)
+                self.dispellTypeTexture:SetAlpha(1)
             end
         end)
         return setupPreview("TextHighlight", widget)
@@ -672,7 +667,7 @@ private.RegisterSettingsPage(turnedOffInEditMode({
         row("Checkbox", "PreventOverlap", { profileKey = "timeline_settings.prevent_overlap", preview = false }),
         {
             kind = "Heading",
-            name = L("SettingsSectionCountdowns"),
+            name = L("SettingsSectionTimerText"),
             hidden = function() return not private.isRetail end,
         },
         {
@@ -701,115 +696,3 @@ private.RegisterSettingsPage(turnedOffInEditMode({
     return layout and layout.enabled
 end, "EnableTimeline"))
 
-local highlights = function()
-    return private.db.profile.cooldown_settings.cooldown_highlight.highlights
-end
-
-local sortHighlights = function()
-    table.sort(highlights(), function(a, b) return a.time < b.time end)
-end
-
-local highlightsOff = function()
-    return not private.db.profile.cooldown_settings.cooldown_highlight.enabled
-end
-
----the rows of one color change, bound to its table so sorting the list keeps them right
----@param index number
----@param highlight table
----@return table[]
-local highlightRows = function(index, highlight)
-    local glowOff = function()
-        return highlightsOff() or not highlight.useGlow
-    end
-    return {
-        { kind = "Heading", name = L("SettingsColorChange"):format(index), hidden = highlightsOff },
-        row("Slider", "CooldownColorChangeTiming", {
-            minValue = 1, maxValue = 60, valueStep = 1, hidden = highlightsOff,
-            get = function() return highlight.time end,
-            set = function(value)
-                highlight.time = value
-                sortHighlights()
-            end,
-        }),
-        row("Color", "CooldownColorChangeColor", {
-            hidden = highlightsOff,
-            get = function() return highlight.color end,
-            set = function(value) highlight.color = { r = value.r, g = value.g, b = value.b } end,
-        }),
-        row("Checkbox", "EnableCooldownGlowChange", {
-            hidden = highlightsOff,
-            get = function() return highlight.useGlow end,
-            set = function(value) highlight.useGlow = value end,
-        }),
-        row("Dropdown", "CooldownGlowType", {
-            values = private.GlowTypes,
-            hidden = glowOff,
-            get = function() return highlight.glowType end,
-            set = function(value) highlight.glowType = value end,
-        }),
-        row("Color", "CooldownGlowColor", {
-            hasOpacity = true,
-            hidden = glowOff,
-            get = function() return highlight.glowColor end,
-            set = function(value) highlight.glowColor = value end,
-        }),
-        {
-            kind = "Button",
-            name = L("SettingsRemoveColorChange"),
-            desc = L("RemoveCooldownColorChangeTooltip"),
-            buttonText = L("SettingsRemove"),
-            hidden = highlightsOff,
-            func = function()
-                tDeleteItem(highlights(), highlight)
-                private.RefreshSettingsPage()
-            end,
-        },
-    }
-end
-
-local cooldownRows = {
-    heading("SettingsSectionCooldownText"),
-    row("Media", "CooldownFont", { themePath = "Elements.Cooldown.Font.Media", mediaType = "font" }),
-    row("Slider", "CooldownFontSize",
-        { themePath = "Elements.Cooldown.Font.Size", minValue = 1, maxValue = 64, valueStep = 1 }),
-    row("Color", "DefaultCooldownColor", { themePath = "Elements.Cooldown.Font.Color" }),
-    heading("CooldownColorChanges"),
-    row("Checkbox", "EnableCooldownHighlight", { profileKey = "cooldown_settings.cooldown_highlight.enabled" }),
-}
-
-local addHighlight = {
-    kind = "Button",
-    name = L("SettingsAddColorChange"),
-    desc = L("AddCooldownColorChangeTooltip"),
-    buttonText = L("SettingsAdd"),
-    hidden = highlightsOff,
-    func = function()
-        table.insert(highlights(), {
-            time = 10,
-            color = private.DeepCopy(private.GetThemeValue("Elements.Cooldown.Font.Color")),
-            useGlow = false,
-            glowType = private.GlowTypes.PROC,
-            glowColor = { r = 1, g = 1, b = 1, a = 1 },
-        })
-        sortHighlights()
-        private.RefreshSettingsPage()
-    end,
-}
-
-private.RegisterSettingsPage({
-    key = "Cooldown",
-    order = 50,
-    name = L("SettingsPageCooldown"),
-    desc = L("SettingsPageCooldownDescription"),
-    GetPreview = getPreview("SpellIcon"),
-    rows = function()
-        local rows = { unpack(cooldownRows) }
-        for index, highlight in ipairs(highlights()) do
-            for _, highlightRow in ipairs(highlightRows(index, highlight)) do
-                table.insert(rows, highlightRow)
-            end
-        end
-        table.insert(rows, addHighlight)
-        return rows
-    end,
-})

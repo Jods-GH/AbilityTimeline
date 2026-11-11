@@ -42,6 +42,7 @@ local function SkinEdit(widget)
     local editbox = widget.editbox
     ThemedWidgets.DiscardTextures(editbox)
     editbox:SetTextInsets(6, 6, 3, 3)
+    editbox:SetJustifyH("CENTER")
     editbox.AtField = ThemedWidgets.CreateField(editbox, editbox, 6, 0, 0, 0)
     hookField(editbox, editbox.AtField)
     ThemedWidgets.SkinButton(widget.button)

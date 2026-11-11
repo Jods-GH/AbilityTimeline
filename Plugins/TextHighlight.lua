@@ -25,6 +25,10 @@ private.evaluateTextPositions = function()
    if private.manager.isUpdatingDisplays then textHighlightGroup:MarkDirty() else textHighlightGroup:Layout() end
 end
 
+private.refreshTextHighlightSize = function()
+   textHighlightGroup:MarkDirty()
+end
+
 local textHighlights = {}
 
 private.createTextHighlight = function(eventID)

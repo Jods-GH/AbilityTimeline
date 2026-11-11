@@ -102,8 +102,12 @@ local function ApplySettings(self)
     ThemeApply.FontRole(details.Notice, "Control")
     details.Notice:SetTextColor(ThemeApply.Color("Danger"))
     ThemeApply.FontRole(frame.SearchHint, "Muted")
-    for _, button in ipairs({ details.Reset, details.ResetPage, frame.TestButton, frame.MoveButton }) do
+    for _, button in ipairs({ details.Reset, details.ResetPage, details.Undo, details.Redo, frame.TestButton, frame.MoveButton }) do
         ThemedWidgets.DrawButton(button)
+    end
+    for _, button in ipairs({ details.Undo, details.Redo }) do
+        button.Icon:SetTexture(ThemeApply.File("undo"))
+        button.Icon:SetVertexColor(ThemeApply.Color("Text"))
     end
     ThemeApply.ConfigureSettingsWindow(self, style)
 end
@@ -260,10 +264,30 @@ end
 
 ---@param self AtSettingsWindow
 ---@param onReset function|nil -- nil hides the button
-local function SetResetPage(self, onReset)
+---@param text string|nil -- instead of Reset Page to Theme
+local function SetResetPage(self, onReset, text)
     local button = self.frame.Details.ResetPage
     button:SetShown(onReset ~= nil)
+    button:SetText(text or private.getLocalisation("SettingsResetPage"))
     button.onReset = onReset
+end
+
+---undo and redo of a page that keeps its own history, side by side above the page reset
+---@param self AtSettingsWindow
+---@param undo function|false|nil -- nil hides both, false disables the button
+---@param redo function|false|nil
+local function SetPageHistory(self, undo, redo)
+    local details = self.frame.Details
+    local shown = undo ~= nil
+    for button, onClick in pairs({ [details.Undo] = undo or false, [details.Redo] = redo or false }) do
+        button:SetShown(shown)
+        button:SetEnabled(onClick ~= false)
+        button:SetAlpha(onClick ~= false and 1 or 0.45)
+        button.onClick = onClick
+    end
+    details.Reset:ClearAllPoints()
+    details.Reset:SetPoint("BOTTOMLEFT", shown and details.Undo or details.ResetPage, "TOPLEFT", 0, variables.padding / 2)
+    details.Reset:SetPoint("RIGHT", details.ResetPage, "RIGHT")
 end
 
 ---@param self AtSettingsWindow
@@ -497,7 +521,26 @@ local function Constructor()
         button.onReset()
     end)
     details.Reset:SetPoint("BOTTOMLEFT", details.ResetPage, "TOPLEFT", 0, variables.padding / 2)
-    details.Reset:SetPoint("BOTTOMRIGHT", details.ResetPage, "TOPRIGHT", 0, variables.padding / 2)
+    details.Reset:SetPoint("RIGHT", details.ResetPage, "RIGHT")
+    for name, mirrored in pairs({ Undo = false, Redo = true }) do
+        local button = createButton(details, "", function(self) if self.onClick then self.onClick() end end)
+        button.Icon = button:CreateTexture(nil, "OVERLAY")
+        button.Icon:SetSize(18, 18)
+        button.Icon:SetPoint("CENTER")
+        if mirrored then button.Icon:SetTexCoord(1, 0, 0, 1) end
+        button:HookScript("OnEnter", function()
+            GameTooltip:SetOwner(button, "ANCHOR_TOP")
+            GameTooltip:AddLine(private.getLocalisation("Countdown" .. name), 1, 1, 1)
+            GameTooltip:Show()
+        end)
+        button:HookScript("OnLeave", function() GameTooltip:Hide() end)
+        button:Hide()
+        details[name] = button
+    end
+    details.Undo:SetPoint("BOTTOMLEFT", details.ResetPage, "TOPLEFT", 0, variables.padding / 2)
+    details.Undo:SetPoint("RIGHT", details.ResetPage, "CENTER", -variables.padding / 4, 0)
+    details.Redo:SetPoint("BOTTOMRIGHT", details.ResetPage, "TOPRIGHT", 0, variables.padding / 2)
+    details.Redo:SetPoint("LEFT", details.ResetPage, "CENTER", variables.padding / 4, 0)
     frame.Details = details
 
     local contentFrame = CreateFrame("Frame", Type .. "ContentFrame" .. count, frame)
@@ -515,6 +558,7 @@ local function Constructor()
         ShowDetails = ShowDetails,
         SetMedia = SetMedia,
         SetResetPage = SetResetPage,
+        SetPageHistory = SetPageHistory,
         ClearSearch = ClearSearch,
         SetTestRunning = SetTestRunning,
         type = Type,

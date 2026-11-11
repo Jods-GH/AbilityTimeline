@@ -4,15 +4,19 @@ local private = app
 local AceGUI = LibStub("AceGUI-3.0")
 local Type = "AtTextHighlight"
 local Version = 1
+local issecretvalue = issecretvalue or function() return false end
 local variables = {
     text_height = 20,
     text_width = 300,
 }
 
 
+local HandleTexts
+
 local function ApplySettings(self)
     local text = private.GetElementStyle("TextHighlight").Text
     private.ThemeApply.Font(self.frame.SpellName, text.Font)
+    private.CooldownText.ConfigureFont(self.frame.CooldownText, "TextHighlight", text.Font)
 
     if private.db.profile.highlight_text_settings.strata then
 		self.frame:SetFrameStrata(private.db.profile.highlight_text_settings.strata)
@@ -21,13 +25,16 @@ local function ApplySettings(self)
     local background = text.Background
     if background.Show then
         self.frame.SpellNameBackground:SetPoint("LEFT", self.frame.SpellName, "LEFT", -background.Offset.x, 0)
-        self.frame.SpellNameBackground:SetPoint("RIGHT", self.frame.SpellName, "RIGHT", background.Offset.x, 0)
-        self.frame.SpellNameBackground:SetPoint("TOP", self.frame.SpellName, "TOP", 0, background.Offset.y)
-        self.frame.SpellNameBackground:SetPoint("BOTTOM", self.frame.SpellName, "BOTTOM", 0, -background.Offset.y)
+        self.frame.SpellNameBackground:SetPoint("RIGHT", self.frame.CooldownText, "RIGHT", background.Offset.x, 0)
+        self.frame.SpellNameBackground:SetPoint("TOP", self.frame, "TOP", 0, background.Offset.y)
+        self.frame.SpellNameBackground:SetPoint("BOTTOM", self.frame, "BOTTOM", 0, -background.Offset.y)
         private.ThemeApply.Texture(self.frame.SpellNameBackground, background)
         self.frame.SpellNameBackground:Show()
     else
         self.frame.SpellNameBackground:Hide()
+    end
+    if self.eventInfo and self.frame.atCountdownRemaining then
+        HandleTexts(self, self.eventInfo, self.frame.atCountdownRemaining)
     end
 end
 
@@ -38,6 +45,9 @@ end
 
 ---@param self AtTextHighlight
 local function OnRelease(self)
+    private.StopGlow(self.frame)
+    private.CooldownText.Reset(self.frame, self.frame.CooldownText)
+    self.eventInfo = nil
     private.ThemeApply.StopEnterEffects(self.frame)
     self.frame:SetScript("OnUpdate", nil)
     self.frame.eventInfo = nil
@@ -51,36 +61,36 @@ end
 ---@param self any
 ---@param remainingTime any
 ---@return unknown
-local GetTextColor = function(self, remainingTime)
-    if private.db.profile.cooldown_settings.cooldown_highlight and private.db.profile.cooldown_settings.cooldown_highlight.enabled then
-        for _, value in pairs(private.db.profile.cooldown_settings.cooldown_highlight.highlights) do
-            local time, color = value.time, value.color
-            if (remainingTime <= time) then
-                local createdColor = CreateColor(color.r, color.g, color.b)
-                return createdColor:GenerateHexColor()
-            end
-        end
-    end
-    local r, g, b = private.ThemeApply.Color(private.GetElementStyle("Cooldown").Font.Color)
-    return CreateColor(r, g, b):GenerateHexColor()
-end
----hides and shows texts to create colored texts (illegal btw)
----@param widget any
----@param eventInfo any
----@param remainingDuration any
-local HandleTexts = function(widget, eventInfo, remainingDuration)
-    local textColor = GetTextColor(widget, remainingDuration)
+HandleTexts = function(widget, eventInfo, remainingDuration)
+    local frame = widget.frame
+    frame.atCountdownRemaining = remainingDuration
     local count = widget.frame.mergeCount or 1
     local name = count > 1 and string.format(private.getLocalisation("MultipleTimers"), count) or eventInfo.spellName
-    private.manager.SetEventIconTextures(eventInfo.id, 126, widget.frame.dispellTypeIcons)
-    local atlas = widget.frame.dispellTypeIcons[1]:GetAtlas()
-    local formatedText = string.format("%s in |c%s%i|r", name, textColor,
-        math.ceil(remainingDuration))
-    if private.db.profile.highlight_text_settings.dispellIcons and atlas then
-        formatedText = string.format("|A:%s:20:20|a %s in |c%s%i|r", atlas, name, textColor,
-            math.ceil(remainingDuration))
+    frame.SpellName:SetText(string.format(private.getLocalisation("CountdownSpellPrefix"), name))
+    if eventInfo.id then private.manager.SetEventIconTextures(eventInfo.id, 126, frame.dispellTypeIcons) end
+    frame.dispellTypeTexture:SetShown(private.db.profile.highlight_text_settings.dispellIcons)
+    private.CooldownText.Apply(frame, frame.CooldownText, "TextHighlight", remainingDuration, eventInfo)
+    local font = frame.CooldownText.atCountdownFont
+    if font then
+        if frame.atMeasureSize ~= frame.CooldownText.atCountdownSize or frame.atMeasurePath ~= font.path or frame.atMeasureFlags ~= font.flags then
+            frame.CountdownMeasure:SetFont(font.path, frame.CooldownText.atCountdownSize, font.flags)
+            frame.atMeasureSize, frame.atMeasurePath, frame.atMeasureFlags = frame.CooldownText.atCountdownSize, font.path, font.flags
+        end
+        frame.CountdownMeasure:SetText(frame.CooldownText.atCountdownText)
+        local width = frame.CountdownMeasure:GetStringWidth()
+        -- Measure only the public number on an independent region, never a secret name or its anchors.
+        if not issecretvalue(width) then
+            frame.SpellName:ClearAllPoints()
+            frame.SpellName:SetPoint("CENTER", frame, "CENTER", -width / 2, 0)
+        end
+        local _, nameSize = frame.SpellName:GetFont()
+        local height = math.max(variables.text_height, nameSize + 6, frame.CooldownText.atCountdownSize + 6)
+        if frame:GetHeight() ~= height then
+            frame:SetHeight(height)
+            if not frame.countdownPreview and private.refreshTextHighlightSize then private.refreshTextHighlightSize() end
+        end
     end
-    widget.frame.SpellName:SetText(formatedText)
+    frame.SpellName:SetTextColor(private.ThemeApply.Color(private.GetElementStyle("TextHighlight").Text.Font.Color))
     if count > 1 then
         widget.frame.SpellName:SetTextColor(private.ThemeApply.Color(private.GetElementStyle("TextHighlight").Text.Font.Color))
     elseif private.db.profile.text_settings.useEventColor then
@@ -125,6 +135,12 @@ local function Constructor()
     frame.SpellName = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
     frame.SpellName:SetWordWrap(false)
     frame.SpellName:SetPoint("CENTER", frame, "CENTER")
+    frame.CooldownText = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
+    frame.CooldownText:SetPoint("LEFT", frame.SpellName, "RIGHT")
+    frame.CooldownText:SetWordWrap(false)
+    frame.CountdownMeasure = frame:CreateFontString(nil, "OVERLAY", "SystemFont_Shadow_Med3")
+    frame.CountdownMeasure:SetPoint("CENTER", frame, "CENTER")
+    frame.CountdownMeasure:Hide()
     frame:SetFrameStrata(private.FrameStrata.FULLSCREEN)
 
     frame.SpellNameBackground = frame:CreateTexture(nil, "BACKGROUND")
@@ -133,6 +149,8 @@ local function Constructor()
     frame:SetHeight(variables.text_height)
 
     frame.dispellTypeTexture = frame:CreateTexture(nil, "OVERLAY")
+    frame.dispellTypeTexture:SetSize(20, 20)
+    frame.dispellTypeTexture:SetPoint("RIGHT", frame.SpellName, "LEFT", -4, 0)
     frame.dispellTypeIcons = {}
     table.insert(frame.dispellTypeIcons, frame.dispellTypeTexture)
 
@@ -146,7 +164,7 @@ local function Constructor()
         SetEventInfo = SetEventInfo,
         SetMergedIcons = SetMergedIcons,
         eventInfo = {},
-        GetTextColor = GetTextColor,
+        HandleTexts = HandleTexts,
         ApplySettings = ApplySettings,
     }
     private.RegisterThemed(widget)

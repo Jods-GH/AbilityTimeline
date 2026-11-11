@@ -146,9 +146,10 @@ ThemedWidgets.DrawDropdown = function(field, anchor, text, chevron, disabled, op
         chevron:SetPoint("RIGHT", anchor, "RIGHT", -8, 0)
         chevron:SetVertexColor(ThemeApply.MixColor("Muted", "Text", field.hover or 0))
         chevron:Show()
-        text:SetPoint("LEFT", anchor, "LEFT", 10, 0)
+        -- the left inset mirrors the chevron so the text centers on the field
+        text:SetPoint("LEFT", anchor, "LEFT", 26, 0)
         text:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
-        text:SetJustifyH("LEFT")
+        text:SetJustifyH("CENTER")
     end
 end
 

@@ -347,49 +347,10 @@ private.modernize = function()
         private.db.profile.cooldown_settings = {}
     end
 
-    if not private.db.profile.cooldown_settings.cooldown_highlight then
-        private.db.profile.cooldown_settings.cooldown_highlight = {}
-    end
-
-    if private.db.profile.cooldown_settings.cooldown_highlight.enabled == nil then
-        private.db.profile.cooldown_settings.cooldown_highlight.enabled = true
-    end
-
-    if not private.db.profile.cooldown_settings.cooldown_highlight.highlights then
-        private.db.profile.cooldown_settings.cooldown_highlight.highlights = {
-            {
-                time = 3,
-                color = { r = 1, g = 0, b = 0 },
-                useGlow = false,
-                glowType = private.GlowTypes.PROC,
-                glowColor = { r = 0.95, g = 0.95, b = 0.32, a = 1 },
-            },
-            {
-                time = 5,
-                color = { r = 1, g = 1, b = 0 },
-                useGlow = false,
-                glowType = private.GlowTypes.PROC,
-                glowColor = { r = 0.95, g = 0.95, b = 0.32, a = 1 },
-            },
-        }
-    end
+    private.CooldownText.SetupDefaults(private.db.profile.cooldown_settings)
 
     if private.db.profile.importMergeMode == nil then
         private.db.profile.importMergeMode = true
-    end
-
-
-    -- fix cooldown highlights missing essential settings
-    for _, highlight in ipairs(private.db.profile.cooldown_settings.cooldown_highlight.highlights) do
-        if highlight.useGlow == nil then
-            highlight.useGlow = false
-        end
-        if highlight.glowType == nil then
-            highlight.glowType = private.GlowTypes.PROC
-        end
-        if highlight.glowColor == nil then
-            highlight.glowColor = { r = 0.95, g = 0.95, b = 0.32, a = 1 }
-        end
     end
 
     if private.db.profile.disableBossModsBars == nil then

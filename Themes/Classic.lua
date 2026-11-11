@@ -107,6 +107,9 @@ private.RegisterTheme({
         },
         Cooldown = {
             Font = { Media = FONT, Size = 24, Flags = { OUTLINE = true }, Color = WHITE, Shadow = true },
+            BigIconScale = 2,
+            DisplaySizes = { SpellIcon = 0, BigIcon = 0, TextHighlight = 0 },
+            DisplayColors = { SpellIcon = false, BigIcon = false, TextHighlight = false },
         },
         SpellIcon = {
             Size = 44,

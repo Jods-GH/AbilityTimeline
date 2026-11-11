@@ -174,45 +174,21 @@ end
 ---@param self frame
 ---@param remainingTime number
 local HandleCooldown        = function(self, remainingTime)
-	if self.state == private.manager.STATES.Queued then
-		self.Cooldown:SetText("")
-		return
-	end
-	local formatedTime = remainingTime
-	if formatedTime <= 0 then
-		self.Cooldown:SetText("")
-		return
-	end
-	if remainingTime > 60 then
-		local seconds = remainingTime % 60
-		if seconds > 30 then
-			formatedTime = math.ceil(remainingTime / 60) .. "m"
-		else
-			formatedTime = math.floor(remainingTime / 60) .. "m"
-		end
-	else
-		formatedTime = math.ceil(remainingTime)
-	end
-	self.Cooldown:SetText(formatedTime)
+	self.atCountdownRemaining = remainingTime
 	-- a reminder's own glow while it would show as big icon, a boss timer rule's the whole time; it replaces the
 	-- cooldown highlight glow
 	local glow = self.eventInfo and self.eventInfo.glow
-	if glow and (self.eventInfo.glowAlways or remainingTime <= private.db.profile.big_icon_settings.threshold_time) then
-		private.EnableGlow(self, glow, remainingTime, self.eventInfo.glowColor)
+	if glow and remainingTime > 0 and self.state ~= private.manager.STATES.Queued and
+		(self.eventInfo.glowAlways or remainingTime <= private.db.profile.big_icon_settings.threshold_time) then
+		local duration = remainingTime
+		if self.state == private.manager.STATES.Paused then duration = nil end
+		private.EnableGlow(self, glow, duration, self.eventInfo.glowColor)
+		self.atSourceCountdownGlow = true
+	elseif self.atSourceCountdownGlow then
+		private.StopGlow(self)
+		self.atSourceCountdownGlow = nil
 	end
-	if private.db.profile.cooldown_settings.cooldown_highlight and private.db.profile.cooldown_settings.cooldown_highlight.enabled then
-		for _, value in pairs(private.db.profile.cooldown_settings.cooldown_highlight.highlights) do
-			local time, color = value.time, value.color
-			if (remainingTime <= time) then
-				self.Cooldown:SetTextColor(color.r, color.g, color.b)
-				if value.useGlow and not glow then
-					private.EnableGlow(self, value.glowType, remainingTime, value.glowColor)
-				end
-				return
-			end
-		end
-	end
-	self.Cooldown:SetTextColor(private.ThemeApply.Color(private.GetElementStyle("Cooldown").Font.Color))
+	private.CooldownText.Apply(self, self.Cooldown, "SpellIcon", remainingTime, self.eventInfo, self.state, self.atSourceCountdownGlow)
 end
 
 ---Updates text anchors, cooldown and (for non grouped zones) the position of a timeline icon
@@ -234,7 +210,7 @@ local UpdateTimeline = function(self, state, timeRemaining, positionRemaining, z
 		frame.isStopped = isStopped
 		handleAnchors(frame, isStopped)
 	end
-	if changed or state ~= private.ENCOUNTER_STATES.Paused then
+	if changed or state ~= private.ENCOUNTER_STATES.Paused or frame.atCountdownGeneration ~= private.CooldownText.Generation() then
 		HandleCooldown(frame, timeRemaining)
 	end
 	if zone == ZONES.MOVING or zone == ZONES.INLINE_PAUSED then
@@ -412,7 +388,8 @@ local function ApplySettings(self)
 	frame:SetSize(style.Size, style.Size)
 	handleAnchors(frame, frame.isStopped)
 	private.ThemeApply.Font(frame.SpellName, style.Text.Font)
-	private.ThemeApply.Font(frame.Cooldown, private.GetElementStyle("Cooldown").Font)
+	private.CooldownText.ConfigureFont(frame.Cooldown, "SpellIcon")
+	if frame.atCountdownRemaining then HandleCooldown(frame, frame.atCountdownRemaining) end
 
 	if iconSettings.strata then
 		frame:SetFrameStrata(iconSettings.strata)
@@ -473,6 +450,7 @@ end
 
 ---@param self AtAbilitySpellIcon
 local function OnRelease(self)
+	private.CooldownText.Reset(self.frame, self.frame.Cooldown)
 	self.mergedMembers = nil
 	private.ThemeApply.StopEnterEffects(self.frame)
 	private.ThemeApply.IconPriority(self.frame, false)

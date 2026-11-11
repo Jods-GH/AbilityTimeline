@@ -62,6 +62,7 @@ Util\ChatTransmission.lua
 Util\Zoom.lua
 Util\EventColorisation.lua
 Manager.lua
+Util\CooldownText.lua
 Util\DynamicGroup.lua
 
 # Locales
@@ -117,6 +118,9 @@ Templates\AtBigIcon.lua
 Templates\AtTextHighlight.lua
 Templates\AtThemeCard.lua
 Templates\AtSettingsWindow.lua
+Templates\AtCountdownEditor.lua
+Templates\Widgets\AtCountdownCanvas.lua
+Templates\AtCountdownLanes.lua
 Templates\AtTourCallout.lua
 
 #plugins
@@ -138,6 +142,8 @@ Options\TimingEditor.lua
 Options\Settings.lua
 Options\Pages\General.lua
 Options\Pages\Elements.lua
+Options\CountdownSelection.lua
+Options\Pages\Cooldown.lua
 Options\Pages\Theme.lua
 Options\Pages\Reminders.lua
 Options\Pages\Profiles.lua

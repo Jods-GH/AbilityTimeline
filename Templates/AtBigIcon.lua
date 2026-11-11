@@ -5,7 +5,6 @@ local AceGUI             = LibStub("AceGUI-3.0")
 local Type               = "AtBigIcon"
 local Version            = 1
 local variables          = {
-	cooldown_text_scale = 2,
 	icon_text_width = 95,
 	icon_text_offset_x = 0,
 	icon_text_offset_y = 10,
@@ -41,27 +40,18 @@ end
 ---@param self frame
 ---@param remainingTime number
 local HandleCooldown     = function(self, remainingTime)
-	local roundedTime = math.ceil(remainingTime)
-	self.CooldownText:SetText(roundedTime)
+	self.atCountdownRemaining = remainingTime
 	-- a reminder's own glow for as long as it shows, it replaces the cooldown highlight glow
-	local info = self.eventID and private.manager.getEventInfo(self.eventID)
+	local info = self.eventInfo
 	local glow = info and info.glow
 	if glow and remainingTime > 0 then
 		private.EnableGlow(self, glow, remainingTime, info.glowColor)
+		self.atSourceCountdownGlow = true
+	elseif self.atSourceCountdownGlow then
+		private.StopGlow(self)
+		self.atSourceCountdownGlow = nil
 	end
-	if private.db.profile.cooldown_settings.cooldown_highlight and private.db.profile.cooldown_settings.cooldown_highlight.enabled then
-		for _, value in pairs(private.db.profile.cooldown_settings.cooldown_highlight.highlights) do
-			local time, color = value.time, value.color
-			if (remainingTime <= time) then
-				self.CooldownText:SetTextColor(color.r, color.g, color.b)
-				if value.useGlow and not glow then
-					private.EnableGlow(self, value.glowType, remainingTime, value.glowColor)
-				end
-				return
-			end
-		end
-	end
-	self.CooldownText:SetTextColor(private.ThemeApply.Color(private.GetElementStyle("Cooldown").Font.Color))
+	private.CooldownText.Apply(self, self.CooldownText, "BigIcon", remainingTime, info, nil, self.atSourceCountdownGlow)
 end
 
 ---applies the event color to the spell name when enabled
@@ -129,9 +119,8 @@ local function ApplySettings(self)
 	handleAnchors(frame)
 	private.ThemeApply.Font(frame.SpellName, style.Text.Font)
 	applyEventColor(frame)
-	private.ThemeApply.Font(frame.CooldownText, private.GetElementStyle("Cooldown").Font)
-	local font, fontSize, flags = frame.CooldownText:GetFont()
-	frame.CooldownText:SetFont(font, fontSize * variables.cooldown_text_scale, flags)
+	private.CooldownText.ConfigureFont(frame.CooldownText, "BigIcon")
+	if frame.atCountdownRemaining then HandleCooldown(frame, frame.atCountdownRemaining) end
 	local skinned = private.SyncMasque(frame)
 	private.ThemeApply.IconArt(frame, frame.SpellIcon, style, frame.TextureHolder, skinned)
 	private.ThemeApply.CooldownArt(frame, style, skinned)
@@ -184,6 +173,7 @@ end
 
 ---@param self AtBigIcon
 local function OnRelease(self)
+	private.CooldownText.Reset(self.frame, self.frame.CooldownText)
 	private.ThemeApply.StopEnterEffects(self.frame)
 	private.ThemeApply.IconState(self.frame, nil, nil)
 	self.frame.SpellIcon:SetTexture(nil)

@@ -25,6 +25,8 @@ private.manager.SOURCES                        = {
    Reminder = "Reminder",
    Addon = "Addon",
 }
+-- Addon timers with a sourceID are told apart in countdown timer selections
+private.manager.COUNTDOWN_SOURCES              = { readycheck = "ReadyCheck", pull = "PullTimer", reroll = "KeyReroll" }
 
 private.TIMELINE_TICKS                         = { 5 }
 
@@ -200,6 +202,23 @@ end
 private.manager.getEventInfo = function(eventID)
    local event = activeTimers[eventID]
    return event and event.info
+end
+
+---the timer context countdown changes select by, elapsed is only looked up when a change needs it
+private.manager.GetCountdownContext = function(eventID, remaining, info, state, context, required)
+   local event = eventID and activeTimers[eventID]
+   context.remaining = remaining
+   context.source = event and event.source or info and info.source
+   if event and event.source == private.manager.SOURCES.Addon then
+      context.source = private.manager.COUNTDOWN_SOURCES[event.sourceID] or context.source
+   end
+   context.duration = info and info.duration
+   context.state = state or (event and private.manager.getEventState(eventID))
+   context.elapsed = nil
+   if required.elapsed then
+      context.elapsed = event and private.manager.getEventTimeElapsed(eventID) or nil
+   end
+   return context
 end
 
 private.manager.getEventIDFromSource = function(source, sourceID)

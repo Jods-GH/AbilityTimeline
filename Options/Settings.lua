@@ -85,6 +85,8 @@ local display = function(text)
     return text
 end
 
+private.DisplaySettingsText = display
+
 local getRows = function(page)
     if type(page.rows) == "function" then
         return page.rows()
@@ -482,12 +484,16 @@ local showPage = function(key)
             table.insert(themePaths, row.themePath)
         end
     end
-    window:SetResetPage(#themePaths > 0 and function()
-        for _, path in ipairs(themePaths) do
-            private.ResetThemeModifications(path)
-        end
-        rerender()
-    end or nil)
+    if page.ResetPage then window:SetResetPage(page.ResetPage, display(page.resetText))
+    else
+        window:SetResetPage(#themePaths > 0 and function()
+            for _, path in ipairs(themePaths) do
+                private.ResetThemeModifications(path)
+            end
+            rerender()
+        end or nil)
+    end
+    if page.GetHistory then window:SetPageHistory(page.GetHistory()) else window:SetPageHistory(nil) end
     render(rows, page.key, page.Render, page.pinned, function() return page end)
     window:ShowDetails(display(page.name), display(page.desc), nil,
         display(isDisabled(page) and page.disabledReason and page.disabledReason() or nil))
@@ -506,6 +512,13 @@ local showSearch = function(text)
     for _, page in ipairs(pages) do
         if not isHidden(page) then
             local found = false
+            if page.Render and page.searchTerms and (matches(page.name) or matches(page.searchTerms)) then
+                table.insert(rows, { kind = "Heading", name = page.name })
+                table.insert(rows, { kind = "Button", name = page.name, desc = page.desc, buttonText = private.getLocalisation("CountdownOpenEditor"),
+                    func = function() private.openSettings(page.key) end })
+                rowPages[#rows] = page
+                found = true
+            end
             for _, row in ipairs(getRows(page)) do
                 if row.kind ~= "Heading" and not isHidden(row) and (matches(row.name) or matches(row.desc)) then
                     if not found then
@@ -526,6 +539,7 @@ local showSearch = function(text)
     pagePreview = nil
     window:SetMedia(nil)
     window:SetResetPage(nil)
+    window:SetPageHistory(nil)
     render(rows, "search", nil, nil, function(index) return rowPages[index] end)
     window:ShowDetails(display(private.getLocalisation("SettingsSearchResults")),
         display(private.getLocalisation("SettingsSearchResultsDescription")))
