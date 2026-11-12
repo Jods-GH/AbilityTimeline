@@ -17,8 +17,6 @@ local sortKey = function(version)
 end
 
 local OWN_KEY = sortKey(VERSION)
-if not OWN_KEY then return end
-
 local pendingReplies = {}
 local notified = false
 local groupChannel
@@ -26,13 +24,13 @@ local groupChannel
 ---@param distribution string
 ---@return boolean
 local sendVersion = function(distribution)
-    if InChatMessagingLockdown() then return false end
+    if not OWN_KEY or InChatMessagingLockdown() then return false end
     AceCom:SendCommMessage(VERSION_PREFIX, VERSION, distribution)
     return true
 end
 
 AceCom:RegisterComm(VERSION_PREFIX, function(prefix, message, distribution, sender)
-    if InChatMessagingLockdown() or issecretvalue(message) then return end
+    if not OWN_KEY or InChatMessagingLockdown() or issecretvalue(message) then return end
     local key = sortKey(message)
     if not key then return end
     if key >= OWN_KEY then
