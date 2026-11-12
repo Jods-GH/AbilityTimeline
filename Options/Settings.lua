@@ -104,14 +104,17 @@ local isDisabled = function(item)
     return item ~= nil and item.disabled ~= nil and item.disabled() == true
 end
 
----why the row of entry is disabled, its own reason first, then its page's
----@param entry table
+---the warning shown with entry: why its row is disabled, its own reason first, then its page's, else its page's notice
+---@param entry table -- { row, page }, either can be nil
 ---@return string|nil
-local getDisabledReason = function(entry)
-    for _, item in ipairs({ entry.row, entry.page }) do
-        if isDisabled(item) and item.disabledReason then
+local getNotice = function(entry)
+    for _, item in ipairs({ entry.row or false, entry.page or false }) do
+        if item and isDisabled(item) and item.disabledReason then
             return item.disabledReason()
         end
+    end
+    if entry.page and entry.page.notice then
+        return entry.page.notice()
     end
 end
 
@@ -410,7 +413,7 @@ showEntry = function(entry)
         entry.widget:SetNew(false)
         setNavigation()
     end
-    window:ShowDetails(display(row.name), display(row.desc), onReset, display(getDisabledReason(entry)))
+    window:ShowDetails(display(row.name), display(row.desc), onReset, display(getNotice(entry)))
 end
 
 ---shows rows (and headings) in the middle of the window
@@ -499,8 +502,7 @@ local showPage = function(key)
     end
     if page.GetHistory then window:SetPageHistory(page.GetHistory()) else window:SetPageHistory(nil) end
     render(rows, page.key, page.Render, page.pinned, function() return page end)
-    window:ShowDetails(display(page.name), display(page.desc), nil,
-        display(isDisabled(page) and page.disabledReason and page.disabledReason() or page.notice and page.notice() or nil))
+    window:ShowDetails(display(page.name), display(page.desc), nil, display(getNotice({ page = page })))
 end
 
 ---lists the rows of every page whose name or description contain text
