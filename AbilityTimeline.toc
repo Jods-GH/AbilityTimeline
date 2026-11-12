@@ -59,6 +59,7 @@ Util\EncounterBrowser.lua
 Util\Encounters.lua
 Util\ImportUtil.lua
 Util\ChatTransmission.lua
+Util\VersionCheck.lua
 Util\Zoom.lua
 Util\EventColorisation.lua
 Manager.lua

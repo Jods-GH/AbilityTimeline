@@ -129,6 +129,7 @@ private.RegisterSettingsPage({
             func = function() C_Timer.After(0, private.StartTour) end,
         },
         toggle("disableLoginMessage"),
+        toggle("disableVersionCheckMessage"),
         toggle("debugMode"),
     },
 })

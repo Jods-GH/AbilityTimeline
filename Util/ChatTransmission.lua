@@ -11,7 +11,7 @@ local CHAT_REQUEST_MESSAGE = CHAT_REQUEST_PREFIX .. "%i"
 local CHAT_REMINDERS_PREFIX = "reminders-"
 -- Format: reminders-dungeonID-journalID-instanceID-encodedData
 local CHAT_REMINDERS_MESSAGE = CHAT_REMINDERS_PREFIX .. "%i-%i-%i-%s"
-local FindComChannel = function()
+private.FindComChannel = function()
     if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
         return "INSTANCE_CHAT"
     elseif IsInRaid() then
@@ -27,7 +27,7 @@ local ExportToChat = function(reminders, encounterID, target)
     if InChatMessagingLockdown() then
         private.Debug("ExportToChat: In chat messaging lockdown, cannot send reminders.")
         return
-    elseif FindComChannel() == nil then
+    elseif private.FindComChannel() == nil then
         private.Debug("ExportToChat: Not in a group, cannot send reminders.")
         return
     end
@@ -106,7 +106,7 @@ private.StartExportingToChat = function(encounterID)
     if InChatMessagingLockdown() then
         private.Debug("ExportToChat: In chat messaging lockdown, cannot send reminders.")
         return
-    elseif FindComChannel() == nil then
+    elseif private.FindComChannel() == nil then
         private.Debug("ExportToChat: Not in a group, cannot send reminders.")
         return
     end
@@ -114,8 +114,8 @@ private.StartExportingToChat = function(encounterID)
     local realm = GetNormalizedRealmName()
     local msg = CHAT_LINK_MESSAGE:format(encounterID)
     private.Debug("Sending reminder link to " ..
-        FindComChannel() .. " for encounter ID " .. encounterID .. " link: " .. msg)
-    C_ChatInfo.SendChatMessage(msg, FindComChannel())
+        private.FindComChannel() .. " for encounter ID " .. encounterID .. " link: " .. msg)
+    C_ChatInfo.SendChatMessage(msg, private.FindComChannel())
 end
 
 AceCom:RegisterComm(COM_CHAT_PREFIX, ChatHandler)

@@ -28,6 +28,7 @@ function AbilityTimeline:OnInitialize()
     AbilityTimeline:RegisterEvent("ZONE_CHANGED_NEW_AREA")
     AbilityTimeline:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
     AbilityTimeline:RegisterEvent("PLAYER_TALENT_UPDATE")
+    AbilityTimeline:RegisterEvent("GROUP_ROSTER_UPDATE")
     -- clients before C_Weather don't know the event
     if C_Weather then
         AbilityTimeline:RegisterEvent("WEATHER_CHANGED")
@@ -376,6 +377,7 @@ function AbilityTimeline:PLAYER_ENTERING_WORLD(event, isInitialLogin, isReloadin
         C_Timer.After(3, private.checkThemePrompt)
         -- since 12.1 the weather can be unknown for a moment after login
         C_Timer.NewTicker(1, private.CheckThemeConditions, 10)
+        private.announceGuildVersion()
     end
     -- the Reminders page reads the encounters from the journal
     if not C_AddOns.IsAddOnLoaded("Blizzard_EncounterJournal") then
@@ -441,6 +443,10 @@ end
 
 function AbilityTimeline:PLAYER_TALENT_UPDATE()
     private.RefreshAutoTheme()
+end
+
+function AbilityTimeline:GROUP_ROSTER_UPDATE()
+    private.announceGroupVersion()
 end
 
 function AbilityTimeline:WEATHER_CHANGED()

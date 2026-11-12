@@ -18,6 +18,7 @@ private.OptionDefaults = {
 		showRemindersInDisabledDisplays = true,
 		enableDNDMessage = true,
 		disableLoginMessage = false,
+		disableVersionCheckMessage = false,
 		disableReadyCheck = false,
 		disableBreakTimer = false,
 		disableAllBlizzTimers = false,
