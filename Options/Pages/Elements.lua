@@ -91,6 +91,21 @@ end
 
 local colorSources
 
+---colors the spell name of a preview of kind by its first color source that has a color for a magic ability
+---@param kind string
+---@param frame Frame
+local colorPreviewName = function(kind, frame)
+    local shown = colorSources(variables.colorSettings[kind])
+    for _, source in ipairs(private.db.profile[variables.colorSettings[kind]].colorOrder) do
+        local color = source == "dispel" and variables.dispelColor or
+            source ~= "default" and shown[source] and variables.bossModsColor
+        if color then
+            frame.SpellName:SetTextColor(color.r, color.g, color.b)
+        end
+        if color or source == "default" then break end
+    end
+end
+
 ---sets up a preview: what a test event can't show is applied after the widget's own ApplySettings every time, as
 ---that resets it on every theme refresh: the markers, a magic dispel border and boss mod border, the dispel color of
 ---its name by its first color source. It is also kept above the settings window, its strata setting would put it behind it
@@ -116,15 +131,7 @@ local setupPreview = function(kind, widget, settings)
                 private.ThemeApply.BossModsBorder(frame, border, variables.bossModsColor)
             end
         end
-        local shown = colorSources(variables.colorSettings[kind])
-        for _, source in ipairs(private.db.profile[variables.colorSettings[kind]].colorOrder) do
-            local color = source == "dispel" and variables.dispelColor or
-                source ~= "default" and shown[source] and variables.bossModsColor
-            if color then
-                frame.SpellName:SetTextColor(color.r, color.g, color.b)
-            end
-            if color or source == "default" then break end
-        end
+        colorPreviewName(kind, frame)
     end
     local onRelease = widget.OnRelease
     widget.OnRelease = function(self)
@@ -185,6 +192,7 @@ local createPreview = {
             widget.frame.countdownPreview = { remaining = remainingDuration, duration = threshold, elapsed = threshold - remainingDuration,
                 source = private.manager.SOURCES.Addon, state = private.manager.STATES.Active }
             widget:HandleTexts(eventInfo, remainingDuration)
+            colorPreviewName("TextHighlight", self)
             if private.db.profile.highlight_text_settings.dispellIcons then
                 local art = private.manager.getEventIconArt(8)
                 private.ThemeApply.Texture(self.dispellTypeTexture, art)
