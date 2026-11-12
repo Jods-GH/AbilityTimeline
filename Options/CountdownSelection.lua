@@ -193,7 +193,7 @@ function Selection.Example(node, remaining, preferredDuration)
     for _, value in ipairs(bounds.elapsed) do durations[#durations + 1] = remaining + value end
     local candidates = samples(durations, remaining)
     table.insert(candidates, 1, preferred)
-    for _, source in ipairs({ "Addon", "EncounterTimeline", "BigWigs", "DBM", "Reminder", "ReadyCheck", "PullTimer", "KeyReroll" }) do
+    for _, source in ipairs({ "Addon", "EncounterTimeline", "BigWigs", "DBM", "Reminder", "ReadyCheck", "PullTimer", "BreakTimer", "KeyReroll" }) do
         for _, timerState in ipairs({ 0, 1, 4 }) do
             local context = { source = source, state = timerState, remaining = remaining }
             for _, duration in ipairs(candidates) do
@@ -329,7 +329,7 @@ function Session:Render(parent, editor, ui)
     local function facet(field)
         local test = parts[field]
         local values = field == "source" and ui.Sources or ui.States
-        local order = field == "source" and { "EncounterTimeline", "BigWigs", "DBM", "Reminder", "ReadyCheck", "PullTimer", "KeyReroll" } or { 0, 1, 4 }
+        local order = field == "source" and { "EncounterTimeline", "BigWigs", "DBM", "Reminder", "ReadyCheck", "PullTimer", "BreakTimer", "KeyReroll" } or { 0, 1, 4 }
         ui.Note(parent, L(field == "source" and "CountdownCanvasSourceQuestion" or "CountdownCanvasStateQuestion"))
         local items = {{ text = L(field == "source" and "CountdownCanvasAnySource" or "CountdownCanvasAnyState"), value = "any", selected = not test or test.any == true,
             callback = function()

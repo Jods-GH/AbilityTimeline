@@ -17,17 +17,14 @@ local toggle = function(key, onChange)
     }
 end
 
-local refreshBossMods = function()
-    if private.initDbmSkin then
-        private.initDbmSkin()
-    end
-end
-
 local useTimelineModule = toggle("useTimelineModule", private.showReloadPopup)
 useTimelineModule.hidden = function() return not private.isRetail end
 useTimelineModule.image = "Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\Settings\\useTimelineModule.tga"
 
-local timelineHeading = { kind = "Heading", name = L("SettingsSectionTimeline") }
+local disableBreakTimer = toggle("disableBreakTimer")
+disableBreakTimer.hidden = private.manager.hasBossMod
+
+local timelineHeading ={ kind = "Heading", name = L("SettingsSectionTimeline") }
 timelineHeading.hidden = useTimelineModule.hidden
 
 local mergeSettings = {
@@ -113,14 +110,15 @@ private.RegisterSettingsPage({
                 private.refreshEncounterTimelineVisibility()
             end
         end),
-        toggle("disableBossModsBars", refreshBossMods),
-        toggle("disableBossModsEmphasisedBars", refreshBossMods),
+        toggle("disableBossModsBars", private.manager.refreshBossModBars),
+        toggle("disableBossModsEmphasisedBars", private.manager.refreshBossModBars),
         toggle("disableAllOnEncounterEnd"),
         toggle("showRemindersInDisabledDisplays"),
         { kind = "Heading", name = L("SettingsSectionGroup") },
         toggle("enableKeyRerollTimer"),
         toggle("enableDNDMessage"),
         toggle("disableReadyCheck"),
+        disableBreakTimer,
         { kind = "Heading", name = L("SettingsSectionAddon") },
         {
             kind = "Button",

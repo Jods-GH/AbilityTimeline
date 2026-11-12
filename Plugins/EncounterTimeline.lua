@@ -49,7 +49,7 @@ local isAllowed = function(timelineEvent)
     if private.db.profile.disableAllBlizzTimers then
         return false
     end
-    return timelineEvent.claimed or not (private.DisableBlizzTimersBW or private.DisableBlizzTimersDBM)
+    return timelineEvent.claimed or not private.manager.bossModHidesBlizzTimers()
 end
 
 ---decides when an event first appears, blizzard tracks are only used for this since sorted tracks bounce

@@ -27,7 +27,7 @@ local formats = words({ minutes = "CountdownFormatMinutes", clock = "CountdownFo
 local roundingNames = words({ up = "CountdownRoundUp", nearest = "CountdownRoundNearest", down = "CountdownRoundDown" })
 local precisionNames = words({ [0] = "CountdownWhole", [1] = "CountdownTenths", [2] = "CountdownHundredths", [3] = "CountdownThousandths" })
 local sources = words({ EncounterTimeline = "CountdownSourceBlizzard", BigWigs = "CountdownSourceBigWigs", DBM = "CountdownSourceDBM",
-    Reminder = "CountdownSourceReminder", ReadyCheck = "ReadyCheck", PullTimer = "PullTimer", KeyReroll = "CountdownSourceReroll" })
+    Reminder = "CountdownSourceReminder", ReadyCheck = "ReadyCheck", PullTimer = "PullTimer", BreakTimer = "BreakTimer", KeyReroll = "CountdownSourceReroll" })
 local timerStates = words({ [0] = "CountdownStateActive", [1] = "CountdownStatePaused", [4] = "CountdownStateQueued" })
 local stateWords = words({ [0] = "CountdownSentenceActive", [1] = "CountdownSentencePaused", [4] = "CountdownSentenceQueued" })
 local scopes = { Shared = L("CountdownAllDisplays"), SpellIcon = L("SettingsPageSpellIcons"), BigIcon = L("SettingsPageBigIcon"), TextHighlight = L("SettingsPageTextHighlight") }

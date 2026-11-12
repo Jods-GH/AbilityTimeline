@@ -26,7 +26,7 @@ private.manager.SOURCES                        = {
    Addon = "Addon",
 }
 -- Addon timers with a sourceID are told apart in countdown timer selections
-private.manager.COUNTDOWN_SOURCES              = { readycheck = "ReadyCheck", pull = "PullTimer", reroll = "KeyReroll" }
+private.manager.COUNTDOWN_SOURCES              = { readycheck = "ReadyCheck", pull = "PullTimer", reroll = "KeyReroll", ["break"] = "BreakTimer" }
 
 private.TIMELINE_TICKS                         = { 5 }
 
@@ -289,6 +289,37 @@ private.manager.getEventColor = function(eventID, order)
       local color = source and source.getColor(event)
       if color then return color end
    end
+end
+
+-- the boss mods feeding the timeline. Plugins register their own:
+-- { refreshBars = fun(), hidesBlizzTimers = fun(): boolean }
+local bossMods = {}
+
+---@param key string
+---@param bossMod table
+private.manager.registerBossMod = function(key, bossMod)
+   bossMods[key] = bossMod
+end
+
+---@return boolean
+private.manager.hasBossMod = function()
+   return next(bossMods) ~= nil
+end
+
+private.manager.refreshBossModBars = function()
+   for _, bossMod in pairs(bossMods) do
+      if bossMod.refreshBars then
+         bossMod.refreshBars()
+      end
+   end
+end
+
+---@return boolean
+private.manager.bossModHidesBlizzTimers = function()
+   for _, bossMod in pairs(bossMods) do
+      if bossMod.hidesBlizzTimers() then return true end
+   end
+   return false
 end
 
 private.manager.getEventBorderColor = function(eventID)

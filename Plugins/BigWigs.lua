@@ -155,9 +155,11 @@ BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_BarCreated", hideBWBar);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_BarEmphasized", hideBWEmphasizedBar);
 
 
+local hidesBlizzTimers = false
+
 local function DisableBlizApi(event)
     private.Debug("BigWigs Disable Blizzard Timers")
-    private.DisableBlizzTimersBW= true
+    hidesBlizzTimers = true
     if private.refreshEncounterTimelineVisibility then
         private.refreshEncounterTimelineVisibility()
     end
@@ -165,7 +167,7 @@ end
 
 local function EnableBlizApi(event)
     private.Debug("BigWigs Enable Blizzard Timers")
-    private.DisableBlizzTimersBW = false
+    hidesBlizzTimers = false
     if private.refreshEncounterTimelineVisibility then
         private.refreshEncounterTimelineVisibility()
     end
@@ -173,3 +175,7 @@ end
 
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_HideBlizzTimers", DisableBlizApi);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_ShowBlizzTimers", EnableBlizApi);
+
+private.manager.registerBossMod("BigWigs", {
+    hidesBlizzTimers = function() return hidesBlizzTimers end,
+})

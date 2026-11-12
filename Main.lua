@@ -7,6 +7,9 @@ local AceDBOptions = LibStub("AceDBOptions-3.0")
 local CustomNames = C_AddOns.IsAddOnLoaded("CustomNames") and LibStub("CustomNames")
 local issecretvalue = issecretvalue or function() return false end
 local InChatMessagingLockdown = C_ChatInfo.InChatMessagingLockdown or function() return false end
+local IsEncounterInProgress = C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress or IsEncounterInProgress
+-- the prefix of DBM, BigWigs sends its break timers with it as well
+local BREAK_PREFIX = "D5"
 ---@class MyAddon : AceAddon-3.0, AceConsole-3.0, AceConfig-3.0, AceGUI-3.0, AceConfigDialog-3.0
 local AbilityTimeline = LibStub("AceAddon-3.0"):NewAddon("AbilityTimeline", "AceConsole-3.0", "AceEvent-3.0")
 
@@ -54,7 +57,7 @@ function AbilityTimeline:OnInitialize()
     private.Debug(private, "AT_Options")
     if not private.db.profile.disableLoginMessage then
         AbilityTimeline:Print(private.getLocalisation("AccessOptionsMessage"))
-        if not private.isRetail and not C_AddOns.IsAddOnLoaded("DBM-Core") and not C_AddOns.IsAddOnLoaded("BigWigs") then
+        if not private.isRetail and not private.manager.hasBossMod() then
             AbilityTimeline:Print(private.getLocalisation("NoBossModClassicMessage"))
         end
     end
@@ -64,6 +67,11 @@ function AbilityTimeline:OnInitialize()
     self:RegisterChatCommand("at", "SlashCommand")
     self:RegisterChatCommand("AT", "SlashCommand")
     self:RegisterChatCommand("pull", "PullCommand")
+    if not private.manager.hasBossMod() then
+        C_ChatInfo.RegisterAddonMessagePrefix(BREAK_PREFIX)
+        AbilityTimeline:RegisterEvent("CHAT_MSG_ADDON")
+        self:RegisterChatCommand("break", "BreakCommand")
+    end
     if not private.TIMELINE_FRAME then
         private.createTimelineFrame()
     end
@@ -73,9 +81,7 @@ function AbilityTimeline:OnInitialize()
     -- SetCVar("encounterWarningsEnabled", "1")
 
     --init
-    if private.initDbmSkin then
-        private.initDbmSkin()
-    end
+    private.manager.refreshBossModBars()
 end
 
 function AbilityTimeline:OnEnable()
@@ -328,8 +334,43 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
     end
 end
 
+---@param seconds number 0 cancels the running break
+---@param sender string
+local function startBreak(seconds, sender)
+    if private.BreakTimerEventId then
+        private.manager.removeEvent(private.BreakTimerEventId)
+        private.BreakTimerEventId = nil
+    end
+    if seconds == 0 then
+        private.db.global.breakTimer = nil
+        return
+    end
+    private.db.global.breakTimer = { finish = time() + seconds, sender = sender }
+    if private.db.profile.disableBreakTimer then return end
+    local _, classFilename = UnitClass(sender)
+    local color = classFilename and select(4, GetClassColor(classFilename)) or 'ffffffff'
+    local name = CustomNames and CustomNames.Get(sender) or sender
+    local eventinfo = {
+        source = private.manager.SOURCES.Addon,
+        sourceID = "break",
+        duration = seconds,
+        maxQueueDuration = 0,
+        spellName = private.getLocalisation("BreakTimerBy") .. " " .. WrapTextInColorCode(name, color),
+        spellID = 0,
+        iconFileID = 134062,
+        severity = 1,
+        paused = false
+    }
+    private.Debug("Break timer started by " .. sender .. ", duration: " .. seconds .. " seconds.")
+    private.BreakTimerEventId = private.manager.addEvent(eventinfo)
+end
+
 function AbilityTimeline:PLAYER_ENTERING_WORLD(event, isInitialLogin, isReloadingUi)
     if isInitialLogin or isReloadingUi then
+        local breakTimer = private.db.global.breakTimer
+        if breakTimer and not private.manager.hasBossMod() then
+            startBreak(math.max(breakTimer.finish - time(), 0), breakTimer.sender)
+        end
         -- themes can read other addons (ElvUI) which are only set up by now
         private.RestoreSavedTheme()
         C_Timer.After(3, private.checkThemePrompt)
@@ -514,6 +555,33 @@ function AbilityTimeline:CANCEL_PLAYER_COUNTDOWN()
         private.manager.removeEvent(private.PullTimerEventId)
         private.PullTimerEventId = nil
     end
+end
+
+function AbilityTimeline:BreakCommand(msg)
+    local seconds = (tonumber(msg) or -1) * 60
+    if seconds < 0 or seconds > 3600 or (seconds > 0 and seconds < 60) then
+        AbilityTimeline:Print(private.getLocalisation("BreakTimerUsage"))
+    elseif IsEncounterInProgress() or (IsInGroup() and InChatMessagingLockdown()) then
+        AbilityTimeline:Print(private.getLocalisation("BreakTimerUnavailable"))
+    elseif not IsInGroup() then
+        startBreak(seconds, UnitName("player"))
+    elseif not UnitIsGroupLeader("player") and not UnitIsGroupAssistant("player") then
+        AbilityTimeline:Print(private.getLocalisation("BreakTimerNoPermission"))
+    else
+        local message = ("%s-%s\t1\tBT\t%d"):format(UnitNameUnmodified("player"), GetNormalizedRealmName(), seconds)
+        C_ChatInfo.SendAddonMessage(BREAK_PREFIX, message, IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and "INSTANCE_CHAT" or "RAID")
+    end
+end
+
+function AbilityTimeline:CHAT_MSG_ADDON(event, prefix, message, channel, sender)
+    if prefix ~= BREAK_PREFIX or issecretvalue(message) then return end
+    if channel ~= "PARTY" and channel ~= "RAID" and channel ~= "INSTANCE_CHAT" then return end
+    local _, _, subPrefix, seconds = strsplit("\t", message)
+    seconds = tonumber(seconds)
+    if subPrefix ~= "BT" or not seconds or seconds < 0 or seconds > 3600 or (seconds > 0 and seconds < 60) then return end
+    sender = Ambiguate(sender, "none")
+    if IsEncounterInProgress() or not (UnitIsGroupLeader(sender) or UnitIsGroupAssistant(sender)) then return end
+    startBreak(seconds, sender)
 end
 
 function AbilityTimeline:CHALLENGE_MODE_RESET(event, mapID)

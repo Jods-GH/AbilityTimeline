@@ -1212,7 +1212,7 @@ local function RefreshTabs(self)
     ThemedWidgets.DrawButton(self.rulesButton)
     -- stages and boss timer rules both come from the boss mods
     local usesStages = #stages > 1 or stages[1] ~= 1
-    local noBossMod = not C_AddOns.IsAddOnLoaded("BigWigs") and not C_AddOns.IsAddOnLoaded("DBM-Core")
+    local noBossMod = not private.manager.hasBossMod()
     self.noBossMod:ClearAllPoints()
     if self.mode == "rules" then
         self.noBossMod:SetPoint("LEFT", self.board, "LEFT", variables.padding, 0)
@@ -1834,8 +1834,7 @@ refreshView = function(self)
         part:SetShown(not rules)
     end
     self.rulesView:SetShown(rules)
-    setButtonEnabled(self.addButton, not rules or C_AddOns.IsAddOnLoaded("BigWigs") or
-        C_AddOns.IsAddOnLoaded("DBM-Core"))
+    setButtonEnabled(self.addButton, not rules or private.manager.hasBossMod())
     self.addButton:SetText(L(rules and "EditorAddRule" or "EditorAddReminder"))
     self.addButton:SetWidth(self.addButton:GetFontString():GetStringWidth() + 28)
     if rules then

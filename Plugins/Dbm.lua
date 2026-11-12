@@ -13,7 +13,7 @@ private.manager.registerColorSource("dbm", {
     fallbackFor = { bossmodText = true, bossmodBar = true },
 })
 local timerInfos = {}
-private.DisableBlizzTimersDBM = false
+local hidesBlizzTimers = false
 local excludedTimers = {
     ["pull"] = true,
 }
@@ -159,14 +159,14 @@ local function DisableBlizApi(event)
         private.Debug("DBM bars are hidden by settings, force enabling them")
         DBM.Options.HideDBMBars = false
     end
-    private.DisableBlizzTimersDBM = true
+    hidesBlizzTimers = true
     if private.refreshEncounterTimelineVisibility then
         private.refreshEncounterTimelineVisibility()
     end
 end
 
 local function EnableBlizApi(event)
-    private.DisableBlizzTimersDBM = false
+    hidesBlizzTimers = false
     if private.refreshEncounterTimelineVisibility then
         private.refreshEncounterTimelineVisibility()
     end
@@ -184,7 +184,7 @@ end)
 DBM:RegisterCallback("DBM_IgnoreBlizzAPI", DisableBlizApi)
 DBM:RegisterCallback("DBM_ResumeBlizzAPI", EnableBlizApi)
 
-private.initDbmSkin = function()
+local function refreshBars()
     if DBT and (private.db.profile.disableBossModsBars or private.db.profile.disableBossModsEmphasisedBars) then
         if not DBT:GetSkins().Better_Timeline_Skin then
             local skin = DBT:RegisterSkin("Better_Timeline_Skin")
@@ -216,3 +216,8 @@ private.initDbmSkin = function()
         end
     end
 end
+
+private.manager.registerBossMod("DBM", {
+    refreshBars = refreshBars,
+    hidesBlizzTimers = function() return hidesBlizzTimers end,
+})
