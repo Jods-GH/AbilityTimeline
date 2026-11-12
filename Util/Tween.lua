@@ -29,7 +29,7 @@ driver:SetScript("OnUpdate", function(_, elapsed)
         tween.elapsed = tween.elapsed + elapsed
         local progress = math.min(tween.elapsed / tween.time, 1)
         tween.onUpdate(tween.from + (tween.to - tween.from) * tween.ease(progress))
-        if progress >= 1 then
+        if progress >= 1 and tweens[key] == tween then
             tweens[key] = nil
             table.insert(finished, tween)
         end

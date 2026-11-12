@@ -8,7 +8,7 @@ local ThemedWidgets = private.ThemedWidgets
 -- it turns on, a one pixel edge and a square knob sliding to the end it is at; a ring with a dot for
 -- SetType("radio")
 local Type = "AtCheckBox"
-local Version = 2
+local Version = 3
 local variables = {
     switch = { width = 36, height = 18, knob = 12, inset = 3 },
     radio = { size = 16, dot = 8 },
@@ -75,18 +75,40 @@ local function ApplySettings(self)
     frame:SetAlpha(self.disabled and 0.5 or 1)
 
     local value = self.checked and 1 or 0
-    if frame.atValue ~= value then
-        -- only a click slides the switch, a value set by code (a pooled check box shown again) jumps to it
-        local from = self.atAnimate and frame.atValue or value
-        private.TweenMotion(frame, "Toggle", from, value, function(progress)
+    -- only a click slides the switch, a value set by code (a pooled check box shown again) jumps to it
+    if frame.atValue ~= value and self.atAnimate then
+        private.TweenMotion(frame, "Toggle", frame.atValue, value, function(progress)
             frame.atProgress = progress
             drawState(frame)
         end)
-        frame.atValue = value
     else
+        if frame.atValue ~= value then
+            private.StopTween(frame)
+            frame.atProgress = value
+        end
         drawState(frame)
     end
+    frame.atValue = value
     self.atAnimate = nil
+end
+
+---logs a switch that is drawn differently from its state, called right before it is drawn again
+---@param frame Frame
+---@param when string
+local checkDrawn = function(frame, when)
+    if frame.atRadio or ThemeApply.ControlStyle("CheckBox") then return end
+    local switch = variables.switch
+    local progress = frame.atProgress or 0
+    local _, _, _, fill = frame.AtOn:GetVertexColor()
+    local _, _, _, offset = frame.AtKnob:GetPoint()
+    local expected = switch.inset + progress * (switch.width - switch.knob - switch.inset * 2)
+    if math.abs(fill - 0.9 * progress) < 0.02 and offset and math.abs(offset - expected) < 0.5 then return end
+    local r, g, b = frame.AtKnob:GetVertexColor()
+    local line = ("AtCheckBox drawn stale on %s: checked %s value %s progress %.2f | fill %.2f knob %s (%.2f %.2f %.2f) | theme %s animations %s")
+        :format(when, tostring(frame.obj.checked), tostring(frame.atValue), progress, fill, tostring(offset), r, g, b,
+            private.GetCurrentThemeKey(), private.GetAnimationLevel())
+    private.DebugLog(line)
+    private.Debug(line)
 end
 
 ---@param widget AtCheckBox
@@ -131,6 +153,12 @@ local function Skin(widget)
     frame.AtDot:SetSize(radio.dot, radio.dot)
     frame.AtDot:SetPoint("CENTER", frame.AtRing)
 
+    frame:HookScript("OnShow", function()
+        checkDrawn(frame, "show")
+        drawState(frame)
+    end)
+    -- hooked before the hover so it still sees what was drawn before hovering redraws it
+    frame:HookScript("OnEnter", function() checkDrawn(frame, "hover") end)
     ThemedWidgets.HookHover(frame, {}, function(progress)
         frame.atHover = progress
         drawState(frame)
