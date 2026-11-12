@@ -558,18 +558,25 @@ local groupRows = function(path, onChange, asText, inactive, inactiveReason)
     }
 end
 
----greys out a page while its display is turned off in the active Edit Mode layout, the reason is the localisation
----of "Settings" .. page.key .. "Disabled" naming the layout and the Edit Mode checkbox of enableKey
+---greys out a page while its display is turned off in the active Edit Mode layout, or warns that only reminders
+---use it while they still show there. Both texts are the localisation of "Settings" .. page.key .. "Disabled" or
+---"RemindersOnly" naming the layout and the Edit Mode checkbox of enableKey
 ---@param page table
 ---@param isEnabled function
 ---@param enableKey string
 ---@return table page
 local turnedOffInEditMode = function(page, isEnabled, enableKey)
+    local reason = function(key)
+        return L("Settings" .. page.key .. key):format(private.ACTIVE_EDITMODE_LAYOUT, L(enableKey))
+    end
     page.disabled = function()
-        return not isEnabled()
+        return not isEnabled() and not private.db.profile.showRemindersInDisabledDisplays
     end
     page.disabledReason = function()
-        return L("Settings" .. page.key .. "Disabled"):format(private.ACTIVE_EDITMODE_LAYOUT, L(enableKey))
+        return reason("Disabled")
+    end
+    page.notice = function()
+        return not isEnabled() and reason("RemindersOnly") or nil
     end
     return page
 end

@@ -116,6 +116,7 @@ private.RegisterSettingsPage({
         toggle("disableBossModsBars", refreshBossMods),
         toggle("disableBossModsEmphasisedBars", refreshBossMods),
         toggle("disableAllOnEncounterEnd"),
+        toggle("showRemindersInDisabledDisplays"),
         { kind = "Heading", name = L("SettingsSectionGroup") },
         toggle("enableKeyRerollTimer"),
         toggle("enableDNDMessage"),

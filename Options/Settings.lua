@@ -5,10 +5,11 @@ local AceGUI = LibStub("AceGUI-3.0")
 local LibEditMode = LibStub("LibEditMode")
 local ThemeApply = private.ThemeApply
 
--- the pages of the settings window: { key, name, desc, order, rows, hidden, disabled, disabledReason, image, GetPreview,
--- Render, OnShow, OnHide, testTimers, pinned }. Render(scroll, header) adds content of its own, pinned keeps the rows
--- above the scrolling part, testTimers runs the test timers while the page is shown, disabled greys out all its rows
--- and disabledReason tells why, as a row's own disabledReason does. Rows are written like Edit Mode settings with kind
+-- the pages of the settings window: { key, name, desc, order, rows, hidden, disabled, disabledReason, notice, image,
+-- GetPreview, Render, OnShow, OnHide, testTimers, pinned }. Render(scroll, header) adds content of its own, pinned keeps
+-- the rows above the scrolling part, testTimers runs the test timers while the page is shown, disabled greys out all
+-- its rows and disabledReason tells why, as a row's own disabledReason does, notice is a warning of a page that is
+-- not disabled. Rows are written like Edit Mode settings with kind
 -- Heading, Checkbox, Slider, Dropdown, Color, Button, Input (set when enter is pressed) or Media (a SharedMedia pick
 -- of its mediaType), and instead of
 -- get and set they can name themePath (a value of the current theme) or profileKey (a dotted path into db.profile).
@@ -499,7 +500,7 @@ local showPage = function(key)
     if page.GetHistory then window:SetPageHistory(page.GetHistory()) else window:SetPageHistory(nil) end
     render(rows, page.key, page.Render, page.pinned, function() return page end)
     window:ShowDetails(display(page.name), display(page.desc), nil,
-        display(isDisabled(page) and page.disabledReason and page.disabledReason() or nil))
+        display(isDisabled(page) and page.disabledReason and page.disabledReason() or page.notice and page.notice() or nil))
 end
 
 ---lists the rows of every page whose name or description contain text

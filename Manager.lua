@@ -110,20 +110,30 @@ local isHighlighted = function(remaining, state, threshold)
    return state == STATES.Active and remaining > 0 and remaining <= threshold
 end
 
+---reminders can still be rendered by a display that is turned off in Edit Mode
+---@param event table
+---@param enabled boolean|nil -- the Edit Mode setting of the display
+---@return boolean|nil
+local isDisplayEnabled = function(event, enabled)
+   return enabled or
+      event.source == private.manager.SOURCES.Reminder and private.db.profile.showRemindersInDisabledDisplays
+end
+
 ---rules deciding when an event is rendered by each display
 private.manager.displays = {
    timeline = function(event, remaining, state)
-      return private.db.profile.useTimelineModule and private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].enabled and
+      return private.db.profile.useTimelineModule and
+         isDisplayEnabled(event, private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].enabled) and
          (state ~= STATES.Active or remaining > 0)
    end,
    bigIcon = function(event, remaining, state)
       local layoutName = private.ACTIVE_EDITMODE_LAYOUT
-      return private.db.global.bigicon_enabled[layoutName] and
+      return isDisplayEnabled(event, private.db.global.bigicon_enabled[layoutName]) and
          isHighlighted(remaining, state, private.db.profile.big_icon_settings.threshold_time)
    end,
    textHighlight = function(event, remaining, state)
       local layoutName = private.ACTIVE_EDITMODE_LAYOUT
-      return private.db.global.text_highlight_enabled[layoutName] and
+      return isDisplayEnabled(event, private.db.global.text_highlight_enabled[layoutName]) and
          isHighlighted(remaining, state, private.db.profile.highlight_text_settings.threshold_time)
    end,
    audio = function(event, remaining, state)

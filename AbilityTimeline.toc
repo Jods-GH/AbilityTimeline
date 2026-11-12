@@ -137,6 +137,7 @@ Plugins\Dbm.lua
 Plugins\BigWigs.lua
 
 # Core
+Options\OptionDefaults.lua
 Options\Options.lua
 Options\ImportDialogHandler.lua
 Options\TimingEditor.lua

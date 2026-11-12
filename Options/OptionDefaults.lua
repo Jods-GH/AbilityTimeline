@@ -6,20 +6,16 @@ private.OptionDefaults = {
 	profile = {
 		debugMode = false,
 		useTimelineModule = true,
-		useAudioCountdowns = true,
+		useAudioCountdowns = false,
 		audioCountdownTime = 5,
 		enableKeyRerollTimer = true,
-		icon_settings = {
-			size = 50,
-			iconMargin = 5,
-		},
 		reminders = {},
-		-- boss timer rules per encounter (Plugins/TimerRules.lua)
 		timerRules = {},
 		editor = {
 			defaultEncounterDuration = 300,
 		},
 		disableAllOnEncounterEnd = true,
+		showRemindersInDisabledDisplays = true,
 		enableDNDMessage = true,
 		disableLoginMessage = false,
 		disableReadyCheck = false,
