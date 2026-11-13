@@ -445,26 +445,23 @@ ThemeApply.CooldownArt = function(frame, style, skinned)
     cooldown:SetDrawBling(false)
 end
 
----cuts a merged image from the visible icon's geometry and crop, including Masque offsets
+local FULL_CROP = { 0, 1, 0, 1 }
+
+---cuts a merged image from the icon's own crop (atCrop), never read back from the image; the slice keeps its crop
+---(atCoords) for the exits that copy it
 ThemeApply.LayoutIconSlice = function(slice, icon, index, count, width, height)
     slice:ClearAllPoints()
     slice:SetPoint("TOPLEFT", icon, "TOPLEFT", (index - 1) * width / count, 0)
     slice:SetSize(width / count, height)
-    local ulx, uly, llx, lly, urx, ury, lrx, lry = icon:GetTexCoord()
-    local left, right = (index - 1) / count, index / count
-    slice:SetTexCoord(ulx + (urx - ulx) * left, uly + (ury - uly) * left,
-        llx + (lrx - llx) * left, lly + (lry - lly) * left,
-        ulx + (urx - ulx) * right, uly + (ury - uly) * right,
-        llx + (lrx - llx) * right, lly + (lry - lly) * right)
+    local crop = icon.atCrop or FULL_CROP
+    local span = crop[2] - crop[1]
+    slice.atCoords = { crop[1] + span * (index - 1) / count, crop[1] + span * index / count, crop[3], crop[4] }
+    slice:SetTexCoord(unpack(slice.atCoords))
 end
 
----the size of the visible icon image, the frame's own size while the image isn't laid out yet
+---the size the icon was set to: an icon showing an encounter's texture is never measured, its size can be secret
 ThemeApply.IconSize = function(frame)
-    local width, height = frame.SpellIcon:GetSize()
-    if width == 0 or height == 0 then
-        return frame:GetSize()
-    end
-    return width, height
+    return frame.atIconSize, frame.atIconSize
 end
 
 ---places a texture around the icon image, offsets scale per axis with the icon against referenceSize
@@ -512,6 +509,8 @@ ThemeApply.IconArt = function(frame, icon, style, overlayParent, skinned)
     end
     if skinned then
         icon.zoomApplied = nil
+        -- Masque crops the image itself, merged images and exits use the theme's crop as it can't be read back
+        icon.atCrop = { private.ZoomCrop(1 - style.Zoom) }
     else
         icon:ClearAllPoints()
         icon:SetAllPoints(frame)
@@ -526,9 +525,15 @@ ThemeApply.IconArt = function(frame, icon, style, overlayParent, skinned)
         frame.AtIconMask = frame:CreateMaskTexture()
         frame.AtIconMask:SetAllPoints(icon)
     end
-    local masked = not skinned and ThemeApply.Mask(frame.AtIconMask, style.Mask)
-    if masked ~= (frame.iconMasked or false) then
-        local textures = { icon, unpack(frame.MergeSlices or {}) }
+    local masked = ThemeApply.Mask(frame.AtIconMask, style.Mask)
+    local iconMasked = not skinned and masked
+    if iconMasked ~= (frame.iconMasked or false) then
+        if iconMasked then icon:AddMaskTexture(frame.AtIconMask)
+        else icon:RemoveMaskTexture(frame.AtIconMask) end
+        frame.iconMasked = iconMasked
+    end
+    if masked ~= (frame.mergedMasked or false) then
+        local textures = { unpack(frame.MergeSlices or {}) }
         for _, texture in ipairs(frame.MergeSeparators or {}) do textures[#textures + 1] = texture end
         for _, texture in ipairs(textures) do
             if masked then
@@ -537,23 +542,8 @@ ThemeApply.IconArt = function(frame, icon, style, overlayParent, skinned)
                 texture:RemoveMaskTexture(frame.AtIconMask)
             end
         end
-        frame.iconMasked = masked
+        frame.mergedMasked = masked
     end
-    -- Merged images and their separators use the same full-icon skin masks as the original image.
-    local skinMasks = {}
-    if skinned then
-        for i = 1, icon:GetNumMaskTextures() do
-            local mask = icon:GetMaskTexture(i)
-            if mask ~= frame.AtIconMask then skinMasks[#skinMasks + 1] = mask end
-        end
-    end
-    local mergedTextures = { unpack(frame.MergeSlices or {}) }
-    for _, texture in ipairs(frame.MergeSeparators or {}) do mergedTextures[#mergedTextures + 1] = texture end
-    for _, texture in ipairs(mergedTextures) do
-        for _, mask in ipairs(frame.atSkinMasks or {}) do texture:RemoveMaskTexture(mask) end
-        for _, mask in ipairs(skinMasks) do texture:AddMaskTexture(mask) end
-    end
-    frame.atSkinMasks = skinMasks
     layoutBorderEdges(frame, frame.atIconBorder)
 
     if not frame.IconOverlay then
@@ -610,8 +600,7 @@ ThemeApply.DebugIconGeometry = function(print)
     for frame in pairs(iconFrames) do
         if frame:IsShown() then
             local width, height = frame:GetSize()
-            local iconWidth, iconHeight = frame.SpellIcon:GetSize()
-            print("icon:", frame:GetName(), "frame:", width, height, "image:", iconWidth, iconHeight,
+            print("icon:", frame:GetName(), "frame:", width, height, "image:", ThemeApply.IconSize(frame),
                 "scale:", frame:GetScale(), "Masque:", frame.atIconSkinned, "masked:", frame.iconMasked)
             local source = frame.atBorderSource
             print("border:", source and (source:GetAtlas() or source:GetTexture()) or frame.atIconBorder.File,

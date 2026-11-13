@@ -413,10 +413,19 @@ private.RegisterSettingsPage({
                 return true
             end,
             func = function()
-                for _, key in ipairs(OPTION_ORDER) do
-                    if options[key].modified() then options[key].reset() end
-                end
-                private.RefreshSettingsPage()
+                ask({
+                    title = L("ResetThemeOptions"),
+                    text = L("SettingsResetThemeOptionsText"),
+                    accept = L("SettingsReset"),
+                    acceptStyle = "Danger",
+                    back = CANCEL,
+                    onAccept = function()
+                        for _, key in ipairs(OPTION_ORDER) do
+                            if options[key].modified() then options[key].reset() end
+                        end
+                        private.RefreshSettingsPage()
+                    end,
+                })
             end,
         },
         {

@@ -488,6 +488,24 @@ local markerRows = function(kind, settings)
     }
 end
 
+---the look of the duration and heartbeat lanes, shared by spell icons and big icons
+---@return table[]
+local durationRows = function()
+    return {
+        heading("SettingsSectionDuration"),
+        row("Slider", "DurationThickness", { themePath = "Elements.Duration.Thickness", minValue = 1, maxValue = 12, valueStep = 0.5 }),
+        row("Checkbox", "DurationUseCountdownColor", { themePath = "Elements.Duration.UseCountdownColor" }),
+        row("Color", "DurationColor", {
+            themePath = "Elements.Duration.Color",
+            hidden = function() return private.GetThemeValue("Elements.Duration.UseCountdownColor") ~= false end,
+        }),
+        row("Slider", "DurationPips", { themePath = "Elements.Duration.Pips.Count", minValue = 1, maxValue = 10, valueStep = 1 }),
+        row("Slider", "DurationHeartbeatAlpha", {
+            themePath = "Elements.Duration.Heartbeat.Alpha", minValue = 0.1, maxValue = 1, valueStep = 0.05, isPercent = true,
+        }),
+    }
+end
+
 ---the rows of an icon itself, size only when it is not saved per Edit Mode layout
 ---@param kind string
 ---@param settings string
@@ -598,7 +616,8 @@ end
 local spellIconRows = join(
     iconRows("SpellIcon", "icon_settings", true),
     textRows("SpellIcon", { anchors = TEXT_ANCHORS[false], flags = true }),
-    markerRows("SpellIcon", "icon_settings"))
+    markerRows("SpellIcon", "icon_settings"),
+    durationRows())
 
 private.RegisterSettingsPage({
     key = "SpellIcons",
@@ -632,7 +651,8 @@ for _, vertical in ipairs({ true, false }) do
         bigIconGeneralRows,
         iconRows("BigIcon", "big_icon_settings", false),
         textRows("BigIcon", { anchors = TEXT_ANCHORS[vertical], flags = true }),
-        markerRows("BigIcon", "big_icon_settings"))
+        markerRows("BigIcon", "big_icon_settings"),
+        durationRows())
 end
 
 private.RegisterSettingsPage(turnedOffInEditMode({

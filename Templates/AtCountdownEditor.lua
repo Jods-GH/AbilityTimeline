@@ -21,7 +21,7 @@ end
 
 local function FitContent(self)
     if not self.scroll then return end
-    local limit = math.min(variables.maxHeight, UIParent:GetHeight() - 48)
+    local limit = math.min(self.maxHeight or variables.maxHeight, UIParent:GetHeight() - 48)
     for _ = 1, 2 do
         local height = self.headerHeight + variables.padding + self.scroll.content:GetHeight() + variables.contentBottom
         self.frame:SetHeight(math.min(limit, math.max(variables.minHeight, height)))
@@ -54,6 +54,7 @@ end
 
 local function OnAcquire(self)
     self.frame:SetSize(math.min(variables.width, UIParent:GetWidth() - 24), math.min(variables.minHeight, UIParent:GetHeight() - 48))
+    self.maxHeight, self.frame.atSideBySide = nil, nil
     self:SetActions(nil)
 end
 
@@ -71,8 +72,9 @@ local function ShowBeside(self, owner)
     frame:ClearAllPoints()
     if owner then
         frame:SetFrameLevel(owner:GetFrameLevel() + 20)
-        -- at the bottom of the window, the lanes above stay visible
-        if owner.Nav then frame:SetPoint("BOTTOMLEFT", owner.Nav, "BOTTOMRIGHT", 12, -6)
+        -- at the bottom of the window, the lanes above stay visible; beside a lanes window of its own
+        if owner.atSideBySide then frame:SetPoint("TOPLEFT", owner, "TOPRIGHT", 8, 0)
+        elseif owner.Nav then frame:SetPoint("BOTTOMLEFT", owner.Nav, "BOTTOMRIGHT", 12, -6)
         else frame:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", 16, 16) end
     else frame:SetPoint("CENTER", UIParent, "CENTER") end
     frame:Show()

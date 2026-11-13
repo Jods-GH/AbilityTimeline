@@ -33,6 +33,8 @@ end
 ---@param rule table
 ---@return table
 private.GetTimerRuleOverrides = function(rule)
+    local glowSelection
+    if rule.glowWhen == "custom" then glowSelection = rule.glowSelection or false end
     local ownColor = private.GetUsedColor(rule)
     local color = ownColor and CreateColor(ownColor.r, ownColor.g, ownColor.b)
     return {
@@ -43,8 +45,10 @@ private.GetTimerRuleOverrides = function(rule)
         countdown = rule.countdown,
         glow = rule.glow,
         glowColor = ownColor and { r = ownColor.r, g = ownColor.g, b = ownColor.b, a = 1 },
-        -- glowWhen "close" glows only below the big icon's threshold
-        glowAlways = rule.glow ~= nil and rule.glowWhen ~= "close" or nil,
+        -- glowWhen "close" glows only below the big icon's threshold, "custom" while its timer selection matches
+        glowAlways = rule.glow ~= nil and rule.glowWhen ~= "close" and rule.glowWhen ~= "custom" or nil,
+        glowSelection = glowSelection,
+        countdownChanges = rule.changes,
     }
 end
 

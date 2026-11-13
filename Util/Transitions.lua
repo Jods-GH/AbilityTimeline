@@ -151,34 +151,30 @@ end
 
 ThemeApply.SetTransitionMask = setMask
 
--- Snapshot the image before its widgets return to the pool. Merge slices divide the icon horizontally.
+-- Snapshot the image before its widgets return to the pool. Merge slices divide the icon horizontally. Nothing is read
+-- back from them, an encounter's textures and their geometry can be secret: the files and crops set on them are kept.
 local snapshotIcon = function(frame)
-    if not frame.MergeSlices or not frame.MergeSlices[1]:IsShown() then return end
-    local sources = {}
-    for _, source in ipairs(frame.MergeSlices) do
-        if source:IsShown() then table.insert(sources, source) end
+    local count = frame.mergeKey and frame.atMergeCount
+    if not count or not frame.MergeSlices then return end
+    local slices = {}
+    for i = 1, count do
+        local source = frame.MergeSlices[i]
+        table.insert(slices, { file = source.atFile, coords = source.atCoords, x = (i - 1) / count, width = 1 / count })
     end
-    local count, slices = #sources, {}
-    local add = function(source, x, width, separator)
-        local r, g, b, a = source:GetVertexColor()
-        table.insert(slices, {
-            file = source:GetTexture(), coords = { source:GetTexCoord() }, x = x, width = width,
-            r = r, g = g, b = b, a = a, alpha = source:GetAlpha(), separator = separator,
-        })
-    end
-    for i, source in ipairs(sources) do add(source, (i - 1) / count, 1 / count) end
-    for i, source in ipairs(frame.MergeSeparators or {}) do
-        if source:IsShown() then add(source, i / count, source:GetWidth() / frame:GetWidth(), true) end
+    -- the separators are the theme's, centred on the cuts like on the icon
+    local spec = private.GetElementStyle("SpellIcon").MergeSeparator
+    local share = spec.Width / ThemeApply.IconSize(frame)
+    for i = 1, count - 1 do
+        table.insert(slices, { spec = spec, x = i / count - share / 2, width = share, separator = true })
     end
     return slices
 end
 
--- All image pieces follow one full-icon control texture and its full-icon masks, rather than separate effects.
-local drawComposite = function(holder, key, control, slices, shardMask)
+-- All image pieces follow one full-icon control texture and its full-icon masks, rather than separate effects. The
+-- control's size and alpha are passed in as they were set, it may have shown an encounter's texture.
+local drawComposite = function(holder, key, control, slices, shardMask, width, height, alpha)
     if not slices then hideComposite(holder[key]); return end
     holder[key] = holder[key] or {}
-    local width, height = control:GetWidth(), control:GetHeight()
-    local r, g, b, a = control:GetVertexColor()
     local layer, sublevel = control:GetDrawLayer()
     local shape = control.atShaped and holder.AtShape
     for i, slice in ipairs(slices) do
@@ -190,19 +186,23 @@ local drawComposite = function(holder, key, control, slices, shardMask)
         if texture.source ~= slice then
             for mask in pairs(texture.atMasks or {}) do setMask(texture, mask, false) end
             texture:SetParent(control:GetParent())
-            texture:SetTexture(slice.file)
-            texture:SetTexCoord(unpack(slice.coords))
-            texture:ClearTextureSlice()
+            if slice.spec then
+                ThemeApply.Texture(texture, slice.spec)
+            else
+                texture:SetTexture(slice.file)
+                texture:SetTexCoord(unpack(slice.coords or { 0, 1, 0, 1 }))
+                texture:ClearTextureSlice()
+                texture:SetVertexColor(1, 1, 1, 1)
+                texture:SetBlendMode("BLEND")
+            end
+            texture:SetDesaturated(false)
             texture:ClearAllPoints()
             texture.source = slice
         end
         texture:SetDrawLayer(layer, math.min(sublevel + (slice.separator and 1 or 0), 7))
         texture:SetPoint("TOPLEFT", control, "TOPLEFT", width * slice.x, 0)
         texture:SetSize(width * slice.width, height)
-        texture:SetVertexColor(r * slice.r, g * slice.g, b * slice.b, a * slice.a)
-        texture:SetAlpha(control:GetAlpha() * slice.alpha)
-        texture:SetDesaturation(control:GetDesaturation())
-        texture:SetBlendMode(control:GetBlendMode())
+        texture:SetAlpha(alpha)
         for mask in pairs(texture.atMasks or {}) do
             if mask ~= shardMask and mask ~= shape and not (control.atMasks and control.atMasks[mask]) then
                 setMask(texture, mask, false)
@@ -289,10 +289,12 @@ end
 local stepGhost = function(host, ghost, progress)
     local scale = host.ghostBehavior and host.ghostBehavior.GetGhostScale and host.ghostBehavior.GetGhostScale(ghost, progress)
         or lerp(ghost.Scale, progress * progress, 1)
-    host.Ghost:SetSize(math.max(host:GetWidth() * scale, 0.01), math.max(host:GetHeight() * scale, 0.01))
+    local width, height = math.max(host:GetWidth() * scale, 0.01), math.max(host:GetHeight() * scale, 0.01)
+    host.Ghost:SetSize(width, height)
     local rise = ghost.Rise
     host.Ghost:SetPoint("CENTER", host, "CENTER", 0, type(rise) == "table" and lerp(rise, progress) or (rise or 0) * progress)
-    host.Ghost:SetAlpha(lerp(ghost.Fade, progress, ghost.Dissolve and 1 or 1 - progress))
+    local alpha = lerp(ghost.Fade, progress, ghost.Dissolve and 1 or 1 - progress)
+    host.Ghost:SetAlpha(alpha)
     host.GhostFlash:SetAlpha(math.sin(math.pi * progress))
     if host.ghostBehavior and host.ghostBehavior.StepGhost then
         host.ghostBehavior.StepGhost(host, ghost, progress)
@@ -310,7 +312,7 @@ local stepGhost = function(host, ghost, progress)
         end
         host.GhostEdge:SetAlpha(1 - progress * progress)
     end
-    drawComposite(host, "GhostSlices", host.Ghost, ghost.Source == "Icon" and host.iconSlices or nil)
+    drawComposite(host, "GhostSlices", host.Ghost, ghost.Source == "Icon" and host.iconSlices or nil, nil, width, height, alpha)
 end
 
 ---@param host Frame
@@ -471,9 +473,9 @@ end
 ---@param iconFile any
 local cutShards = function(host, shards, icon, iconFile)
     local left, right, top, bottom = 0, 1, 0, 1
-    if shards.Source == "Icon" and icon then
-        local ulx, uly, _, _, _, _, lrx, lry = icon:GetTexCoord()
-        left, top, right, bottom = ulx, uly, lrx, lry
+    -- the crop set on the icon, never read back from an image that may show an encounter's texture
+    if shards.Source == "Icon" and icon and icon.atCrop then
+        left, right, top, bottom = unpack(icon.atCrop)
     end
     local middle = SHARD_SEEDS[1]
     for index, seed in ipairs(SHARD_SEEDS) do
@@ -492,7 +494,7 @@ local cutShards = function(host, shards, icon, iconFile)
         piece:SetSize(host:GetWidth(), host:GetHeight())
         if shards.Source == "Icon" and host.iconSlices then
             piece.Texture:SetTexture(nil)
-            drawComposite(piece, "IconSlices", piece.Texture, host.iconSlices, piece.Mask)
+            drawComposite(piece, "IconSlices", piece.Texture, host.iconSlices, piece.Mask, host:GetWidth(), host:GetHeight(), 1)
         end
         local speed = between(shards.Speed)
         piece.x, piece.y = 0, 0
@@ -517,7 +519,7 @@ local setupGhost = function(host, ghost, icon, iconFile, frame)
         texture:ClearTextureSlice()
         texture:SetBlendMode("BLEND")
         texture:SetVertexColor(ThemeApply.Color())
-        texture:SetTexCoord(icon:GetTexCoord())
+        texture:SetTexCoord(unpack(icon.atCrop or { 0, 1, 0, 1 }))
     else
         ThemeApply.Texture(texture, ghost)
     end

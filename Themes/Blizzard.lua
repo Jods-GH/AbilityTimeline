@@ -131,6 +131,7 @@ do
         end
         move(frame.SpellName, motion.Labels)
         move(frame.Cooldown, motion.Labels)
+        move(frame.DurationLayer, motion.Labels)
         for _, key in ipairs({ "RoleIcons", "dispellTypeIcons", "DangerIcon" }) do
             for _, region in ipairs(frame[key] or {}) do move(region, motion.Labels) end
         end
@@ -393,8 +394,13 @@ do
                 local anchor = index == 1 and frame.atSpellNameAnchor or { "CENTER", "CENTER", 0, 0 }
                 if anchor then
                     label:SetFont(source:GetFont())
-                    label:SetText(source:GetText())
-                    label:SetTextColor(source:GetTextColor())
+                    if index == 1 then
+                        label:SetText(frame.atNameText or "")
+                        label:SetTextColor(unpack(frame.atNameColor or { 1, 1, 1 }))
+                    else
+                        label:SetText(source.atCountdownText or "")
+                        label:SetTextColor(source:GetTextColor())
+                    end
                     label:SetScale(scale)
                     label:ClearAllPoints()
                     label:SetPoint(anchor[1], host, anchor[2], anchor[3], anchor[4])

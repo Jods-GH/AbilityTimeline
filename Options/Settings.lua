@@ -366,8 +366,8 @@ local setShownPage = function(page)
         if page.OnShow then
             page.OnShow()
         end
-        private.OnTourEvent("page" .. page.key)
     end
+    return true
 end
 
 ---shows what content of a page's own is about, e.g. a hovered theme card
@@ -480,7 +480,7 @@ local showPage = function(key)
     end
     currentPage = currentPage or pages[1]
     local page = currentPage
-    setShownPage(page)
+    local opened = setShownPage(page)
     window:SelectPage(page.key)
     pagePreview = page.GetPreview and page.GetPreview()
     window:SetMedia(pagePreview, page.image)
@@ -491,18 +491,31 @@ local showPage = function(key)
             table.insert(themePaths, row.themePath)
         end
     end
-    if page.ResetPage then window:SetResetPage(page.ResetPage, display(page.resetText))
+    local confirmReset = function(onReset)
+        return function()
+            private.AskQuestion({
+                title = private.getLocalisation("SettingsResetPageTitle"),
+                text = private.getLocalisation("SettingsResetPageText"):format(display(page.name)),
+                accept = private.getLocalisation("SettingsReset"),
+                acceptStyle = "Danger",
+                back = CANCEL,
+                onAccept = onReset,
+            })
+        end
+    end
+    if page.ResetPage then window:SetResetPage(confirmReset(page.ResetPage), display(page.resetText))
     else
-        window:SetResetPage(#themePaths > 0 and function()
+        window:SetResetPage(#themePaths > 0 and confirmReset(function()
             for _, path in ipairs(themePaths) do
                 private.ResetThemeModifications(path)
             end
             rerender()
-        end or nil)
+        end) or nil)
     end
     if page.GetHistory then window:SetPageHistory(page.GetHistory()) else window:SetPageHistory(nil) end
     render(rows, page.key, page.Render, page.pinned, function() return page end)
     window:ShowDetails(display(page.name), display(page.desc), nil, display(getNotice({ page = page })))
+    if opened then private.OnTourEvent("page" .. page.key) end
 end
 
 ---lists the rows of every page whose name or description contain text

@@ -41,17 +41,7 @@ end
 ---@param remainingTime number
 local HandleCooldown     = function(self, remainingTime)
 	self.atCountdownRemaining = remainingTime
-	-- a reminder's own glow for as long as it shows, it replaces the cooldown highlight glow
-	local info = self.eventInfo
-	local glow = info and info.glow
-	if glow and remainingTime > 0 then
-		private.EnableGlow(self, glow, remainingTime, info.glowColor)
-		self.atSourceCountdownGlow = true
-	elseif self.atSourceCountdownGlow then
-		private.StopGlow(self)
-		self.atSourceCountdownGlow = nil
-	end
-	private.CooldownText.Apply(self, self.CooldownText, "BigIcon", remainingTime, info, nil, self.atSourceCountdownGlow)
+	private.CooldownText.Apply(self, self.CooldownText, "BigIcon", remainingTime, self.eventInfo)
 end
 
 ---applies the event color to the spell name
@@ -70,7 +60,7 @@ local SetMergedIcons = function(self, members)
 	self.mergedMembers = members
 	local count = members and #members or 1
 	local style = private.GetElementStyle("BigIcon")
-	local width, height = frame:GetSize()
+	local width, height = private.ThemeApply.IconSize(frame)
 	local key
 	if count > 1 then
 		local ids = {}
@@ -83,11 +73,13 @@ local SetMergedIcons = function(self, members)
 	if frame.AtEnterHost then frame.pendingEnter = true end
 	private.ThemeApply.StopEnterEffects(frame)
 	frame.mergeKey = key
-	width, height = private.ThemeApply.IconSize(frame)
+	frame.atMergeCount = count
 	for i, slice in ipairs(frame.MergeSlices) do
 		if count > 1 and i <= count then
 			private.ThemeApply.LayoutIconSlice(slice, frame.SpellIcon, i, count, width, height)
 			slice:SetTexture(members[i].frame.eventInfo.iconFileID)
+			-- exits copy the merged image from what was set, an encounter's texture can't be read back
+			slice.atFile = members[i].frame.eventInfo.iconFileID
 			slice:Show()
 		else
 			slice:Hide()
@@ -116,10 +108,12 @@ local function ApplySettings(self)
 	frame:SetFrameStrata(iconSettings.strata)
 	local size = private.GetBigIconSize()
 	frame:SetSize(size, size)
+	frame.atIconSize = size
 	handleAnchors(frame)
 	private.ThemeApply.Font(frame.SpellName, style.Text.Font)
 	applyEventColor(frame)
 	private.CooldownText.ConfigureFont(frame.CooldownText, "BigIcon")
+	private.ThemeApply.ConfigureDuration(frame, frame.TextureHolder)
 	if frame.atCountdownRemaining then HandleCooldown(frame, frame.atCountdownRemaining) end
 	local skinned = private.SyncMasque(frame)
 	private.ThemeApply.IconArt(frame, frame.SpellIcon, style, frame.TextureHolder, skinned)

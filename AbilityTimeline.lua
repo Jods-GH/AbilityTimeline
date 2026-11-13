@@ -123,6 +123,7 @@ local setZone                                  = function(eventID, widget, zone)
    frame:ClearAllPoints()
    local size = getZoneIconSize(zone)
    frame:SetSize(size, size)
+   frame.atIconSize = size
    if groups[zone] then
       groups[zone]:Add(eventID, frame, fromX, fromY)
    end

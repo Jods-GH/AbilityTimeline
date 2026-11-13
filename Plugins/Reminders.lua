@@ -66,6 +66,8 @@ local addReminder = function(reminder)
     local startAfter = tonumber(reminder.StartTimerAfter) or 0
     local spellId = reminder.spellId or 0
     local spellInfo = spellId > 0 and C_Spell.GetSpellInfo(spellId)
+    local glowSelection
+    if reminder.glowWhen == "custom" then glowSelection = reminder.glowSelection or false end
     local ownColor = private.GetUsedColor(reminder)
     local color = ownColor and CreateColor(ownColor.r, ownColor.g, ownColor.b)
     local eventinfo = {
@@ -83,9 +85,11 @@ local addReminder = function(reminder)
         allowedDisplays = reminder.displays,
         countdown = reminder.countdown,
         glow = reminder.glow,
-        -- glowWhen "close" glows only below the big icon's threshold
-        glowAlways = reminder.glow ~= nil and reminder.glowWhen ~= "close" or nil,
+        -- glowWhen "close" glows only below the big icon's threshold, "custom" while its timer selection matches
+        glowAlways = reminder.glow ~= nil and reminder.glowWhen ~= "close" and reminder.glowWhen ~= "custom" or nil,
+        glowSelection = glowSelection,
         glowColor = ownColor and { r = ownColor.r, g = ownColor.g, b = ownColor.b, a = 1 },
+        countdownChanges = reminder.changes,
     }
     schedule(startAfter, function()
         private.manager.addEvent(eventinfo)

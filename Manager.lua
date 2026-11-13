@@ -119,22 +119,28 @@ local isDisplayEnabled = function(event, enabled)
       event.source == private.manager.SOURCES.Reminder and private.db.profile.showRemindersInDisabledDisplays
 end
 
----rules deciding when an event is rendered by each display
+---a shown section's window replaces the display's own threshold, nil keeps the threshold
+local isShown = function(remaining, state, threshold, shown)
+   if shown == nil then return isHighlighted(remaining, state, threshold) end
+   return shown and state == STATES.Active and remaining > 0
+end
+
+---rules deciding when an event is rendered by each display, shown is the countdown's shown section (true, false or nil)
 private.manager.displays = {
-   timeline = function(event, remaining, state)
+   timeline = function(event, remaining, state, shown)
       return private.db.profile.useTimelineModule and
          isDisplayEnabled(event, private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].enabled) and
-         (state ~= STATES.Active or remaining > 0)
+         shown ~= false and (state ~= STATES.Active or remaining > 0)
    end,
-   bigIcon = function(event, remaining, state)
+   bigIcon = function(event, remaining, state, shown)
       local layoutName = private.ACTIVE_EDITMODE_LAYOUT
       return isDisplayEnabled(event, private.db.global.bigicon_enabled[layoutName]) and
-         isHighlighted(remaining, state, private.db.profile.big_icon_settings.threshold_time)
+         isShown(remaining, state, private.db.profile.big_icon_settings.threshold_time, shown)
    end,
-   textHighlight = function(event, remaining, state)
+   textHighlight = function(event, remaining, state, shown)
       local layoutName = private.ACTIVE_EDITMODE_LAYOUT
       return isDisplayEnabled(event, private.db.global.text_highlight_enabled[layoutName]) and
-         isHighlighted(remaining, state, private.db.profile.highlight_text_settings.threshold_time)
+         isShown(remaining, state, private.db.profile.highlight_text_settings.threshold_time, shown)
    end,
    audio = function(event, remaining, state)
       if event.info.countdown then
@@ -223,6 +229,8 @@ private.manager.GetCountdownContext = function(eventID, remaining, info, state, 
       context.source = private.manager.COUNTDOWN_SOURCES[event.sourceID] or context.source
    end
    context.duration = info and info.duration
+   context.changes = info and info.countdownChanges
+   context.item = info
    context.state = state or (event and private.manager.getEventState(eventID))
    context.elapsed = nil
    if required.elapsed then
@@ -365,6 +373,10 @@ private.manager.addEvent = function(eventInfo)
          glowColor = eventInfo.glowColor,
          -- glows from the start, not only once it is close (boss timer rules)
          glowAlways = eventInfo.glowAlways,
+         -- glows while this timer selection matches (false: any timer), instead of always or once close
+         glowSelection = eventInfo.glowSelection,
+         -- the reminder's or boss timer rule's own countdown lanes, over the shared ones
+         countdownChanges = eventInfo.countdownChanges,
       },
       startTime = GetTime(),
       pausedElapsed = eventInfo.paused and 0 or nil,
@@ -385,14 +397,15 @@ private.manager.addEvent = function(eventInfo)
    return eventID
 end
 
----changes how an added event shows: spellName, allowedDisplays, countdown, glow, glowColor, glowAlways, customColor,
----borderColor
+---changes how an added event shows: spellName, allowedDisplays, countdown, glow, glowColor, glowAlways,
+---countdownChanges, customColor, borderColor
 ---@param eventID number
 ---@param overrides table
 private.manager.setEventOverrides = function(eventID, overrides)
    local event = activeTimers[eventID]
    if not event then return end
-   for _, key in ipairs({ "spellName", "allowedDisplays", "countdown", "glow", "glowColor", "glowAlways" }) do
+   for _, key in ipairs({ "spellName", "allowedDisplays", "countdown", "glow", "glowColor", "glowAlways", "glowSelection",
+      "countdownChanges" }) do
       if overrides[key] ~= nil then
          event.info[key] = overrides[key]
       end
@@ -550,6 +563,8 @@ private.manager.SetEventIconTextures = function(eventID, mask, textures)
 end
 
 local mergedDisplayTimes = { bigIcon = {}, textHighlight = {} }
+-- the countdown display names of the displays shown sections can turn on or off
+local COUNTDOWN_DISPLAYS = { timeline = "SpellIcon", bigIcon = "BigIcon", textHighlight = "TextHighlight" }
 local mergedDisplaySettings = { bigIcon = "big_icon_settings", textHighlight = "highlight_text_settings" }
 local displayClusters = {}
 
@@ -603,6 +618,7 @@ ticker:SetScript("OnUpdate", function()
          local remaining = private.manager.getEventRemainingTime(eventID)
          if not event.hidden then
             local allowed = event.info.allowedDisplays
+            local checkShown = private.CooldownText.HasShown(event.info)
             for display, shouldDisplay in pairs(private.manager.displays) do
                local merged = mergedDisplayTimes[display] and mergedDisplayTimes[display][eventID]
                local ended = event.mergedDisplayEndRemaining and event.mergedDisplayEndRemaining[display]
@@ -618,8 +634,17 @@ ticker:SetScript("OnUpdate", function()
                   event.mergedDisplayEndRemaining[display] = remaining
                   ended = remaining
                end
-               local isDisplayed = not ended and (not allowed or allowed[display] ~= false) and
-                  shouldDisplay(event, merged and merged.remaining or remaining, merged and merged.state or state) and
+               local shown
+               if checkShown and COUNTDOWN_DISPLAYS[display] then
+                  -- its own "Shows on" and sections at the time a merged display follows, its first timer's
+                  event.countdownContext = event.countdownContext or {}
+                  shown = private.CooldownText.Shown(COUNTDOWN_DISPLAYS[display], private.manager.GetCountdownContext(eventID,
+                     merged and merged.remaining or remaining, event.info, merged and merged.state or state,
+                     event.countdownContext, private.CooldownText.Required(event.info)))
+               end
+               -- "Shows on" of the countdown displays is the base of the shown lane, its own sections can override it
+               local isDisplayed = not ended and (COUNTDOWN_DISPLAYS[display] or not allowed or allowed[display] ~= false) and
+                  shouldDisplay(event, merged and merged.remaining or remaining, merged and merged.state or state, shown) and
                   true or nil
                if isDisplayed ~= event.displays[display] then
                   event.displays[display] = isDisplayed

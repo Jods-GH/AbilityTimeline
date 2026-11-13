@@ -49,6 +49,7 @@ Util\Particles.lua
 Util\ThemeApply.lua
 Util\Glass.lua
 Util\QueuedMarkers.lua
+Util\DurationDisplay.lua
 Util\Transitions.lua
 Util\Debug.lua
 Options\WindowState.lua

@@ -588,6 +588,8 @@ end
 ---@param self AtTimingsEditorDataFrame
 ---@param reminder table|nil -- a reminder, or a boss timer rule on the Boss timers tab
 Select = function(self, reminder)
+    private.CloseItemLanes()
+    private.CloseGlowSelection()
     self.selected = reminder
     if reminder and self.mode ~= "rules" then
         self.stage = stageOf(reminder)
@@ -609,6 +611,7 @@ local changed = function(self)
     SaveReminders(self)
     refreshView(self)
     refreshHeader(self)
+    private.RefreshItemLanes()
 end
 
 ---changes the selected reminder, typing into one field (key) is one undo step, a change without key always its own
@@ -1523,6 +1526,45 @@ local addBasics = function(self, reminder)
     end, "StartTimerAfterDescription")
 end
 
+---the selected reminder's or rule's own timer rules, opened from the panel header
+---@param self AtTimingsEditorDataFrame
+local openItemLanes = function(self)
+    local reminder = self.selected
+    if not reminder then return end
+    local isRule = self.mode == "rules"
+    private.OpenItemLanes(reminder, {
+        title = isRule and (reminder.name ~= nil and reminder.name ~= "" and reminder.name or reminder.value) or
+            private.GetReminderName(reminder),
+        zoom = isRule and 30 or math.max(1, (tonumber(reminder.CombatTime) or 0) - (tonumber(reminder.StartTimerAfter) or 0)),
+        source = isRule and private.manager.SOURCES.BigWigs or private.manager.SOURCES.Reminder,
+        -- "Shows on" and glow edited as the lanes' unchanged look show here again, as does which of them sections override
+        edit = function(apply, own)
+            update(self, not own and "lanes" or nil, apply)
+            ShowInspector(self)
+        end,
+    })
+end
+
+---whether the reminder's own timer rules have a section of the property, which then overrides its row in the Look tab
+---@param reminder table
+---@param property string
+---@return boolean
+local ownLane = function(reminder, property)
+    for _, change in ipairs(reminder.changes or {}) do
+        if change.property == property and change.enabled ~= false then return true end
+    end
+    return false
+end
+
+---greys out a row of the Look tab that the reminder's own timer rules override and says so
+---@param row AtSettingRow
+---@param key string
+local overridden = function(row, key)
+    row:SetDisabled(true)
+    row:SetLabel(L("EditorOverriddenLabel"):format(L(key)))
+    addTooltip(row.children[1], "EditorOverriddenDescription")
+end
+
 ---@param self AtTimingsEditorDataFrame
 ---@param reminder table
 ---@param isRule boolean|nil -- boss mod bars have their own severity and effect types
@@ -1547,7 +1589,58 @@ local addLook = function(self, reminder, isRule)
             r.displays = not all and shown or nil
         end)
     end)
+    if ownLane(reminder, "shown") then overridden(displays.parent, "EditorShowsOn") end
     -- rows that only matter with another one set are shown with it, the panel is filled again when it changes
+    local glowList, glowOrder = { [NONE] = L("EditorNone") }, { NONE }
+    for _, glowType in pairs(private.GlowTypes) do
+        glowList[glowType] = glowType
+        table.insert(glowOrder, glowType)
+    end
+    table.sort(glowOrder, function(a, b) return a == NONE or b ~= NONE and a < b end)
+    local glow = addDropdown(self, "EditorGlow", glowList, glowOrder, false, "EditorGlowDescription")
+    glow:SetValue(reminder.glow or NONE)
+    glow:SetCallback("OnValueChanged", function(_, _, value)
+        update(self, nil, function(r) r.glow = value ~= NONE and value or nil end)
+        ShowInspector(self)
+    end)
+    local glowOverridden = ownLane(reminder, "glow")
+    if glowOverridden then overridden(glow.parent, "EditorGlow") end
+    if reminder.glow then
+        -- custom is the timer selection editor of the Timer Rules page, picked again with "edit" as the dropdown only
+        -- reports a change
+        local custom = reminder.glowWhen == "custom"
+        local whenList = { always = L("EditorGlowAlways"), close = L("EditorGlowClose"), custom = L("EditorGlowCustom") }
+        local whenOrder = { "always", "close", "custom" }
+        if custom then
+            whenList.edit = L("EditorGlowEditCustom")
+            table.insert(whenOrder, "edit")
+        end
+        local glowWhen = addDropdown(self, "EditorGlowWhen", whenList, whenOrder, false, "EditorGlowWhenDescription")
+        glowWhen:SetValue(reminder.glowWhen or "always")
+        glowWhen:SetCallback("OnValueChanged", function(_, _, value)
+            if value == "custom" or value == "edit" then
+                update(self, nil, function(r) r.glowWhen = "custom" end)
+                ShowInspector(self)
+                private.EditGlowSelection(reminder.glowSelection, function(selection)
+                    update(self, nil, function(r) r.glowSelection = selection end)
+                    ShowInspector(self)
+                end)
+                return
+            end
+            update(self, nil, function(r) r.glowWhen = value ~= "always" and value or nil end)
+            ShowInspector(self)
+        end)
+        if glowOverridden then
+            overridden(glowWhen.parent, "EditorGlowWhen")
+        elseif custom then
+            -- the selection in words, like beside the button on the Timer Rules page
+            glowWhen:SetCallback("OnEnter", function()
+                GameTooltip:SetOwner(glowWhen.frame, "ANCHOR_TOPLEFT")
+                GameTooltip:AddLine(private.CountdownSelectionText(reminder.glowSelection), 1, 1, 1, true)
+                GameTooltip:Show()
+            end)
+        end
+    end
     -- turned off, the color stays saved and unused (useColor)
     local ownColor = private.GetUsedColor(reminder)
     addCheckBox(self, "EditorOwnColor", ownColor ~= nil, function(checked)
@@ -1574,27 +1667,6 @@ local addLook = function(self, reminder, isRule)
         picker:SetCallback("OnValueChanged", setColor)
         picker:SetCallback("OnValueConfirmed", setColor)
         addRow(self, "EditorColor", picker)
-    end
-    local glowList, glowOrder = { [NONE] = L("EditorNone") }, { NONE }
-    for _, glowType in pairs(private.GlowTypes) do
-        glowList[glowType] = glowType
-        table.insert(glowOrder, glowType)
-    end
-    table.sort(glowOrder, function(a, b) return a == NONE or b ~= NONE and a < b end)
-    local glow = addDropdown(self, "EditorGlow", glowList, glowOrder, false, "EditorGlowDescription")
-    glow:SetValue(reminder.glow or NONE)
-    glow:SetCallback("OnValueChanged", function(_, _, value)
-        update(self, nil, function(r) r.glow = value ~= NONE and value or nil end)
-        ShowInspector(self)
-    end)
-    if reminder.glow then
-        local glowWhen = addDropdown(self, "EditorGlowWhen",
-            { always = L("EditorGlowAlways"), close = L("EditorGlowClose") }, { "always", "close" }, false,
-            "EditorGlowWhenDescription")
-        glowWhen:SetValue(reminder.glowWhen or "always")
-        glowWhen:SetCallback("OnValueChanged", function(_, _, value)
-            update(self, nil, function(r) r.glowWhen = value ~= "always" and value or nil end)
-        end)
     end
     if isRule then return end
     local severityList = {}
@@ -1751,6 +1823,9 @@ refreshHeader = function(self)
     local reminder = self.selected
     if not reminder then return end
     local header = self.inspectorPanel.Header
+    -- stands out while the timer has timer rules of its own
+    self.itemLanesButton.atStyle = reminder.changes and #reminder.changes > 0 and "Primary" or "Plain"
+    ThemedWidgets.DrawButton(self.itemLanesButton)
     if self.mode == "rules" then
         local spellId = ruleSpellId(reminder)
         header.Icon:SetTexture(spellId and C_Spell.GetSpellTexture(spellId) or 134400)
@@ -1865,7 +1940,8 @@ local function ApplySettings(self)
     ThemeApply.FontRole(self.noBossMod, "Control")
     self.noBossMod:SetTextColor(ThemeApply.Color("Danger"))
     for _, button in ipairs({ self.addButton, self.undoButton, self.redoButton, self.importButton, self.exportButton,
-        self.addStageButton, self.tabPrev, self.tabNext, self.duplicateButton, self.deleteButton, self.rulesButton }) do
+        self.addStageButton, self.tabPrev, self.tabNext, self.duplicateButton, self.deleteButton, self.rulesButton,
+        self.itemLanesButton }) do
         ThemedWidgets.DrawButton(button)
     end
     for _, button in ipairs({ self.tabPrev, self.tabNext, self.undoButton, self.redoButton }) do
@@ -1897,6 +1973,8 @@ end
 ---@param self AtTimingsEditorDataFrame
 local function OnRelease(self)
     private.HideAutoComplete()
+    private.CloseItemLanes()
+    private.CloseGlowSelection()
     self.inspector:ReleaseChildren()
     self.ruleList:ReleaseChildren()
     self.rows:SetScript("OnUpdate", nil)
@@ -2349,14 +2427,23 @@ local function Constructor()
     header.Icon:SetSize(variables.headerIcon, variables.headerIcon)
     header.Icon:SetPoint("LEFT")
     header.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    -- the timer's own timer rules, rarely needed, so beside its name instead of among the tabs' settings
+    widget.itemLanesButton = createButton(header, L("EditorItemLanesButton"), function() openItemLanes(widget) end)
+    widget.itemLanesButton:SetPoint("RIGHT", header, "RIGHT")
+    widget.itemLanesButton:HookScript("OnEnter", function(button)
+        GameTooltip:SetOwner(button, "ANCHOR_TOPLEFT")
+        GameTooltip:AddLine(L("EditorItemLanesDescription"), 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    widget.itemLanesButton:HookScript("OnLeave", function() GameTooltip:Hide() end)
     header.Title = header:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     header.Title:SetPoint("TOPLEFT", header.Icon, "TOPRIGHT", 10, -1)
-    header.Title:SetPoint("RIGHT", header, "RIGHT")
+    header.Title:SetPoint("RIGHT", widget.itemLanesButton, "LEFT", -gap, 0)
     header.Title:SetJustifyH("LEFT")
     header.Title:SetWordWrap(false)
     header.Where = header:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     header.Where:SetPoint("BOTTOMLEFT", header.Icon, "BOTTOMRIGHT", 10, 1)
-    header.Where:SetPoint("RIGHT", header, "RIGHT")
+    header.Where:SetPoint("RIGHT", widget.itemLanesButton, "LEFT", -gap, 0)
     header.Where:SetJustifyH("LEFT")
     header.Where:SetWordWrap(false)
     header.Line = header:CreateTexture(nil, "ARTWORK")

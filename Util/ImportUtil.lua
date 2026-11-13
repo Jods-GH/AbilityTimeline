@@ -10,14 +10,14 @@ local EXPORT_VERSION = 2
 local IMPORT_PREFIX = "!AT" .. EXPORT_VERSION .. ":"
 -- the keys of a boss timer rule (Plugins/TimerRules.lua) in the !AT exports
 local RULE_KEYS = {
-    "match", "value", "name", "color", "useColor", "glow", "glowWhen", "displays", "countdown", "TTS", "useTTS",
-    "TTSTimer", "sound",
+    "match", "value", "name", "color", "useColor", "glow", "glowWhen", "glowSelection", "displays", "countdown", "TTS", "useTTS",
+    "TTSTimer", "sound", "changes",
 }
 -- the reminder keys the !AT: strings carry
 local ENCODED_KEYS = {
     "name", "spellId", "CombatTime", "CombatTimeDelay", "StartTimerAfter", "severity", "effectTypes", "tag", "phase",
     "text", "TTS", "useTTS", "TTSTimer", "dur", "countdown", "sound", "glowunit", "displays", "color", "useColor", "glow",
-    "glowWhen",
+    "glowWhen", "glowSelection", "changes",
 }
 
 -- Parse time string in mm:ss or seconds format
@@ -214,6 +214,8 @@ function ImportUtil:ParseJSONFormat(jsonText)
         encounterID = encounterId
     end
 
+    -- the parsed reminders and rules by their position in the export, for the lanes listed beside them
+    local reminderAt, ruleAt = {}, {}
     local function findRemindersInJSON(text)
         local results = {}
 
@@ -225,8 +227,10 @@ function ImportUtil:ParseJSONFormat(jsonText)
             local ruleMatch = match:match('"match"%s*:%s*"([^"]*)"')
             if ruleMatch then
                 table.insert(rules, ImportUtil.ParseJSONRule(match, ruleMatch))
+                table.insert(ruleAt, rules[#rules])
             end
             local time = tonumber(match:match('"time"%s*:%s*([%d%.]+)'))
+            if match:match('"time"%s*:') then table.insert(reminderAt, false) end
             local spellId = tonumber(match:match('"spellId"%s*:%s*(%d+)'))
             local name = match:match('"name"%s*:%s*"([^"]*)"')
             local text = match:match('"text"%s*:%s*"([^"]*)"')
@@ -241,13 +245,31 @@ function ImportUtil:ParseJSONFormat(jsonText)
                 reminder.effectTypes = tonumber(match:match('"effectTypes"%s*:%s*(%d+)')) or 0
                 reminder.tag = match:match('"tag"%s*:%s*"([^"]*)"')
                 table.insert(results, reminder)
+                reminderAt[#reminderAt] = reminder
             end
         end
 
         return results
     end
 
-    return findRemindersInJSON(jsonText), encounterID, rules
+    local parsed = findRemindersInJSON(jsonText)
+    -- the nested lanes need a full JSON decode, without one the reminders and rules come without their lanes
+    if C_EncodingUtil and C_EncodingUtil.DeserializeJSON and
+        (jsonText:find('"reminderLanes"') or jsonText:find('"ruleLanes"')) then
+        local decoded, data = pcall(C_EncodingUtil.DeserializeJSON, jsonText)
+        if decoded and type(data) == "table" then
+            for key, items in pairs({ reminder = { data.reminderLanes, reminderAt }, rule = { data.ruleLanes, ruleAt } }) do
+                for _, lanes in ipairs(type(items[1]) == "table" and items[1] or {}) do
+                    local target = type(lanes) == "table" and items[2][tonumber(lanes[key])]
+                    if target then
+                        target.changes = private.CooldownText.CleanChanges(lanes.changes)
+                        if key == "rule" then target.glowSelection = private.CooldownText.CleanSelection(lanes.glowSelection) end
+                    end
+                end
+            end
+        end
+    end
+    return parsed, encounterID, rules
 end
 
 ---a boss timer rule of the JSON export, its color and displays are flat keys there
@@ -480,6 +502,8 @@ function ImportUtil:ParseEncodedFormat(text)
             for _, key in ipairs(RULE_KEYS) do
                 rule[key] = item[key]
             end
+            rule.changes = private.CooldownText.CleanChanges(rule.changes)
+            rule.glowSelection = private.CooldownText.CleanSelection(rule.glowSelection)
             table.insert(rules, rule)
         end
     end
@@ -494,6 +518,8 @@ function ImportUtil:ParseEncodedFormat(text)
                     reminder[key] = item[key]
                 end
             end
+            reminder.changes = private.CooldownText.CleanChanges(reminder.changes)
+            reminder.glowSelection = private.CooldownText.CleanSelection(reminder.glowSelection)
             table.insert(reminders, reminder)
         end
     end
@@ -693,12 +719,21 @@ function ImportUtil:ExportAsJSON(reminders, encounterID)
                 item["show_" .. display] = shown
             end
             table.insert(export.rules, item)
+            -- own lanes are nested, they travel beside the flat objects with the position of their rule
+            if rule.changes or rule.glowSelection then
+                export.ruleLanes = export.ruleLanes or {}
+                table.insert(export.ruleLanes, { rule = #export.rules, changes = rule.changes, glowSelection = rule.glowSelection })
+            end
         end
     end
 
     export.reminders = {}
 
-    for _, reminder in ipairs(reminders) do
+    for index, reminder in ipairs(reminders) do
+        if reminder.changes then
+            export.reminderLanes = export.reminderLanes or {}
+            table.insert(export.reminderLanes, { reminder = index, changes = reminder.changes })
+        end
         table.insert(export.reminders, {
             time = reminder.CombatTime,
             spellId = reminder.spellId,
@@ -723,7 +758,7 @@ function ImportUtil:ExportAsJSON(reminders, encounterID)
             isArrayTable = true
             local maxKey = 0
             for k, v in pairs(tbl) do
-                if type(k) ~= "number" then
+                if type(k) ~= "number" or k < 1 or k % 1 ~= 0 then
                     isArrayTable = false
                     break
                 end

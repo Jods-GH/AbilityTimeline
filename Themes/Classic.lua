@@ -111,6 +111,16 @@ private.RegisterTheme({
             DisplaySizes = { SpellIcon = 0, BigIcon = 0, TextHighlight = 0 },
             DisplayColors = { SpellIcon = false, BigIcon = false, TextHighlight = false },
         },
+        Duration = {
+            ReferenceSize = 44,
+            Thickness = 3,
+            UseCountdownColor = true,
+            Color = "Accent",
+            Track = { r = 0, g = 0, b = 0, a = 0.5 },
+            Ring = { File = "ring", Scale = 1.9 },
+            Pips = { Art = { File = "circle" }, Count = 5, Size = 6, Spacing = 8, Offset = 4, OffAlpha = 0.2 },
+            Heartbeat = { Art = { File = "shadow", BlendMode = "ADD" }, Edge = 0.375, Spread = 10, Alpha = 0.7, Time = 1, UrgentTime = 0.5, Urgent = 3 },
+        },
         SpellIcon = {
             Size = 44,
             QueuedMarkers = {

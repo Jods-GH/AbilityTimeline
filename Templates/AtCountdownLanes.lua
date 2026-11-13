@@ -295,6 +295,8 @@ local function Draw(self)
     local used = 0
     for _, item in ipairs(self.buttons) do item:Hide() end
     local changes = model.Changes()
+    local own = {}
+    for _, change in ipairs(changes) do own[change.id] = true end
     local displays = model.display == "Shared" and Countdown.Displays or { model.display }
     local viewEnd = model.viewEnd or 0
     local span = model.zoom - viewEnd
@@ -310,12 +312,19 @@ local function Draw(self)
         label:SetText(model.Label(property))
         label:SetWordWrap(true)
         local boundaries = { viewEnd, model.zoom }
-        for _, change in ipairs(changes) do
-            if model.context.previewChange and model.context.previewChange.id == change.id then change = model.context.previewChange end
-            if change.property == property and change.enabled ~= false then
-                if change.start > viewEnd and change.start < model.zoom then table.insert(boundaries, change.start) end
-                if change.finish and change.finish > viewEnd and change.finish < model.zoom then table.insert(boundaries, change.finish) end
-                selectionBoundaries(change.selection, model.context.previewDuration or model.context.duration, model.zoom, viewEnd, boundaries)
+        -- times an unchanged look changes at, like a glow only "when close"
+        for _, time in ipairs(model.Boundaries and model.Boundaries(property) or {}) do
+            if time > viewEnd and time < model.zoom then table.insert(boundaries, time) end
+        end
+        -- a reminder's or boss timer rule's lanes also split where the shared lanes they sit on change
+        for _, list in ipairs({ changes, model.Inherited or {} }) do
+            for _, change in ipairs(list) do
+                if model.context.previewChange and model.context.previewChange.id == change.id then change = model.context.previewChange end
+                if change.property == property and change.enabled ~= false then
+                    if change.start > viewEnd and change.start < model.zoom then table.insert(boundaries, change.start) end
+                    if change.finish and change.finish > viewEnd and change.finish < model.zoom then table.insert(boundaries, change.finish) end
+                    selectionBoundaries(change.selection, model.context.previewDuration or model.context.duration, model.zoom, viewEnd, boundaries)
+                end
             end
         end
         table.sort(boundaries, function(a, b) return a > b end)
@@ -324,13 +333,14 @@ local function Draw(self)
         for i = 1, #boundaries - 1 do
             local from, to = boundaries[i], boundaries[i + 1]
             if from > to then
-                local context = private.DeepCopy(model.context)
+                -- a shallow copy keeps an item's change list itself, so its compiled lanes are reused
+                local context = {}
+                for key, value in pairs(model.context) do context[key] = value end
                 context.remaining = (from + to) / 2
                 context.duration = math.max(context.previewDuration or context.duration, context.remaining)
                 context.elapsed = math.max(0, context.duration - context.remaining)
                 local groups = {}
-                for _, shown in ipairs(displays) do
-                    if #displays > 1 and property == "glow" and shown == "TextHighlight" then break end
+                for _, shown in ipairs(#displays > 1 and Countdown.DisplaysOf(property) or displays) do
                     local style, origins = Countdown.Resolve(shown, context)
                     local group
                     local base = not origins[property] and model.BaseKey(property, shown, style) or nil
@@ -365,9 +375,11 @@ local function Draw(self)
                 item:SetPoint("TOPLEFT", self.frame, "TOPLEFT", labelWidth + (model.zoom - segment.from) / span * width, y - (position - 1) * (stripHeight + 2))
                 item:SetSize(math.max(1, (segment.from - segment.to) / span * width), stripHeight)
                 local isColor = property == "color"
-                local color = isColor and (group.value or Countdown.BaseColor(group.display)) or (group.change and "Accent" or "Muted")
+                -- a shared section under an item's lanes is drawn like an unchanged look, clicking it adds the item's own
+                local changed = group.change and own[group.change.id]
+                local color = isColor and (group.value or Countdown.BaseColor(group.display)) or (changed and "Accent" or "Muted")
                 local r, g, b = ThemeApply.Color(color)
-                ThemeApply.Solid(item.fill, r, g, b, group.change and 0.3 or 0.15)
+                ThemeApply.Solid(item.fill, r, g, b, changed and 0.3 or 0.15)
                 ThemeApply.Solid(item.line, ThemeApply.Color("Accent"))
                 local default = model.base
                 item.line:SetShown(group.change ~= nil and group.change.id == model.selected or
@@ -375,7 +387,7 @@ local function Draw(self)
                 ThemeApply.FontRole(item.text, "Control")
                 item.text:SetWidth(math.max(1, item:GetWidth() - 8))
                 local raw = group.value
-                if raw == nil then raw = false end
+                if raw == nil then raw = property == "shown" and "auto" or false end
                 local value = model.Label(property, raw)
                 local names = count > 1 and table.concat(group.names, ", ") or nil
                 local text = isColor and (names or "") or names and names .. ": " .. value or value

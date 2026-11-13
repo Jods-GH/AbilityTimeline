@@ -5,13 +5,30 @@ local issecretvalue = issecretvalue or function() return false end
 
 private.CooldownText = {}
 local Countdown = private.CooldownText
-local properties = { "color", "size", "format", "precision", "rounding", "glow" }
+local properties = { "shown", "color", "size", "format", "precision", "rounding", "glow", "duration", "heartbeat" }
 -- a time style change carries its decimals and rounding, so those have no lanes of their own
-Countdown.Lanes = { "color", "size", "format", "glow" }
+Countdown.Lanes = { "shown", "color", "size", "format", "glow", "duration", "heartbeat" }
 Countdown.Displays = { "SpellIcon", "BigIcon", "TextHighlight" }
+-- properties only some displays can show, all others apply to every display
+Countdown.PropertyDisplays = { glow = { "SpellIcon", "BigIcon" }, duration = { "SpellIcon", "BigIcon" }, heartbeat = { "SpellIcon", "BigIcon" } }
+-- the duration lane's styles, drawn by Util/DurationDisplay.lua, the swipe is the big icon's native cooldown spinner
+Countdown.DurationStyles = { "none", "swipe", "bar", "border", "dial", "pips" }
+-- a display's look while neither the shared nor its own base sets one
+Countdown.DisplayDefaults = { BigIcon = { duration = "swipe" } }
 local fields = { remaining = "number", elapsed = "number", duration = "number", source = "string", state = "number" }
 local cache
 local generation = 0
+local items = setmetatable({}, { __mode = "k" })
+
+function Countdown.DisplaysOf(property)
+    return Countdown.PropertyDisplays[property] or Countdown.Displays
+end
+
+function Countdown.Supports(property, display)
+    if display == "Shared" then return true end
+    for _, shown in ipairs(Countdown.DisplaysOf(property)) do if shown == display then return true end end
+    return false
+end
 
 local function finite(value)
     return not issecretvalue(value) and type(value) == "number" and value == value and value > -math.huge and value < math.huge
@@ -131,22 +148,26 @@ function Countdown.Scope(display, create)
     return settings.displays[display]
 end
 
-function Countdown.Add(property, start, value)
+---list defaults to the shared changes, a reminder's or boss timer rule's own changes are passed in
+function Countdown.Add(property, start, value, list)
     local settings = Countdown.GetSettings()
-    local id = "change-" .. settings.nextId
-    settings.nextId = settings.nextId + 1
+    local id
+    repeat
+        id = (list and "item-" or "change-") .. settings.nextId
+        settings.nextId = settings.nextId + 1
+    until not Countdown.Find(id, list)
     local change = { id = id, property = property, start = start, value = value, priority = settings.nextId }
-    table.insert(settings.shared.changes, change)
+    table.insert(list or settings.shared.changes, change)
     return change
 end
 
-function Countdown.Find(id)
-    for _, change in ipairs(Countdown.GetSettings().shared.changes) do if change.id == id then return change end end
+function Countdown.Find(id, list)
+    for _, change in ipairs(list or Countdown.GetSettings().shared.changes) do if change.id == id then return change end end
 end
 
 ---coincident edits of the same look replace the section instead of hiding a second priority behind it
-function Countdown.Coalesce(change)
-    local changes = Countdown.GetSettings().shared.changes
+function Countdown.Coalesce(change, list)
+    local changes = list or Countdown.GetSettings().shared.changes
     for i = #changes, 1, -1 do
         local other = changes[i]
         if other ~= change and other.property == change.property and other.start == change.start and other.finish == change.finish and
@@ -158,27 +179,28 @@ function Countdown.Coalesce(change)
 end
 
 local function reach(change)
-    if not change.displays then return #Countdown.Displays end
+    if not change.displays then return #Countdown.DisplaysOf(change.property) end
     local count = 0
     for _ in pairs(change.displays) do count = count + 1 end
     return count
 end
 
----at the same start a change for fewer displays wins, so a display's own look sits above the general one
-local function compiled()
-    local settings = Countdown.GetSettings()
-    if cache and cache.settings == settings then return cache end
-    cache = { settings = settings, required = {}, changes = {} }
-    for index, change in ipairs(settings.shared.changes) do
-        if change.enabled ~= false and finite(change.start) and change.start > 0 and
-            (change.finish == nil or finite(change.finish) and change.finish >= 0 and change.finish < change.start) then
+local function valid(change)
+    return finite(change.start) and change.start > 0 and
+        (change.finish == nil or finite(change.finish) and change.finish >= 0 and change.finish < change.start)
+end
+
+local function compile(changes)
+    local data = { required = {}, changes = {} }
+    for index, change in ipairs(changes) do
+        if change.enabled ~= false and valid(change) then
             local property = change.property
-            cache.changes[property] = cache.changes[property] or {}
-            table.insert(cache.changes[property], { change = change, index = index })
-            requirements(change.selection, cache.required)
+            data.changes[property] = data.changes[property] or {}
+            table.insert(data.changes[property], { change = change, index = index })
+            requirements(change.selection, data.required)
         end
     end
-    for _, list in pairs(cache.changes) do
+    for _, list in pairs(data.changes) do
         table.sort(list, function(a, b)
             if a.change.start ~= b.change.start then return a.change.start < b.change.start end
             local ra, rb = reach(a.change), reach(b.change)
@@ -187,7 +209,122 @@ local function compiled()
             return pa > pb
         end)
     end
+    return data
+end
+
+local function compiled()
+    local settings = Countdown.GetSettings()
+    if cache and cache.settings == settings then return cache end
+    cache = compile(settings.shared.changes)
+    cache.settings = settings
     return cache
+end
+
+---a reminder's or boss timer rule's own changes, rebuilt whenever the changes are invalidated
+local function itemCompiled(changes)
+    local data = items[changes]
+    if data and data.generation == generation then return data end
+    data = compile(changes)
+    data.generation = generation
+    items[changes] = data
+    return data
+end
+
+local needsElapsed = { elapsed = true }
+
+---what a timer's context has to look up for the shared sections and, with info, its own sections and glow
+function Countdown.Required(info)
+    local shared = compiled().required
+    if shared.elapsed or not info then return shared end
+    if info.glowSelection or info.countdownChanges and itemCompiled(info.countdownChanges).required.elapsed then
+        return needsElapsed
+    end
+    return shared
+end
+
+---an imported timer selection, kept only when it is valid; JSON turns the numeric keys of a timer state set into
+---strings, they become numbers again
+function Countdown.CleanSelection(selection)
+    if type(selection) ~= "table" then return end
+    local function clean(node)
+        if type(node) ~= "table" then return false end
+        if node.kind == "not" then return clean(node.child) end
+        if node.kind == "all" or node.kind == "any" then
+            if type(node.children) ~= "table" then return false end
+            for _, child in ipairs(node.children) do if not clean(child) then return false end end
+            return true
+        end
+        if node.kind ~= "test" or not fields[node.field] then return false end
+        if node.any then return true end
+        if node.values ~= nil then
+            if type(node.values) ~= "table" or node.field ~= "state" and node.field ~= "source" then return false end
+            local values = {}
+            for key, checked in pairs(node.values) do
+                if node.field == "state" then key = tonumber(key) end
+                if type(key) ~= fields[node.field] or type(checked) ~= "boolean" then return false end
+                values[key] = checked
+            end
+            node.values = values
+            return node.op == "is" or node.op == "isNot"
+        end
+        if type(node.value) ~= fields[node.field] then return false end
+        if node.op == "is" or node.op == "isNot" then return true end
+        return fields[node.field] == "number" and
+            (node.op == "less" or node.op == "atMost" or node.op == "greater" or node.op == "atLeast" or node.op == "between")
+    end
+    if clean(selection) and private.CountdownSelection.Valid(selection) then return selection end
+end
+
+---keeps the valid changes of an imported reminder or boss timer rule, with their timer selections like the shared ones
+local styles = {}
+for _, style in ipairs(Countdown.DurationStyles) do styles[style] = true end
+local function colorValue(value)
+    return type(value) == "table" and finite(value.r) and finite(value.g) and finite(value.b) and
+        (value.a == nil or finite(value.a))
+end
+
+local values = {
+    shown = function(value) return type(value) == "boolean" end,
+    color = colorValue,
+    size = function(value) return finite(value) and value > 0 end,
+    format = function(value) return value == "minutes" or value == "clock" or value == "seconds" or value == "units" end,
+    glow = function(value)
+        if value == false then return true end
+        if type(value) ~= "table" or not private.GlowTypes[value.type] or value.color ~= nil and not colorValue(value.color) then return false end
+        if value.options ~= nil then
+            if type(value.options) ~= "table" then return false end
+            for key, option in pairs(value.options) do
+                if key == "border" or key == "startAnim" then
+                    if type(option) ~= "boolean" then return false end
+                elseif not finite(option) then return false end
+            end
+        end
+        return true
+    end,
+    duration = function(value) return styles[value] == true end,
+    heartbeat = function(value)
+        return value == false or type(value) == "table" and (value.color == nil or colorValue(value.color))
+    end,
+}
+
+function Countdown.CleanChanges(changes)
+    if type(changes) ~= "table" then return end
+    local clean = {}
+    for _, change in ipairs(changes) do
+        if type(change) == "table" and values[change.property] and values[change.property](change.value) and valid(change) and
+            (change.displays == nil or type(change.displays) == "table") then
+            local selection = Countdown.CleanSelection(change.selection)
+            if change.selection == nil or selection then
+                change.selection = selection
+                change.advanced = selection ~= nil or nil
+                if not finite(change.priority) then change.priority = nil end
+                if type(change.yields) ~= "table" then change.yields = nil end
+                if type(change.id) ~= "string" then change.id = "item-import-" .. (#clean + 1) end
+                table.insert(clean, change)
+            end
+        end
+    end
+    if #clean > 0 then return clean end
 end
 
 local function choose(list, context, skip, display)
@@ -208,16 +345,67 @@ local function choose(list, context, skip, display)
     end
 end
 
+---whether a shown section forces a display on or off at the context's time, nil keeps its own threshold
+-- the displays of a countdown by the keys a reminder's or boss timer rule's "Shows on" uses
+Countdown.DisplayKeys = { SpellIcon = "timeline", BigIcon = "bigIcon", TextHighlight = "textHighlight" }
+local glowBases = setmetatable({}, { __mode = "k" })
+
+---a reminder's or boss timer rule's own look under its own sections: "Shows on" is the base of its shown lane, its
+---glow the base of its glow lane: always, only below the big icon threshold ("close") or while its own timer selection
+---matches (glowSelection, false for any timer)
+---@param info table -- the event info, or the editor's stand-in for it: allowedDisplays, glow, glowColor, glowAlways,
+---glowSelection
+local function itemBase(info, property, display, context)
+    if property == "shown" then
+        local allowed = info.allowedDisplays
+        if allowed and allowed[Countdown.DisplayKeys[display]] == false then return false end
+    elseif property == "glow" and info.glow and (info.glowAlways or
+        info.glowSelection ~= nil and (info.glowSelection == false or Countdown.Match(info.glowSelection, context) == true) or
+        info.glowSelection == nil and context.remaining <= private.db.profile.big_icon_settings.threshold_time) then
+        local glow = glowBases[info] or {}
+        glow.type, glow.color = info.glow, info.glowColor
+        glowBases[info] = glow
+        return glow
+    end
+end
+
+---the item's sections first, then its own look, then the shared sections
+local function chooseFor(property, display, context, skip, item)
+    local change = item and choose(item.changes[property], context, skip, display)
+    if change then return change.value, change end
+    if context.item and finite(context.remaining) then
+        local value = itemBase(context.item, property, display, context)
+        if value ~= nil then return value end
+    end
+    change = choose(compiled().changes[property], context, skip, display)
+    if change then return change.value, change end
+end
+
+---whether a shown section or "Shows on" forces a display on or off at the context's time, nil keeps its threshold
+function Countdown.Shown(display, context)
+    return (chooseFor("shown", display, context, nil, context.changes and itemCompiled(context.changes)))
+end
+
+---whether anything could turn a display on or off for an event, the manager skips the lookup otherwise
+function Countdown.HasShown(info)
+    return compiled().changes.shown ~= nil or info.allowedDisplays ~= nil or
+        info.countdownChanges ~= nil and itemCompiled(info.countdownChanges).changes.shown ~= nil
+end
+
 function Countdown.Resolve(display, context, result, origins, skip)
     result, origins = result or {}, origins or {}
-    local settings, data = Countdown.GetSettings(), compiled()
+    local settings = Countdown.GetSettings()
     local own = settings.displays[display]
+    local item = context.changes and itemCompiled(context.changes)
     for _, property in ipairs(properties) do
         result[property] = settings.shared.base[property]
         if own and own.base[property] ~= nil then result[property] = own.base[property] end
+        if result[property] == nil and Countdown.DisplayDefaults[display] then result[property] = Countdown.DisplayDefaults[display][property] end
         origins[property] = nil
-        local change = not (property == "glow" and display == "TextHighlight") and choose(data.changes[property], context, skip, display)
-        if change then result[property], origins[property] = change.value, change end
+        if Countdown.Supports(property, display) then
+            local value, change = chooseFor(property, display, context, skip, item)
+            if value ~= nil then result[property], origins[property] = value, change end
+        end
     end
     local style = origins.format
     if style and style.precision ~= nil then result.precision = style.precision end
@@ -273,10 +461,10 @@ function Countdown.Context(frame, remaining, info, state)
         return context
     end
     frame.atCountdownContext = frame.atCountdownContext or {}
-    return private.manager.GetCountdownContext(info and info.id, remaining, info, state, frame.atCountdownContext, compiled().required)
+    return private.manager.GetCountdownContext(info and info.id, remaining, info, state, frame.atCountdownContext, Countdown.Required(info))
 end
 
-function Countdown.Apply(frame, region, display, remaining, info, state, ownGlow)
+function Countdown.Apply(frame, region, display, remaining, info, state)
     local context = Countdown.Context(frame, remaining, info, state)
     state = state or context.state
     frame.atCountdownStyle, frame.atCountdownOrigins = Countdown.Resolve(display,
@@ -294,9 +482,7 @@ function Countdown.Apply(frame, region, display, remaining, info, state, ownGlow
     end
     local color = style.color or Countdown.BaseColor(display)
     region:SetTextColor(private.ThemeApply.Color(color))
-    if ownGlow then
-        frame.atCountdownGlow = nil
-    elseif style.glow and remaining > 0 and state ~= private.manager.STATES.Queued and
+    if style.glow and remaining > 0 and state ~= private.manager.STATES.Queued and
         (not frame.countdownPreview or frame:IsVisible()) then
         local duration = remaining
         if state == private.manager.STATES.Paused then duration = nil end
@@ -306,6 +492,17 @@ function Countdown.Apply(frame, region, display, remaining, info, state, ownGlow
         private.StopGlow(frame)
         frame.atCountdownGlow = nil
     end
+    if frame.DurationLayer then
+        private.ThemeApply.UpdateDuration(frame, display, style, frame.atCountdownOrigins, remaining, state, region)
+    end
+    -- the manager hides live displays, a settings preview only dims while a shown section hides it
+    if frame.countdownPreview then
+        local dimmed = style.shown == false
+        if frame.atShownDimmed ~= dimmed then
+            frame:SetAlpha(dimmed and 0.35 or 1)
+            frame.atShownDimmed = dimmed
+        end
+    end
     frame.atCountdownGeneration = generation
     return style
 end
@@ -313,7 +510,10 @@ end
 function Countdown.Reset(frame, region)
     frame.atCountdownStyle, frame.atCountdownOrigins, frame.atCountdownContext = nil, nil, nil
     frame.atCountdownGlow, frame.atCountdownGeneration, frame.countdownPreview = nil, nil, nil
-    frame.atCountdownRemaining, frame.atSourceCountdownGlow = nil, nil
+    frame.atCountdownRemaining = nil
+    if frame.atShownDimmed then frame:SetAlpha(1) end
+    frame.atShownDimmed = nil
+    private.ThemeApply.ResetDuration(frame)
     region.atCountdownFont, region.atCountdownSize, region.atCountdownText = nil, nil, nil
 end
 

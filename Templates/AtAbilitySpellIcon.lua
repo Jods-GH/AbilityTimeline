@@ -175,20 +175,7 @@ end
 ---@param remainingTime number
 local HandleCooldown        = function(self, remainingTime)
 	self.atCountdownRemaining = remainingTime
-	-- a reminder's own glow while it would show as big icon, a boss timer rule's the whole time; it replaces the
-	-- cooldown highlight glow
-	local glow = self.eventInfo and self.eventInfo.glow
-	if glow and remainingTime > 0 and self.state ~= private.manager.STATES.Queued and
-		(self.eventInfo.glowAlways or remainingTime <= private.db.profile.big_icon_settings.threshold_time) then
-		local duration = remainingTime
-		if self.state == private.manager.STATES.Paused then duration = nil end
-		private.EnableGlow(self, glow, duration, self.eventInfo.glowColor)
-		self.atSourceCountdownGlow = true
-	elseif self.atSourceCountdownGlow then
-		private.StopGlow(self)
-		self.atSourceCountdownGlow = nil
-	end
-	private.CooldownText.Apply(self, self.Cooldown, "SpellIcon", remainingTime, self.eventInfo, self.state, self.atSourceCountdownGlow)
+	private.CooldownText.Apply(self, self.Cooldown, "SpellIcon", remainingTime, self.eventInfo, self.state)
 end
 
 ---Updates text anchors, cooldown and (for non grouped zones) the position of a timeline icon
@@ -236,14 +223,19 @@ ApplySpellName              = function(self, disableOnUpdate)
 	local eventInfo = self.frame.eventInfo
 	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction == private.TIMELINE_DIRECTIONS.HORIZONTAL then
 		self.frame.SpellName:SetText("")
+		self.frame.atNameText = ""
 		if eventInfo and eventInfo.id then
 			private.Debug("Timeline is in horizontal mode, hiding text for eventID: " .. eventInfo.id)
 		end
 	else
 		self.frame.SpellName:SetText(eventInfo.spellName)
+		-- kept as set, a secret name or color is never read back from the label (theme exits copy them)
+		self.frame.atNameText = eventInfo.spellName
+		self.frame.atNameColor = { private.ThemeApply.Color(private.GetElementStyle("SpellIcon").Text.Font.Color) }
 		local color = private.manager.getEventColor(eventInfo.id, private.db.profile.text_settings.colorOrder)
 		if color then
 			self.frame.SpellName:SetTextColor(color.r, color.g, color.b)
+			self.frame.atNameColor = { color.r, color.g, color.b }
 		elseif not disableOnUpdate then
 			private.Debug("Not using  color for text for eventID: " .. eventInfo.id)
 		end
@@ -253,7 +245,8 @@ end
 ---applies the configured default color to the spell name
 ---@param frame Frame
 local applyDefaultTextColor = function(frame)
-	frame.SpellName:SetTextColor(private.ThemeApply.Color(private.GetElementStyle("SpellIcon").Text.Font.Color))
+	frame.atNameColor = { private.ThemeApply.Color(private.GetElementStyle("SpellIcon").Text.Font.Color) }
+	frame.SpellName:SetTextColor(unpack(frame.atNameColor))
 end
 
 ---hides all merge slices and separators of an icon
@@ -286,6 +279,7 @@ local SetMergedIcons        = function(self, members)
 	if frame.AtEnterHost then frame.pendingEnter = true end
 	private.ThemeApply.StopEnterEffects(frame)
 	frame.mergeKey = key
+	frame.atMergeCount = count
 	if not key then
 		hideMergeSlices(frame)
 		frame.SpellIcon:Show()
@@ -300,6 +294,8 @@ local SetMergedIcons        = function(self, members)
 		if i <= count then
 			private.ThemeApply.LayoutIconSlice(slice, frame.SpellIcon, i, count, width, height)
 			slice:SetTexture(members[i].frame.eventInfo.iconFileID)
+			-- exits copy the merged image from what was set, an encounter's texture can't be read back
+			slice.atFile = members[i].frame.eventInfo.iconFileID
 			slice:Show()
 		else
 			slice:Hide()
@@ -318,7 +314,8 @@ local SetMergedIcons        = function(self, members)
 	frame.SpellIcon:Hide()
 	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction ~= private.TIMELINE_DIRECTIONS.HORIZONTAL then
 		applyDefaultTextColor(frame)
-		frame.SpellName:SetText(string.format(private.getLocalisation("MultipleTimers"), count))
+		frame.atNameText = string.format(private.getLocalisation("MultipleTimers"), count)
+		frame.SpellName:SetText(frame.atNameText)
 	end
 end
 
@@ -382,6 +379,7 @@ local function ApplySettings(self)
 	local style = private.GetElementStyle("SpellIcon")
 	local iconSettings = private.db.profile.icon_settings
 	frame:SetSize(style.Size, style.Size)
+	frame.atIconSize = style.Size
 	handleAnchors(frame, frame.isStopped)
 	private.ThemeApply.Font(frame.SpellName, style.Text.Font)
 	private.CooldownText.ConfigureFont(frame.Cooldown, "SpellIcon")
@@ -431,6 +429,7 @@ local function ApplySettings(self)
 	if frame.eventInfo and not frame.mergeKey then
 		ApplySpellName(self, true)
 	end
+	private.ThemeApply.ConfigureDuration(frame, frame)
 	private.ThemeApply.ConfigureTimelineMotion(frame, style)
 	private.ThemeApply.ConfigureQueuedMarkers(frame, style.QueuedMarkers)
 	frame.mergeKey = nil
@@ -457,6 +456,7 @@ local function OnRelease(self)
 	self.frame.eventInfo = nil
 	self.frame.SpellIcon:SetTexture(nil)
 	self.frame.SpellName:SetText("")
+	self.frame.atNameText, self.frame.atNameColor = nil, nil
 	self.frame.state = nil
 	self.frame.isStopped = nil
 	self.frame.zone = nil
