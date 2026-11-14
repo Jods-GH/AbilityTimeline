@@ -84,7 +84,7 @@ local function Constructor()
     frame:Show()
 
     LibEditMode:AddFrame(frame, onPositionChanged, private.TextHighlight.defaultPosition,
-        "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Timeline Text Highlight")
+        "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.png:32|t Better Timeline Text Highlight")
 
     local settings = {
         {

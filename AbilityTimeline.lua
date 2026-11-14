@@ -493,7 +493,7 @@ private.createTimelineFrame = function()
    private.WAITING_FRAME = AceGUI:Create("AtGroupAnchorFrame")
    private.WAITING_FRAME:Setup({
       dbKey = "waiting_group",
-      title = "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t " ..
+      title = "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.png:32|t " ..
           private.getLocalisation("WaitingIconsFrameTitle"),
       defaultPosition = { point = 'CENTER', x = 410, y = 400 },
       atFarEnd = true,
@@ -506,7 +506,7 @@ private.createTimelineFrame = function()
    private.QUEUED_FRAME = AceGUI:Create("AtGroupAnchorFrame")
    private.QUEUED_FRAME:Setup({
       dbKey = "queued_group",
-      title = "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t " ..
+      title = "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.png:32|t " ..
           private.getLocalisation("QueuedIconsFrameTitle"),
       defaultPosition = { point = 'CENTER', x = 470, y = -150 },
       atFarEnd = false,
@@ -518,7 +518,7 @@ private.createTimelineFrame = function()
    private.PAUSED_FRAME = AceGUI:Create("AtGroupAnchorFrame")
    private.PAUSED_FRAME:Setup({
       dbKey = "paused_group",
-      title = "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t " ..
+      title = "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.png:32|t " ..
           private.getLocalisation("PausedIconsFrameTitle"),
       defaultPosition = { point = 'CENTER', x = 470, y = 350 },
       atFarEnd = true,

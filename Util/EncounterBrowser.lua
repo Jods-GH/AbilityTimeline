@@ -50,7 +50,7 @@ local function ensureEJButton()
 
             -- for some reason the texture sometimes randomly vanishes so we just reset it on show TODO fix properly
             local function applyTexture()
-                btn.texture:SetTexture("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga")
+                btn.texture:SetTexture("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.png")
                 btn.texture:Show()
 
                 -- match skinning of EJ tabs if relevant for elvui

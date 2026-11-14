@@ -327,7 +327,7 @@ end
 -- Edit Mode has where the timeline is and how it lies, its look and behaviour are on the settings window's Timeline page
 local function SetupEditModeSettings(frame)
     LibEditMode:AddFrame(frame, onPositionChanged, variables.position,
-        "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga:32|t Better Timeline")
+        "|TInterface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.png:32|t Better Timeline")
 
     local settings = {
         {

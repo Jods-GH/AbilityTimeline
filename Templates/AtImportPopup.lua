@@ -124,7 +124,7 @@ local function Constructor()
     frame.logo = frame:CreateTexture(nil, "ARTWORK")
     frame.logo:SetSize(variables.logo.width, variables.logo.height)
     frame.logo:SetPoint("TOP", frame.titleBar, "BOTTOM", 0, -10)
-    frame.logo:SetTexture("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.tga")
+    frame.logo:SetTexture("Interface\\AddOns\\AbilityTimeline\\Media\\Textures\\logo_transparent.png")
 
     frame.messageText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     frame.messageText:SetPoint("TOP", frame.logo, "BOTTOM", 0, -10)

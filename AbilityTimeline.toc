@@ -8,7 +8,7 @@
 ## X-Wago-ID: qGYMWpGg
 ## OptionalDeps: Ace3, DevTool, CustomNames, ElvUI, GW2_UI, EllesmereUI, DBM-Core, BigWigs, LibEditMode, Masque
 ## AddonCompartmentFunc: AbilityTimeline_AddonCompartmentFunction
-## IconTexture: Interface\AddOns\AbilityTimeline\Media\Textures\logo_transparent.tga
+## IconTexture: Interface\AddOns\AbilityTimeline\Media\Textures\logo_transparent.png
 ## Category-enUS: Dungeons & Raids
 ## Category-deDE: Dungeons & Schlachtzüge
 ## Category-esES: Mazmorras y bandas
