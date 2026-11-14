@@ -83,6 +83,21 @@ local function Skin(widget)
         draw(state.hover or 0)
     end
 
+    -- a typed value may go past the end of the track, below it only where the range already goes negative
+    editbox:SetScript("OnEnterPressed", function()
+        local value = tonumber((editbox:GetText():gsub("%%", ""):gsub(",", ".")))
+        if value and widget.ispercent then value = value / 100 end
+        if not value or value ~= value or value == math.huge or value == -math.huge then
+            widget:SetValue(widget.value)
+            return
+        end
+        if widget.min >= 0 then value = math.max(value, widget.min) end
+        local changed = value ~= widget.value
+        widget:SetValue(value)
+        if changed and not widget.disabled then widget:Fire("OnValueChanged", value) end
+        widget:Fire("OnMouseUp", value)
+        editbox:ClearFocus()
+    end)
     editbox:SetBackdrop(nil)
     ThemedWidgets.DiscardTextures(editbox)
     editbox:SetHeight(18)
