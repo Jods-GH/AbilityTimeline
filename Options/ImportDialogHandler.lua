@@ -79,7 +79,7 @@ end
 ---@param reminders table[]
 ---@param rules table[]
 ---@return string
-local describeImport = function(encounterID, reminders, rules)
+local describeImport = function(encounterID, difficulty, reminders, rules)
     local util = private.ImportUtil
     local lines = {}
     local format = util.lastParsedFormat and L("ImportFormat_" .. util.lastParsedFormat)
@@ -87,6 +87,7 @@ local describeImport = function(encounterID, reminders, rules)
     if util.lastParsedEncounterID and util.lastParsedEncounterID ~= encounterID then
         table.insert(lines, colored(L("ImportEncounterMismatchPlain"), "Danger"))
     end
+    table.insert(lines, L("ImportPreviewDifficulty"):format(L("Difficulty" .. difficulty:gsub("^%l", string.upper))))
     local stages, order = {}, {}
     for _, reminder in ipairs(reminders) do
         local stage = tonumber(reminder.phase) or 1
@@ -125,7 +126,8 @@ local closeExportDialog = function()
     private.OnTourEvent("exportClosed")
 end
 
-private.createImportDialog = function(editorWindow, encounterID, initialImportText)
+private.createImportDialog = function(editorWindow, encounterID, initialImportText, difficulty)
+    difficulty = difficulty or editorWindow and editorWindow.difficulty or private.db.profile.editor.difficulty
     if private.IMPORT_DIALOG_WINDOW then return private.IMPORT_DIALOG_WINDOW end
     closeExportDialog()
     local dialog = AceGUI:Create("AtImportDialog")
@@ -139,6 +141,7 @@ private.createImportDialog = function(editorWindow, encounterID, initialImportTe
 
     local importText = AceGUI:Create("AtMultiLineEditBox")
     dialog.atEncounterID = encounterID
+    dialog.atDifficulty = difficulty
     dialog.atImportText = importText
     importText:SetLabel(L("ImportTextPlaceholder"))
     importText:SetFullWidth(true)
@@ -176,7 +179,7 @@ private.createImportDialog = function(editorWindow, encounterID, initialImportTe
         if problem then
             preview:SetText(colored(problem, problem == L("ImportPreviewEmpty") and "Muted" or "Danger"))
         else
-            preview:SetText(describeImport(encounterID, reminders, rules))
+            preview:SetText(describeImport(encounterID, private.ImportUtil.lastParsedDifficulty or difficulty, reminders, rules))
         end
         importButton:SetDisabled(reminders == nil)
         dialog:DoLayout()
@@ -191,15 +194,18 @@ private.createImportDialog = function(editorWindow, encounterID, initialImportTe
         local kept, rules = parse()
         if not kept then return end
         local importData = importText:GetText()
+        local target = private.ImportUtil.lastParsedDifficulty or difficulty
         close()
         -- a short countdown that can still be cancelled before anything is changed
         local importPopup = AceGUI:Create("AtImportPopup")
         local onComplete = function()
-            if not private.ImportUtil:ApplyReminders(encounterID, kept, private.db.profile.importMergeMode, rules) then
+            local editor = editorWindow or private.TIMINGS_EDITOR_WINDOW
+            if editor and editor.encounterID ~= encounterID then editor = nil end
+            if editor then editor:SetDifficulty(target) end
+            if not private.ImportUtil:ApplyReminders(encounterID, target, kept, private.db.profile.importMergeMode, rules) then
                 private.Debug("Failed to apply reminders")
                 return
             end
-            local editor = editorWindow or private.TIMINGS_EDITOR_WINDOW
             if editor then
                 -- the editor still has the reminders from before, undo brings them back
                 editor:RecordUndo()
@@ -208,7 +214,7 @@ private.createImportDialog = function(editorWindow, encounterID, initialImportTe
             end
         end
         local onCancel = function()
-            private.showImportDialog(encounterID, editorWindow, importData)
+            private.showImportDialog(encounterID, editorWindow, importData, difficulty)
         end
         importPopup:StartImport(5, onComplete, onCancel)
     end)
@@ -221,17 +227,18 @@ private.createImportDialog = function(editorWindow, encounterID, initialImportTe
     return dialog
 end
 
-private.showImportDialog = function(encounterID, editorWindow, initialImportText)
+private.showImportDialog = function(encounterID, editorWindow, initialImportText, difficulty)
     if not encounterID or private.IMPORT_DIALOG_WINDOW then
         return
     end
     -- the dialog opens above the timings editor, which stays open and shows the imported reminders
-    private.createImportDialog(editorWindow, encounterID, initialImportText)
+    private.createImportDialog(editorWindow, encounterID, initialImportText, difficulty)
 end
 
-private.showExportDialog = function(encounterID)
+private.showExportDialog = function(encounterID, difficulty)
+    difficulty = difficulty or private.db.profile.editor.difficulty
     if not encounterID or private.EXPORT_DIALOG_WINDOW then return end
-    local reminders = private.db.profile.reminders[encounterID] or {}
+    local reminders = private.GetReminders(encounterID, difficulty)
     local rules = private.db.profile.timerRules and private.db.profile.timerRules[encounterID]
     if #reminders == 0 and (not rules or #rules == 0) then
         return
@@ -244,6 +251,7 @@ private.showExportDialog = function(encounterID)
     dialog:SetAutoAdjustHeight(true)
     private.EXPORT_DIALOG_WINDOW = dialog
     dialog.atEncounterID = encounterID
+    dialog.atDifficulty = difficulty
     local close = closeExportDialog
     dialog.closeButton:SetScript("OnClick", close)
 
@@ -271,7 +279,7 @@ private.showExportDialog = function(encounterID)
             button:SetStyle(key == format and "Primary" or "Plain")
         end
         note:SetText(rules and not RULE_FORMATS[format] and L("ExportRulesLeftOut") or "")
-        exportText:SetText(private.ImportUtil:ExportReminders(reminders, format, encounterID, encounterName))
+        exportText:SetText(private.ImportUtil:ExportReminders(reminders, format, encounterID, encounterName, difficulty))
         -- ready to copy
         exportText:SetFocus()
         exportText:HighlightText()
@@ -289,7 +297,7 @@ private.showExportDialog = function(encounterID)
     local sendButton, closeButton = addButtons(dialog, L("ReminderSendToChatButton"), L("DialogClose"))
     sendButton:SetDisabled(not IsInGroup())
     sendButton:SetCallback("OnClick", function()
-        private.StartExportingToChat(encounterID)
+        private.StartExportingToChat(encounterID, difficulty)
         close()
     end)
     closeButton:SetCallback("OnClick", close)
@@ -301,17 +309,17 @@ end
 private.RegisterWindowState("import", function()
     local dialog = private.IMPORT_DIALOG_WINDOW
     if dialog and dialog.frame:IsShown() then
-        return { encounterID = dialog.atEncounterID, text = dialog.atImportText:GetText() }
+        return { encounterID = dialog.atEncounterID, difficulty = dialog.atDifficulty, text = dialog.atImportText:GetText() }
     end
 end, function(state)
-    private.showImportDialog(state.encounterID, private.TIMINGS_EDITOR_WINDOW, state.text)
+    private.showImportDialog(state.encounterID, private.TIMINGS_EDITOR_WINDOW, state.text, state.difficulty)
 end)
 
 private.RegisterWindowState("export", function()
     local dialog = private.EXPORT_DIALOG_WINDOW
     if dialog and dialog.frame:IsShown() then
-        return { encounterID = dialog.atEncounterID }
+        return { encounterID = dialog.atEncounterID, difficulty = dialog.atDifficulty }
     end
 end, function(state)
-    private.showExportDialog(state.encounterID)
+    private.showExportDialog(state.encounterID, state.difficulty)
 end)

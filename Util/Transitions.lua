@@ -171,11 +171,11 @@ local snapshotIcon = function(frame)
 end
 
 -- All image pieces follow one full-icon control texture and its full-icon masks, rather than separate effects. The
--- control's size and alpha are passed in as they were set, it may have shown an encounter's texture.
+-- control's size and alpha are passed in as they were set, it may have shown an encounter's texture. Its draw layer
+-- is the ARTWORK it was created on for the same reason.
 local drawComposite = function(holder, key, control, slices, shardMask, width, height, alpha)
     if not slices then hideComposite(holder[key]); return end
     holder[key] = holder[key] or {}
-    local layer, sublevel = control:GetDrawLayer()
     local shape = control.atShaped and holder.AtShape
     for i, slice in ipairs(slices) do
         local texture = holder[key][i]
@@ -199,7 +199,7 @@ local drawComposite = function(holder, key, control, slices, shardMask, width, h
             texture:ClearAllPoints()
             texture.source = slice
         end
-        texture:SetDrawLayer(layer, math.min(sublevel + (slice.separator and 1 or 0), 7))
+        texture:SetDrawLayer("ARTWORK", slice.separator and 1 or 0)
         texture:SetPoint("TOPLEFT", control, "TOPLEFT", width * slice.x, 0)
         texture:SetSize(width * slice.width, height)
         texture:SetAlpha(alpha)

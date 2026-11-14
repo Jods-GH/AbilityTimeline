@@ -1,13 +1,12 @@
 local appName, app = ...
 ---@class AbilityTimeline
 local private = app
----makes sure the encounter has a reminder list to edit
+---validates the encounter ID before opening its reminders
 ---@param encounterID number|string
 ---@return boolean
 private.RegisterEncounter = function(encounterID)
     encounterID = tonumber(encounterID)
     if not encounterID then return false end
-    private.db.profile.reminders[encounterID] = private.db.profile.reminders[encounterID] or {}
     return true
 end
 

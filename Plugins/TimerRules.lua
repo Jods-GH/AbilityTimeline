@@ -17,16 +17,21 @@ private.GetTimerRule = function(spellId, text)
     if not rules then return end
     spellId = not issecretvalue(spellId) and tonumber(spellId) or nil
     text = not issecretvalue(text) and type(text) == "string" and text:lower() or nil
+    local fallback
     for _, rule in ipairs(rules) do
         local value = rule.value or ""
+        local matches
         if rule.match == "text" then
-            if text and value ~= "" and text:find(value:lower(), 1, true) then
-                return rule
-            end
-        elseif spellId and tonumber(value) == spellId then
-            return rule
+            matches = text and value ~= "" and text:find(value:lower(), 1, true)
+        else
+            matches = spellId and tonumber(value) == spellId
+        end
+        if matches and (not rule.difficulties or rule.difficulties[private.activeDifficulty] ~= false) then
+            if rule.difficulties then return rule end
+            fallback = fallback or rule
         end
     end
+    return fallback
 end
 
 ---how an event of a bar the rule matches differs, the keys of manager.addEvent's event info

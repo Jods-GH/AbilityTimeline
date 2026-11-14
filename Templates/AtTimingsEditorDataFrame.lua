@@ -21,7 +21,7 @@ end
 -- the timings editor: a timeline per boss mod stage with a row for each who a reminder is for, the selected reminder
 -- is edited in the panel on the right
 local Type = "AtTimingsEditorDataFrame"
-local Version = 3
+local Version = 4
 local variables = {
     width = 1100,
     height = 640,
@@ -402,7 +402,7 @@ local function SaveReminders(self)
     table.sort(copy, function(a, b)
         return (a.CombatTime or 0) < (b.CombatTime or 0)
     end)
-    private.db.profile.reminders[self.encounterID] = copy
+    private.SetReminders(self.encounterID, self.difficulty, copy)
     local rules = {}
     for _, rule in ipairs(self.rules) do
         table.insert(rules, copyReminder(rule))
@@ -523,6 +523,7 @@ local snapshot = function(self)
         mode = self.mode,
         stage = self.stage,
         extraStages = CopyTable(self.extraStages),
+        difficulty = self.difficulty,
     }
 end
 
@@ -558,6 +559,9 @@ local restore = function(self, state)
             if not found then table.insert(state.reminders, copyReminder(reminder)) end
         end
     end
+    if self.difficulty ~= state.difficulty then self:SetDifficulty(state.difficulty) end
+    self.difficulty = state.difficulty
+    private.db.profile.editor.difficulty = self.difficulty
     self.reminders = state.reminders
     self.rules = state.rules
     self.mode = state.mode
@@ -574,6 +578,7 @@ end
 local undo = function(self)
     local state = table.remove(self.undoStack)
     if not state then return end
+    if self.difficulty ~= state.difficulty then self:SetDifficulty(state.difficulty) end
     table.insert(self.redoStack, snapshot(self))
     restore(self, state)
 end
@@ -582,6 +587,7 @@ end
 local redo = function(self)
     local state = table.remove(self.redoStack)
     if not state then return end
+    if self.difficulty ~= state.difficulty then self:SetDifficulty(state.difficulty) end
     table.insert(self.undoStack, snapshot(self))
     restore(self, state)
 end
@@ -1159,6 +1165,10 @@ end
 ---draws the stage tabs, a strip that scrolls with its arrows when they don't fit
 ---@param self AtTimingsEditorDataFrame
 local function RefreshTabs(self)
+    for _, tab in ipairs(self.difficultyBar.Buttons) do
+        tab.atStyle = tab.key == self.difficulty and "Primary" or "Plain"
+        ThemedWidgets.DrawButton(tab)
+    end
     local stages = getStages(self)
     local step = variables.tabWidth + 4
     local total = #stages * step - 4
@@ -1791,6 +1801,26 @@ end
 ---@param self AtTimingsEditorDataFrame
 ---@param rule table
 local addRuleBasics = function(self, rule)
+    local list = {}
+    for _, difficulty in ipairs(private.Difficulties) do
+        list[difficulty] = L("Difficulty" .. difficulty:gsub("^%l", string.upper))
+    end
+    local difficulties = addDropdown(self, "EditorRuleDifficulties", list, private.Difficulties, true,
+        "EditorRuleDifficultiesDescription")
+    for _, difficulty in ipairs(private.Difficulties) do
+        difficulties:SetItemValue(difficulty, not rule.difficulties or rule.difficulties[difficulty] ~= false)
+    end
+    difficulties:SetCallback("OnValueChanged", function(_, _, key, checked)
+        update(self, nil, function(r)
+            local shown = r.difficulties or { normal = true, heroic = true, mythic = true }
+            shown[key] = checked
+            local all = true
+            for _, difficulty in ipairs(private.Difficulties) do
+                all = all and shown[difficulty] ~= false
+            end
+            r.difficulties = not all and shown or nil
+        end)
+    end)
     local match = addDropdown(self, "EditorRuleMatch", { spell = L("EditorRuleMatchSpell"), text = L("EditorRuleMatchText") },
         { "spell", "text" }, false, "EditorRuleMatchDescription")
     match:SetValue(rule.match or "spell")
@@ -1885,7 +1915,17 @@ local refreshRules = function(self)
         local row = AceGUI:Create("AtSettingRow")
         local spellId = ruleSpellId(rule)
         local icon = spellId and C_Spell.GetSpellTexture(spellId)
-        row:SetLabel((icon and "|T" .. icon .. ":16:16:0:0:64:64:5:59:5:59|t " or "") .. ruleTarget(rule))
+        local label = ruleTarget(rule)
+        if rule.difficulties then
+            local difficulties = {}
+            for _, difficulty in ipairs(private.Difficulties) do
+                if rule.difficulties[difficulty] ~= false then
+                    table.insert(difficulties, L("Difficulty" .. difficulty:gsub("^%l", string.upper)))
+                end
+            end
+            label = label .. " (" .. (#difficulties > 0 and table.concat(difficulties, ", ") or L("EditorNone")) .. ")"
+        end
+        row:SetLabel((icon and "|T" .. icon .. ":16:16:0:0:64:64:5:59:5:59|t " or "") .. label)
         row:SetHovered(rule == self.selected)
         local edit = AceGUI:Create("AtButton")
         edit:SetText(rule.name or L("EditorRuleEdit"))
@@ -1924,8 +1964,8 @@ end
 ---@param self AtTimingsEditorDataFrame
 ---@return boolean -- the reminders of the open encounter are replayed
 local isReplaying = function(self)
-    local encounterID = private.GetReminderReplayState()
-    return encounterID ~= nil and encounterID == self.encounterID
+    local encounterID, _, _, difficulty = private.GetReminderReplayState()
+    return encounterID ~= nil and encounterID == self.encounterID and difficulty == self.difficulty
 end
 
 ---moves the playhead of the replay along the open stage, the timeline scrolls with it
@@ -1980,6 +2020,7 @@ local toggleReplay = function(self)
     end
     private.startReminderReplay(self.encounterID, {
         speed = private.db.profile.editor.replaySpeed,
+        difficulty = self.difficulty,
         everyone = not self.onlyMine:GetValue(),
     })
 end
@@ -2064,7 +2105,7 @@ end
 local function LoadReminders(self, encounterID)
     local examples = {}
     local protected = {}
-    if self.loadedEncounterID == encounterID then
+    if self.loadedEncounterID == encounterID and self.loadedDifficulty == self.difficulty then
         for _, reminder in ipairs(self.reminders) do
             if private.IsTourExample(reminder) then
                 local key = private.ImportUtil.GetReminderKey(reminder)
@@ -2074,7 +2115,7 @@ local function LoadReminders(self, encounterID)
         end
     end
     self.reminders = {}
-    for _, reminder in ipairs(private.db.profile.reminders[encounterID] or {}) do
+    for _, reminder in ipairs(private.GetReminders(encounterID, self.difficulty)) do
         local copy = copyReminder(reminder)
         local key = private.ImportUtil.GetReminderKey(reminder)
         copy.atTourExample = examples[key]
@@ -2089,6 +2130,7 @@ local function LoadReminders(self, encounterID)
         table.insert(self.reminders, copyReminder(reminder))
     end
     self.loadedEncounterID = encounterID
+    self.loadedDifficulty = self.difficulty
     if next(protected) then SaveReminders(self) end
     self.spellCandidates = nil
 end
@@ -2096,12 +2138,32 @@ end
 ---draws everything again after the reminders were loaded anew
 ---@param self AtTimingsEditorDataFrame
 local function RefreshReminders(self)
+    refreshReplay(self)
     if self.selected and not tContains(self.reminders, self.selected) and not tContains(self.rules, self.selected) then
         self.selected = nil
     end
     self:RefreshTabs()
     refreshView(self)
     ShowInspector(self)
+end
+
+---@param self AtTimingsEditorDataFrame
+---@param difficulty string
+local function SetDifficulty(self, difficulty)
+    if self.difficulty == difficulty then return end
+    if private.GetReminderReplayState() == self.encounterID then private.stopReminderReplay() end
+    private.CloseItemLanes()
+    private.CloseGlowSelection()
+    self.difficulty = difficulty
+    private.db.profile.editor.difficulty = difficulty
+    self.stage = 1
+    self.extraStages = {}
+    self.selected = nil
+    self.lastRecord = nil
+    self.scroll, self.rowScroll, self.tabScroll = 0, 0, 0
+    self.tabScrollTo = nil
+    LoadReminders(self, self.encounterID)
+    RefreshReminders(self)
 end
 
 ---@param self AtTimingsEditorDataFrame
@@ -2113,6 +2175,8 @@ local function SetEncounter(self, encounterParams)
     self.journalEncounterID = encounterParams.journalEncounterID
     self.journalInstanceID = encounterParams.journalInstanceID
     self.encounterID = encounterParams.dungeonEncounterID
+    self.difficulty = encounterParams.difficulty or private.db.profile.editor.difficulty
+    private.db.profile.editor.difficulty = self.difficulty
     -- Classic Era has no Adventure Guide
     local instanceName = self.journalInstanceID and EJ_GetInstanceInfo and EJ_GetInstanceInfo(self.journalInstanceID)
     local encounterName = self.journalEncounterID and EJ_GetEncounterInfo and EJ_GetEncounterInfo(self.journalEncounterID)
@@ -2160,6 +2224,7 @@ local function Constructor()
         OnRelease = OnRelease,
         ApplySettings = ApplySettings,
         SetEncounter = SetEncounter,
+        SetDifficulty = SetDifficulty,
         LoadReminders = LoadReminders,
         RefreshReminders = RefreshReminders,
         RefreshTabs = RefreshTabs,
@@ -2276,13 +2341,13 @@ local function Constructor()
 
     widget.exportButton =createButton(toolbar, L("EditorExport"), function()
         if widget.encounterID then
-            private.showExportDialog(widget.encounterID)
+            private.showExportDialog(widget.encounterID, widget.difficulty)
         end
     end)
     widget.exportButton:SetPoint("RIGHT", toolbar, "RIGHT")
     widget.importButton = createButton(toolbar, L("EditorImport"), function()
         if widget.encounterID then
-            private.showImportDialog(widget.encounterID, widget)
+            private.showImportDialog(widget.encounterID, widget, nil, widget.difficulty)
         end
     end)
     widget.importButton:SetPoint("RIGHT", widget.exportButton, "LEFT", -gap, 0)
@@ -2317,9 +2382,26 @@ local function Constructor()
     addTooltip(onlyMine, "EditorOnlyMineDescription")
     widget.onlyMine = onlyMine
 
+    local difficultyBar = CreateFrame("Frame", nil, main)
+    difficultyBar:SetPoint("TOPLEFT", toolbar, "BOTTOMLEFT", 0, -padding)
+    difficultyBar:SetPoint("RIGHT", main, "RIGHT", -padding * 2 - variables.inspectorWidth, 0)
+    difficultyBar:SetHeight(variables.tabHeight)
+    difficultyBar.Buttons = {}
+    local difficultyWidth = (variables.inspectorWidth - padding * 2 - gap * (#private.Difficulties - 1)) / #private.Difficulties
+    for index, key in ipairs(private.Difficulties) do
+        local tab = createButton(difficultyBar, L("Difficulty" .. key:gsub("^%l", string.upper)), function()
+            widget:SetDifficulty(key)
+        end)
+        tab.key = key
+        tab:SetSize(difficultyWidth, variables.tabHeight)
+        tab:SetPoint("LEFT", difficultyBar, "LEFT", (index - 1) * (difficultyWidth + gap), 0)
+        difficultyBar.Buttons[index] = tab
+    end
+    widget.difficultyBar = difficultyBar
+
     -- the stage tabs above the timeline, they scroll with the arrows when there are too many
     local tabBar = CreateFrame("Frame", nil, main)
-    tabBar:SetPoint("TOPLEFT", toolbar, "BOTTOMLEFT", 0, -padding)
+    tabBar:SetPoint("TOPLEFT", difficultyBar, "BOTTOMLEFT", 0, -gap)
     tabBar:SetPoint("RIGHT", main, "RIGHT", -padding * 2 - variables.inspectorWidth, 0)
     tabBar:SetHeight(variables.tabHeight)
     tabBar:SetScript("OnSizeChanged", function() widget:RefreshTabs() end)

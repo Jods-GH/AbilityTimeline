@@ -125,9 +125,9 @@ end
 
 ---@param encounterID number
 ---@param everyone boolean|nil -- also the reminders meant for others
-local loadReminders = function(encounterID, everyone)
+local loadReminders = function(encounterID, difficulty, everyone)
     wipe(encounterReminders)
-    local reminders = private.db.profile.reminders and private.db.profile.reminders[encounterID] or {}
+    local reminders = private.GetReminders(encounterID, difficulty)
     for _, reminder in ipairs(reminders) do
         if everyone or private.ImportUtil:DoesTagApplyToPlayer(reminder.tag) then
             table.insert(encounterReminders, reminder)
@@ -176,7 +176,8 @@ private.startReminderReplay = function(encounterID, options)
     options = options or {}
     private.stopReminderReplay()
     if private.activeEncounterID then return false end
-    loadReminders(encounterID, options.everyone)
+    local difficulty = options.difficulty or private.db.profile.editor.difficulty
+    loadReminders(encounterID, difficulty, options.everyone)
     local stages, seen = {}, {}
     for _, reminder in ipairs(encounterReminders) do
         local stage = tonumber(reminder.phase) or 1
@@ -190,6 +191,7 @@ private.startReminderReplay = function(encounterID, options)
     local speed = tonumber(options.speed) or 1
     replay = {
         encounterID = encounterID,
+        difficulty = difficulty,
         speed = speed > 0 and speed or 1,
         stages = stages,
     }
@@ -202,7 +204,7 @@ end
 ---@return number|nil time -- seconds into the stage
 private.GetReminderReplayState = function()
     if not replay then return end
-    return replay.encounterID, replay.stage, (GetTime() - replay.stageStart) * replay.speed
+    return replay.encounterID, replay.stage, (GetTime() - replay.stageStart) * replay.speed, replay.difficulty
 end
 
 ---the open timings editor follows every replay, also one started before it opened or by the slash command
@@ -212,11 +214,12 @@ private.SetReminderReplayCallbacks = function(onStage, onStop)
     onReplayStage, onReplayStop = onStage, onStop
 end
 
-private.createReminders = function(encounterID)
+private.createReminders = function(encounterID, difficulty)
     private.stopReminderReplay()
     -- the boss timer rules of Plugins/TimerRules.lua follow the same encounter
     private.activeEncounterID = encounterID
-    loadReminders(encounterID)
+    private.activeDifficulty = difficulty
+    loadReminders(encounterID, difficulty)
     currentStage = 1
     addStageReminders(currentStage)
 end
@@ -236,6 +239,7 @@ private.PlayReminderSound = playReminderSound
 
 private.cancelSheduledReminders = function()
     private.activeEncounterID = nil
+    private.activeDifficulty = nil
     cancelTimers()
     currentStage = nil
 end

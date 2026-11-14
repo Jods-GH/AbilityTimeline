@@ -3,11 +3,11 @@ local appName, app = ...
 local private = app
 local AceCom = LibStub("AceComm-3.0")
 local InChatMessagingLockdown = C_ChatInfo.InChatMessagingLockdown or function() return false end
-local CHAT_LINK_FORMAT = "|cffffff00|Hgarrmission:abilitytimeline-%s:%i|h[Ability Timeline Reminder]|h|r"
-local CHAT_LINK_MESSAGE = "BetterTimeline Reminder: %i"
+local CHAT_LINK_FORMAT = "|cffffff00|Hgarrmission:abilitytimeline-%s:%i:%s|h[Ability Timeline Reminder]|h|r"
+local CHAT_LINK_MESSAGE = "BetterTimeline Reminder: %i %s"
 local COM_CHAT_PREFIX = "AbilityTimeline"
 local CHAT_REQUEST_PREFIX = "request:"
-local CHAT_REQUEST_MESSAGE = CHAT_REQUEST_PREFIX .. "%i"
+local CHAT_REQUEST_MESSAGE = CHAT_REQUEST_PREFIX .. "%i:%s"
 local CHAT_REMINDERS_PREFIX = "reminders-"
 -- Format: reminders-dungeonID-journalID-instanceID-encodedData
 local CHAT_REMINDERS_MESSAGE = CHAT_REMINDERS_PREFIX .. "%i-%i-%i-%s"
@@ -22,8 +22,8 @@ private.FindComChannel = function()
         return nil
     end
 end
-local ExportToChat = function(reminders, encounterID, target)
-    local encodedReminders = private.ImportUtil:ExportAsEncoded(reminders, encounterID)
+local ExportToChat = function(reminders, encounterID, target, difficulty)
+    local encodedReminders = private.ImportUtil:ExportAsEncoded(reminders, encounterID, difficulty)
     if InChatMessagingLockdown() then
         private.Debug("ExportToChat: In chat messaging lockdown, cannot send reminders.")
         return
@@ -53,11 +53,13 @@ local ChatHandler = function(prefix, message, _, sender)
     if InChatMessagingLockdown() or prefix ~= COM_CHAT_PREFIX or sender == UnitName("player") then return end
     if string.find(message, CHAT_REQUEST_PREFIX) then
         private.Debug("ChatHandler: Received reminder request from " .. sender)
-        local encounterID = tonumber(string.match(message, CHAT_REQUEST_PREFIX .. "(%d+)"))
+        local encounterID, difficulty = string.match(message, CHAT_REQUEST_PREFIX .. "(%d+):?(%a*)")
+        encounterID = tonumber(encounterID)
+        difficulty = private.GetDifficultyFromText(difficulty) or private.db.profile.editor.difficulty
         if encounterID then
-            local reminders = private.db.profile.reminders[encounterID]
+            local reminders = private.GetReminders(encounterID, difficulty)
             if reminders and #reminders > 0 then
-                ExportToChat(reminders, encounterID, sender)
+                ExportToChat(reminders, encounterID, sender, difficulty)
             else
                 private.Debug("ChatHandler: No reminders found for encounter ID " .. encounterID)
             end
@@ -90,7 +92,10 @@ local ChatHandler = function(prefix, message, _, sender)
 
         private.RegisterEncounter(encounterID)
 
+        private.ImportUtil:ParseImportText(encodedReminders)
+        local difficulty = private.ImportUtil.lastParsedDifficulty or private.db.profile.editor.difficulty
         local params = {
+            difficulty = difficulty,
             journalEncounterID = journalEncounterID,
             journalInstanceID = journalInstanceID,
             dungeonEncounterID = encounterID,
@@ -98,11 +103,12 @@ local ChatHandler = function(prefix, message, _, sender)
 
         -- Open timings editor and show import dialog with the received data
         private.openTimingsEditor(params)
-        private.showImportDialog(encounterID, private.TIMINGS_EDITOR_WINDOW, encodedReminders)
+        private.showImportDialog(encounterID, private.TIMINGS_EDITOR_WINDOW, encodedReminders, difficulty)
     end
 end
 
-private.StartExportingToChat = function(encounterID)
+private.StartExportingToChat = function(encounterID, difficulty)
+    difficulty = difficulty or private.db.profile.editor.difficulty
     if InChatMessagingLockdown() then
         private.Debug("ExportToChat: In chat messaging lockdown, cannot send reminders.")
         return
@@ -112,7 +118,7 @@ private.StartExportingToChat = function(encounterID)
     end
     local name = UnitNameUnmodified("player")
     local realm = GetNormalizedRealmName()
-    local msg = CHAT_LINK_MESSAGE:format(encounterID)
+    local msg = CHAT_LINK_MESSAGE:format(encounterID, difficulty)
     private.Debug("Sending reminder link to " ..
         private.FindComChannel() .. " for encounter ID " .. encounterID .. " link: " .. msg)
     C_ChatInfo.SendChatMessage(msg, private.FindComChannel())
@@ -126,9 +132,9 @@ hooksecurefunc("SetItemRef", function(link, text)
         private.Debug("SetItemRef: In chat messaging lockdown, cannot request reminders.")
         return
     end
-    if (link and link:sub(0, 27) == "garrmission:abilitytimeline") then
-        local rest = link:sub(29, string.len(link))
-        local sender, encounterIDStr = string.match(rest, "([^:]+):(%d+)")
+    if link and link:find("^garrmission:abilitytimeline%-") then
+        local sender, encounterIDStr, difficulty = link:match("^garrmission:abilitytimeline%-([^:]+):(%d+):?(%a*)")
+        difficulty = private.GetDifficultyFromText(difficulty) or private.db.profile.editor.difficulty
 
         -- If shift-clicked, insert the original message into chat frame for forwarding (only own links)
         if IsShiftKeyDown() and sender and encounterIDStr then
@@ -136,7 +142,7 @@ hooksecurefunc("SetItemRef", function(link, text)
             -- Only allow forwarding our own links
             if name == UnitName("player") and (not realm or realm == GetNormalizedRealmName()) then
                 local encounterID = tonumber(encounterIDStr)
-                local originalMessage = CHAT_LINK_MESSAGE:format(encounterID)
+                local originalMessage = CHAT_LINK_MESSAGE:format(encounterID, difficulty)
                 local chatFrame = DEFAULT_CHAT_FRAME
                 if chatFrame and chatFrame.editBox then
                     if not chatFrame.editBox:IsShown() then
@@ -156,7 +162,7 @@ hooksecurefunc("SetItemRef", function(link, text)
             end
             local encounterID = tonumber(encounterIDStr)
             private.Debug("Requesting Reminders from " .. sender .. " for encounter " .. encounterID)
-            local requestText = CHAT_REQUEST_MESSAGE:format(encounterID)
+            local requestText = CHAT_REQUEST_MESSAGE:format(encounterID, difficulty)
             AceCom:SendCommMessage(COM_CHAT_PREFIX, requestText,
                 "WHISPER",
                 sender, 'NORMAL', nil, nil)
@@ -169,8 +175,10 @@ end)
 
 local filterfunc = function(self, event, msg, author, ...)
     if msg and string.find(msg, CHAT_LINK_MESSAGE:sub(1, 24)) then
-        local encounterID = tonumber(string.match(msg, "(%d+)"))
-        return false, CHAT_LINK_FORMAT:format(author, encounterID), author, ...
+        local encounterID, difficulty = msg:match("BetterTimeline Reminder: (%d+)%s*(%a*)")
+        encounterID = tonumber(encounterID)
+        difficulty = private.GetDifficultyFromText(difficulty) or private.db.profile.editor.difficulty
+        if encounterID then return false, CHAT_LINK_FORMAT:format(author, encounterID, difficulty), author, ... end
     end
     return false, msg, author, ...
 end

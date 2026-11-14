@@ -11,7 +11,7 @@ local IMPORT_PREFIX = "!AT" .. EXPORT_VERSION .. ":"
 -- the keys of a boss timer rule (Plugins/TimerRules.lua) in the !AT exports
 local RULE_KEYS = {
     "match", "value", "name", "color", "useColor", "glow", "glowWhen", "glowSelection", "displays", "countdown", "TTS", "useTTS",
-    "TTSTimer", "sound", "changes",
+    "TTSTimer", "sound", "changes", "difficulties",
 }
 -- the reminder keys the !AT: strings carry
 local ENCODED_KEYS = {
@@ -162,6 +162,7 @@ function ImportUtil:ParseViserioFormat(viserioText)
     -- the first line can be "EncounterID:number;Name:string", notes copied without it start with the reminders
     encounterID = tonumber(lines[1]:match("^EncounterID:(%d+)"))
     encounterName = encounterID and lines[1]:match("Name:([^;]+)")
+    self.lastParsedDifficulty = private.GetDifficultyFromText(encounterID and lines[1]:match("Difficulty:([^;]+)"))
 
     for i = encounterID and 2 or 1, #lines do
         local params = {}
@@ -206,6 +207,8 @@ function ImportUtil:ParseJSONFormat(jsonText)
     if version > EXPORT_VERSION then
         return reminders, nil, rules, private.getLocalisation("ImportNewerVersion")
     end
+
+    self.lastParsedDifficulty = private.GetDifficultyFromText(jsonText:match('"difficulty"%s*:%s*"([^"]*)"'))
 
     -- Extract encounterID from top-level JSON
     local encounterId = tonumber(jsonText:match('"encounterId"%s*:%s*(%d+)')) or
@@ -306,6 +309,12 @@ ImportUtil.ParseJSONRule = function(object, match)
             rule.displays[display] = false
         end
     end
+    for _, difficulty in ipairs(private.Difficulties) do
+        if boolOf("difficulty_" .. difficulty) == "false" then
+            rule.difficulties = rule.difficulties or { normal = true, heroic = true, mythic = true }
+            rule.difficulties[difficulty] = false
+        end
+    end
     return rule
 end
 
@@ -314,6 +323,7 @@ end
 ---@return table parsed reminders
 ---@return string|nil error message if parsing failed
 function ImportUtil:ParseImportText(importText)
+    self.lastParsedDifficulty = nil
     if not importText or importText == "" then
         return {}, "Empty import text"
     end
@@ -496,11 +506,21 @@ function ImportUtil:ParseEncodedFormat(text)
     end
 
     self.lastParsedEncounterID = data.encounterID
+    self.lastParsedDifficulty = private.GetDifficultyFromText(data.difficulty)
     for _, item in ipairs(data.rules or {}) do
         if type(item) == "table" and item.match then
             local rule = {}
             for _, key in ipairs(RULE_KEYS) do
                 rule[key] = item[key]
+            end
+            rule.difficulties = nil
+            if type(item.difficulties) == "table" then
+                for _, difficulty in ipairs(private.Difficulties) do
+                    if item.difficulties[difficulty] == false then
+                        rule.difficulties = rule.difficulties or { normal = true, heroic = true, mythic = true }
+                        rule.difficulties[difficulty] = false
+                    end
+                end
             end
             rule.changes = private.CooldownText.CleanChanges(rule.changes)
             rule.glowSelection = private.CooldownText.CleanSelection(rule.glowSelection)
@@ -571,7 +591,7 @@ end
 ---@param reminders table array of reminder tables
 ---@param mergeMode boolean if true, merge with existing; if false, replace
 ---@return boolean success
-function ImportUtil:ApplyReminders(encounterID, reminders, mergeMode, rules)
+function ImportUtil:ApplyReminders(encounterID, difficulty, reminders, mergeMode, rules)
     if not private.db or not private.db.profile or not private.db.profile.reminders then
         return false
     end
@@ -586,27 +606,18 @@ function ImportUtil:ApplyReminders(encounterID, reminders, mergeMode, rules)
         self:ApplyTimerRules(encounterID, rules, mergeMode)
     end
 
-    if not mergeMode then
-        -- Replace mode
-        private.db.profile.reminders[encounterID] = {}
-    else
-        -- Merge mode
-        if not private.db.profile.reminders[encounterID] then
-            private.db.profile.reminders[encounterID] = {}
-        end
-    end
+    local existing = mergeMode and private.GetReminders(encounterID, difficulty) or {}
 
     -- an imported reminder replaces the one with the same stage, time, spell or text and tag instead of doubling it
     -- doubles left by earlier imports go as well
     local stored, index = {}, {}
-    for _, reminder in ipairs(private.db.profile.reminders[encounterID]) do
+    for _, reminder in ipairs(existing) do
         local key = ImportUtil.GetReminderKey(reminder)
         if not index[key] then
             table.insert(stored, reminder)
             index[key] = #stored
         end
     end
-    private.db.profile.reminders[encounterID] = stored
     for _, reminder in ipairs(reminders) do
         local key = ImportUtil.GetReminderKey(reminder)
         if index[key] then
@@ -618,10 +629,11 @@ function ImportUtil:ApplyReminders(encounterID, reminders, mergeMode, rules)
     end
 
     -- Sort reminders by time
-    table.sort(private.db.profile.reminders[encounterID], function(a, b)
+    table.sort(stored, function(a, b)
         return (a.CombatTime or 0) < (b.CombatTime or 0)
     end)
 
+    private.SetReminders(encounterID, difficulty, stored)
     return true
 end
 
@@ -633,7 +645,11 @@ function ImportUtil:ApplyTimerRules(encounterID, rules, mergeMode)
     private.db.profile.timerRules = private.db.profile.timerRules or {}
     local stored = mergeMode and private.db.profile.timerRules[encounterID] or {}
     local keyOf = function(rule)
-        return (rule.match or "spell") .. ";" .. tostring(rule.value or ""):lower()
+        local key = (rule.match or "spell") .. ";" .. tostring(rule.value or ""):lower()
+        for _, difficulty in ipairs(private.Difficulties) do
+            key = key .. ";" .. tostring(not rule.difficulties or rule.difficulties[difficulty] ~= false)
+        end
+        return key
     end
     local index = {}
     for i, rule in ipairs(stored) do
@@ -664,19 +680,19 @@ end
 ---@param encounterID number|nil Required for viserio format
 ---@param encounterName string|nil Optional for viserio format
 ---@return string formatted export text
-function ImportUtil:ExportReminders(reminders, format, encounterID, encounterName)
+function ImportUtil:ExportReminders(reminders, format, encounterID, encounterName, difficulty)
     format = format or "encoded"
 
     if format == "encoded" then
-        return self:ExportAsEncoded(reminders, encounterID)
+        return self:ExportAsEncoded(reminders, encounterID, difficulty)
     elseif format == "viserio" then
         if not encounterID then
             private.Debug("EncounterID required for Viserio export")
             return ""
         end
-        return self:ExportAsViserio(reminders, encounterID, encounterName)
+        return self:ExportAsViserio(reminders, encounterID, encounterName, difficulty)
     elseif format == "json" then
-        return self:ExportAsJSON(reminders, encounterID)
+        return self:ExportAsJSON(reminders, encounterID, difficulty)
     elseif format == "mrt" then
         return self:ExportAsMRT(reminders)
     end
@@ -688,8 +704,8 @@ end
 ---@param reminders table
 ---@param encounterID number|nil
 ---@return string
-function ImportUtil:ExportAsJSON(reminders, encounterID)
-    local export = { exportVersion = EXPORT_VERSION }
+function ImportUtil:ExportAsJSON(reminders, encounterID, difficulty)
+    local export = { exportVersion = EXPORT_VERSION, difficulty = difficulty }
 
     if encounterID then
         export.encounterId = encounterID
@@ -717,6 +733,9 @@ function ImportUtil:ExportAsJSON(reminders, encounterID)
             end
             for display, shown in pairs(rule.displays or {}) do
                 item["show_" .. display] = shown
+            end
+            for difficulty, shown in pairs(rule.difficulties or {}) do
+                item["difficulty_" .. difficulty] = shown
             end
             table.insert(export.rules, item)
             -- own lanes are nested, they travel beside the flat objects with the position of their rule
@@ -856,8 +875,9 @@ end
 ---@param encounterID number
 ---@param encounterName string|nil
 ---@return string
-function ImportUtil:ExportAsViserio(reminders, encounterID, encounterName)
+function ImportUtil:ExportAsViserio(reminders, encounterID, encounterName, difficulty)
     local result = "EncounterID:" .. tostring(encounterID)
+    if difficulty then result = result .. ";Difficulty:" .. difficulty:gsub("^%l", string.upper) end
 
     if encounterName and encounterName ~= "" then
         result = result .. ";Name:" .. encounterName
@@ -923,9 +943,10 @@ end
 ---@param reminders table
 ---@param encounterID number|nil
 ---@return string
-function ImportUtil:ExportAsEncoded(reminders, encounterID)
+function ImportUtil:ExportAsEncoded(reminders, encounterID, difficulty)
     local data = {
         version = EXPORT_VERSION,
+        difficulty = difficulty,
         encounterID = encounterID,
         reminders = {},
         rules = {},

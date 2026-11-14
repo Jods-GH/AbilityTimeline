@@ -310,10 +310,11 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
     elseif string.lower(msg) == "replay stop" then
         private.stopReminderReplay()
     elseif string.find(string.lower(msg), "^replay") then
-        local encounterID, speed = string.match(msg, "^%a+%s+(%d+)%s*([%d%.]*)")
-        if not encounterID then
+        local encounterID, speed, difficulty = string.match(msg:lower(), "^%a+%s+(%d+)%s*([%d%.]*)%s*(%a*)%s*$")
+        if not encounterID or difficulty ~= "" and not private.GetDifficultyFromText(difficulty) then
             AbilityTimeline:Print(private.getLocalisation("ReplayUsage"))
-        elseif not private.startReminderReplay(tonumber(encounterID), { speed = tonumber(speed) }) then
+        elseif not private.startReminderReplay(tonumber(encounterID), { speed = tonumber(speed),
+            difficulty = private.GetDifficultyFromText(difficulty) or private.db.profile.editor.difficulty }) then
             AbilityTimeline:Print(private.getLocalisation("ReplayNothing"))
         end
     elseif string.find(string.lower(msg), "rect") then
@@ -417,7 +418,7 @@ function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, diff
         C_ChatInfo.SendChatMessage(private.getLocalisation("CurrentlyBusyInEncounter"):format(encounterName, name), "DND")
     end
 
-    private.createReminders(encounterID)
+    private.createReminders(encounterID, private.GetDifficultyKey(difficultyID))
 end
 
 function AbilityTimeline:ENCOUNTER_END(event, encounterID, encounterName, difficultyID, groupSize, playerDifficultyID,

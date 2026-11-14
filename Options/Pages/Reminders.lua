@@ -90,9 +90,9 @@ end
 ---@return table[]
 local getSavedRows = function()
     local keys = {}
-    for key, stored in pairs(private.db.profile.reminders) do
-        if #stored > 0 then
-            keys[key] = true
+    for _, store in ipairs({ private.db.profile.reminders, private.db.profile.difficultyReminders }) do
+        for key in pairs(store) do
+            if private.HasReminders(key) then keys[key] = true end
         end
     end
     for key in pairs(private.db.profile.timerRules or {}) do
@@ -101,8 +101,8 @@ local getSavedRows = function()
     local rows = {}
     for key in pairs(keys) do
         local id = tonumber(key) or 0
-        local stored = private.db.profile.reminders[key]
-        local first = stored and stored[1] or {}
+        local _, first = private.HasReminders(key)
+        first = first or {}
         local info = private.GetEncounterInfo(id) or {}
         local encounterName = first.encounterName or info.name
         local instanceName = first.instanceName or info.instanceName

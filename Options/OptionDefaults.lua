@@ -10,8 +10,10 @@ private.OptionDefaults = {
 		audioCountdownTime = 5,
 		enableKeyRerollTimer = true,
 		reminders = {},
+		difficultyReminders = {},
 		timerRules = {},
 		editor = {
+			difficulty = "mythic",
 			defaultEncounterDuration = 300,
 			replaySpeed = 1,
 		},

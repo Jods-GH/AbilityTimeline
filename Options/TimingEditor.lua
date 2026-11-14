@@ -67,6 +67,7 @@ private.RegisterWindowState("editor", function()
         name = frame.encounterName,
         mode = frame.mode,
         stage = frame.stage,
+        difficulty = frame.difficulty,
     }
 end, function(state)
     private.openTimingsEditor(state)
