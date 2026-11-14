@@ -826,7 +826,7 @@ if L then
     L["CountdownResetFont"] = "Reset Font to Theme"
     L["CountdownOwnFontSize"] = "Separate Font Size"
     L["CountdownOwnColor"] = "Separate Timer Color"
-    L["CountdownBigScale"] = "Big Icon Font Size Multiplier"
+    L["CountdownBigScale"] = "Big Icon Font Size (% of Timer Font Size)"
     L["CountdownAppliesTo"] = "Display"
     L["CountdownPreview"] = "Display"
     L["CountdownShowOn"] = "Show on"

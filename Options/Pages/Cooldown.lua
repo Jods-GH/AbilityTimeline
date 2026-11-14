@@ -514,6 +514,16 @@ local function Session(target)
         return push(parent, text, control, themePath)
     end
 
+    local function slider(parent, text, value, callback, minimum, maximum, step, themePath)
+        local control = AceGUI:Create("AtSlider")
+        control:SetLabel("")
+        control:SetSliderValues(minimum, maximum, step)
+        control:SetIsPercent(true)
+        control:SetValue(value)
+        control:SetCallback("OnValueChanged", function(_, _, entered) callback(entered) end)
+        return push(parent, text, control, themePath)
+    end
+
     local function timeValues(parent, test, changed)
         local line = AceGUI:Create("AtCountdownLayout")
         line:PauseLayout()
@@ -707,8 +717,8 @@ local function Session(target)
             end)
         end
         if state.scope == "Shared" or state.scope == "BigIcon" then
-            number(parent, L("CountdownBigScale"), private.GetElementStyle("Cooldown").BigIconScale or 2,
-                function(value) private.SetThemeModification("Elements.Cooldown.BigIconScale", value) end, 0.25, 4, "Elements.Cooldown.BigIconScale")
+            slider(parent, L("CountdownBigScale"), private.GetElementStyle("Cooldown").BigIconScale or 2,
+                function(value) private.SetThemeModification("Elements.Cooldown.BigIconScale", value) end, 0.25, 4, 0.05, "Elements.Cooldown.BigIconScale")
         end
     end
 
@@ -944,8 +954,8 @@ local function Session(target)
                     number(body, string.format(L("CountdownDisplayFontSize"), settingsText(scopes[display])), private.GetThemeValue(path) or 0,
                         function(value) private.SetThemeModification(path, value) end, 0, 512, nil, 80)
                 end
-                number(body, L("CountdownBigScale"), private.GetElementStyle("Cooldown").BigIconScale or 2,
-                    function(value) private.SetThemeModification("Elements.Cooldown.BigIconScale", value) end, 0.25, 4, nil, 80)
+                slider(body, L("CountdownBigScale"), private.GetElementStyle("Cooldown").BigIconScale or 2,
+                    function(value) private.SetThemeModification("Elements.Cooldown.BigIconScale", value) end, 0.25, 4, 0.05)
             end
         end)
         if property == "size" then return end
