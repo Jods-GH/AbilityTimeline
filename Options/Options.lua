@@ -121,7 +121,7 @@ private.RegisterOptionsPage = function()
     ThemeApply.CreatePanel(card)
 
     card.Logo = card:CreateTexture(nil, "ARTWORK")
-    card.Logo:SetTexture("Interface\\AddOns\\AbilityTimeline\\Media\\Logo.tga")
+    card.Logo:SetTexture("Interface\\AddOns\\AbilityTimeline\\Media\\Logo.png")
     card.Logo:SetSize(variables.logoSize, variables.logoSize)
     card.Logo:SetPoint("TOPLEFT", card, "TOPLEFT", padding, -padding)
     card.Title = card:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
