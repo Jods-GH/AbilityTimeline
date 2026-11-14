@@ -155,7 +155,7 @@ local ticker = CreateFrame("Frame")
 ticker:Hide()
 
 local getInternalElapsed = function(event)
-   return event.pausedElapsed or GetTime() - event.startTime
+   return event.pausedElapsed or (GetTime() - event.startTime) * (event.info.timeScale or 1)
 end
 
 private.manager.getEventRemainingTime = function(eventID)
@@ -377,6 +377,8 @@ private.manager.addEvent = function(eventInfo)
          glowSelection = eventInfo.glowSelection,
          -- the reminder's or boss timer rule's own countdown lanes, over the shared ones
          countdownChanges = eventInfo.countdownChanges,
+         -- how many of its seconds pass in a second, a replayed reminder runs faster
+         timeScale = eventInfo.timeScale,
       },
       startTime = GetTime(),
       pausedElapsed = eventInfo.paused and 0 or nil,
@@ -417,14 +419,14 @@ end
 private.manager.pauseEvent = function(eventID)
    local event = activeTimers[eventID]
    if event and not event.provider and not event.pausedElapsed then
-      event.pausedElapsed = GetTime() - event.startTime
+      event.pausedElapsed = getInternalElapsed(event)
    end
 end
 
 private.manager.resumeEvent = function(eventID)
    local event = activeTimers[eventID]
    if event and event.pausedElapsed then
-      event.startTime = GetTime() - event.pausedElapsed
+      event.startTime = GetTime() - event.pausedElapsed / (event.info.timeScale or 1)
       event.pausedElapsed = nil
    end
 end

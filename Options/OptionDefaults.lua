@@ -13,6 +13,7 @@ private.OptionDefaults = {
 		timerRules = {},
 		editor = {
 			defaultEncounterDuration = 300,
+			replaySpeed = 1,
 		},
 		disableAllOnEncounterEnd = true,
 		showRemindersInDisabledDisplays = true,

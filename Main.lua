@@ -307,6 +307,15 @@ function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
         private.addTestEvents()
     elseif string.find(string.lower(msg), "^test ") then
         handleTestCommand(string.lower(msg):sub(6))
+    elseif string.lower(msg) == "replay stop" then
+        private.stopReminderReplay()
+    elseif string.find(string.lower(msg), "^replay") then
+        local encounterID, speed = string.match(msg, "^%a+%s+(%d+)%s*([%d%.]*)")
+        if not encounterID then
+            AbilityTimeline:Print(private.getLocalisation("ReplayUsage"))
+        elseif not private.startReminderReplay(tonumber(encounterID), { speed = tonumber(speed) }) then
+            AbilityTimeline:Print(private.getLocalisation("ReplayNothing"))
+        end
     elseif string.find(string.lower(msg), "rect") then
         private.Debug(private.TIMELINE_FRAME.frame:GetBoundsRect())
     elseif msg == "eventlist" then

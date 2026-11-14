@@ -53,6 +53,7 @@ local variables = {
     footerHeight = 34,
     lengthWidth = 70,
     onlyMineWidth = 120,
+    replaySpeedWidth = 70,
     minLength = 60,
     lengthMargin = 30,
     undoSteps = 50,
@@ -1912,11 +1913,75 @@ refreshView = function(self)
     setButtonEnabled(self.addButton, not rules or private.manager.hasBossMod())
     self.addButton:SetText(L(rules and "EditorAddRule" or "EditorAddReminder"))
     self.addButton:SetWidth(self.addButton:GetFontString():GetStringWidth() + 28)
+    setButtonEnabled(self.replayButton, not rules)
     if rules then
         refreshRules(self)
     else
         RefreshTimeline(self)
     end
+end
+
+---@param self AtTimingsEditorDataFrame
+---@return boolean -- the reminders of the open encounter are replayed
+local isReplaying = function(self)
+    local encounterID = private.GetReminderReplayState()
+    return encounterID ~= nil and encounterID == self.encounterID
+end
+
+---moves the playhead of the replay along the open stage, the timeline scrolls with it
+---@param self AtTimingsEditorDataFrame
+local updatePlayhead = function(self)
+    local _, stage, time = private.GetReminderReplayState()
+    local shown = stage == self.stage
+    self.playhead:SetShown(shown)
+    if not shown then return end
+    local x = time * getPixelsPerSecond(self) + variables.pinSize / 2
+    if x < self.scroll or x > self.scroll + self.canvas:GetWidth() then
+        setScroll(self, x - variables.pinSize)
+    end
+    self.playhead:ClearAllPoints()
+    self.playhead:SetPoint("TOPLEFT", self.canvas, "TOPLEFT", x - self.scroll, 0)
+    self.playhead:SetPoint("BOTTOMLEFT", self.canvas, "BOTTOMLEFT", x - self.scroll, 0)
+end
+
+---the replay button and the playhead follow whether the open encounter is replayed
+---@param self AtTimingsEditorDataFrame
+local refreshReplay = function(self)
+    local replaying = isReplaying(self)
+    self.replayButton:SetText(L(replaying and "EditorReplayStop" or "EditorReplay"))
+    self.replayButton:SetWidth(self.replayButton:GetFontString():GetStringWidth() + 28)
+    self.playhead:Hide()
+    self.canvas:SetScript("OnUpdate", replaying and function() updatePlayhead(self) end or nil)
+    -- a running replay keeps the speed it started with
+    self.replaySpeed:SetDisabled(replaying)
+end
+
+---the editor opens the stage the replay plays
+---@param self AtTimingsEditorDataFrame
+local attachReplay = function(self)
+    local showStage = function(stage)
+        refreshReplay(self)
+        if not isReplaying(self) or self.mode == "rules" or self.stage == stage then return end
+        self.stage = stage
+        Select(self, nil)
+    end
+    private.SetReminderReplayCallbacks(showStage, function()
+        refreshReplay(self)
+    end)
+    showStage(select(2, private.GetReminderReplayState()))
+end
+
+---starts replaying the reminders of the open encounter, or stops the replay
+---@param self AtTimingsEditorDataFrame
+local toggleReplay = function(self)
+    if isReplaying(self) then
+        private.stopReminderReplay()
+        return
+    end
+    private.startReminderReplay(self.encounterID, {
+        speed = private.db.profile.editor.replaySpeed,
+        everyone = not self.onlyMine:GetValue(),
+    })
 end
 
 ---@param self AtTimingsEditorDataFrame
@@ -1928,6 +1993,7 @@ local function ApplySettings(self)
     ThemeApply.Solid(self.canvas.Back, ThemeApply.Color("Field"))
     ThemeApply.Solid(self.labels.Divider, ThemeApply.Color("Edge"))
     ThemeApply.Solid(self.inspectorPanel.Header.Line, ThemeApply.Color("Line"))
+    ThemeApply.Solid(self.playhead, ThemeApply.Color("Danger"))
     for _, track in ipairs({ self.scrollX, self.scrollY }) do
         ThemeApply.Solid(track.Back, ThemeApply.Color("Track", 0.5))
         ThemeApply.Solid(track.Thumb, ThemeApply.Color("Accent2", 0.8))
@@ -1941,7 +2007,7 @@ local function ApplySettings(self)
     self.noBossMod:SetTextColor(ThemeApply.Color("Danger"))
     for _, button in ipairs({ self.addButton, self.undoButton, self.redoButton, self.importButton, self.exportButton,
         self.addStageButton, self.tabPrev, self.tabNext, self.duplicateButton, self.deleteButton, self.rulesButton,
-        self.itemLanesButton }) do
+        self.itemLanesButton, self.replayButton }) do
         ThemedWidgets.DrawButton(button)
     end
     for _, button in ipairs({ self.tabPrev, self.tabNext, self.undoButton, self.redoButton }) do
@@ -1978,6 +2044,9 @@ local function OnRelease(self)
     self.inspector:ReleaseChildren()
     self.ruleList:ReleaseChildren()
     self.rows:SetScript("OnUpdate", nil)
+    -- a replay goes on without the editor
+    private.SetReminderReplayCallbacks(nil, nil)
+    self.canvas:SetScript("OnUpdate", nil)
     if not InCombatLockdown() then
         self.frame:EnableKeyboard(false)
     end
@@ -2053,6 +2122,7 @@ local function SetEncounter(self, encounterParams)
         self.encounterName or L("EncounterFallbackName"):format(self.encounterID or 0)))
     self.length = private.db.profile.editor.defaultEncounterDuration or 300
     self.lengthBox:SetText(tostring(self.length))
+    self.replaySpeed:SetValue(private.db.profile.editor.replaySpeed or 1)
     self.stage = 1
     self.mode = "stages"
     self.extraStages = {}
@@ -2068,6 +2138,7 @@ local function SetEncounter(self, encounterParams)
     refreshUndoButtons(self)
     LoadReminders(self, self.encounterID)
     RefreshReminders(self)
+    attachReplay(self)
     self.frame:Show()
 end
 
@@ -2181,8 +2252,29 @@ local function Constructor()
         end)
         button:HookScript("OnLeave", function() GameTooltip:Hide() end)
     end
+    widget.replayButton = createButton(toolbar, L("EditorReplay"), function() toggleReplay(widget) end)
+    widget.replayButton:SetPoint("LEFT", widget.redoButton, "RIGHT", variables.groupGap, 0)
+    widget.replayButton:HookScript("OnEnter", function(button)
+        GameTooltip:SetOwner(button, "ANCHOR_BOTTOM")
+        GameTooltip:AddLine(L("EditorReplayDescription"), 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    widget.replayButton:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    local replaySpeed = AceGUI:Create("AtDropdown")
+    replaySpeed:SetLabel("")
+    replaySpeed:SetList({ [1] = L("EditorReplaySpeed"):format(1), [2] = L("EditorReplaySpeed"):format(2),
+        [4] = L("EditorReplaySpeed"):format(4) }, { 1, 2, 4 })
+    replaySpeed:SetWidth(variables.replaySpeedWidth)
+    replaySpeed.frame:SetParent(toolbar)
+    replaySpeed.frame:SetPoint("LEFT", widget.replayButton, "RIGHT", gap, 0)
+    replaySpeed.frame:Show()
+    replaySpeed:SetCallback("OnValueChanged", function(_, _, value)
+        private.db.profile.editor.replaySpeed = value
+    end)
+    addTooltip(replaySpeed, "EditorReplaySpeedDescription")
+    widget.replaySpeed = replaySpeed
 
-    widget.exportButton = createButton(toolbar, L("EditorExport"), function()
+    widget.exportButton =createButton(toolbar, L("EditorExport"), function()
         if widget.encounterID then
             private.showExportDialog(widget.encounterID)
         end
@@ -2321,6 +2413,10 @@ local function Constructor()
     canvas.Empty:SetWidth(360)
     canvas.Empty:SetText(L("EditorEmptyStage"))
     widget.canvas = canvas
+    -- where a replay is in the open stage
+    widget.playhead = canvas:CreateTexture(nil, "OVERLAY")
+    widget.playhead:SetWidth(2)
+    widget.playhead:Hide()
     canvas:SetScript("OnSizeChanged", function()
         RefreshTimeline(widget)
     end)

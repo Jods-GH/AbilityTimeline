@@ -198,7 +198,7 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate, deferDisplay)
 			private.ThemeApply.PlayEnter(widget.frame, private.GetElementStyle("BigIcon").Enter, true, widget.frame.SpellIcon,
 				eventInfo.iconFileID)
 		end
-		widget.frame.Cooldown:SetCooldown(GetTime(), private.manager.getEventRemainingTime(eventInfo.id))
+		widget.frame.Cooldown:SetCooldown(GetTime(), private.manager.getEventRemainingTime(eventInfo.id) / (eventInfo.timeScale or 1))
 		widget.frame:SetScript("OnUpdate", function(self)
 			private.ThemeApply.IconState(self, private.manager.getEventState(eventInfo.id), eventInfo)
 			local remaining = private.manager.getEventRemainingTime(eventInfo.id)

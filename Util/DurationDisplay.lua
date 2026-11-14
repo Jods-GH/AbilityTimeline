@@ -108,16 +108,17 @@ local PIECES = {
 }
 
 ---the time the timer ends at, kept until the countdown drifts from it (a pause, a restarted preview)
-local clock = function(layer, remaining)
+local clock = function(layer, remaining, scale)
     local now = GetTime()
     layer.longest = math.max(layer.longest or 0, remaining)
-    if not layer.ends or math.abs(layer.ends - now - remaining) > 0.1 then layer.ends = now + remaining end
-    return layer.ends - now
+    layer.scale = scale
+    if not layer.ends or math.abs(layer.ends - now - remaining / scale) > 0.1 then layer.ends = now + remaining / scale end
+    return (layer.ends - now) * scale
 end
 
 ---a native cooldown on the shared clock, set again only when the clock or the section moves
-local sync = function(cooldown, ends, start, finish)
-    local began, duration = ends - start, start - finish
+local sync = function(cooldown, ends, start, finish, scale)
+    local began, duration = ends - start / scale, (start - finish) / scale
     if cooldown.atBegan ~= began or cooldown.atDuration ~= duration then
         cooldown:SetCooldown(began, duration)
         cooldown.atBegan, cooldown.atDuration = began, duration
@@ -196,7 +197,7 @@ local drawDial = function(layer, frame, width, region, start, finish, r, g, b, a
         layer.Dial:SetSwipeTexture(layer.dialFile, r, g, b, a)
         layer.dialColor = r .. g .. b .. a
     end
-    sync(layer.Dial, layer.ends, start, finish)
+    sync(layer.Dial, layer.ends, start, finish, layer.scale)
 end
 
 local drawBeat = function(layer, frame, factor, value, remaining, r, g, b)
@@ -256,13 +257,13 @@ ThemeApply.UpdateDuration = function(frame, display, style, origins, remaining, 
         layer.style = kind
     end
     -- the same clock and span the spinner runs on, from the time the icon showed with or the section's later start
-    local left = clock(layer, remaining)
+    local left = clock(layer, remaining, frame.eventInfo and frame.eventInfo.timeScale or 1)
     local origin = origins.duration
     local start, finish = layer.longest, origin and origin.finish or 0
     if origin then start = math.min(origin.start, start) end
     local f = start > finish and math.max(0, math.min(1, (left - finish) / (start - finish))) or 1
     if kind == "swipe" then
-        if layer.Swipe then sync(layer.Swipe, layer.ends, start, finish) end
+        if layer.Swipe then sync(layer.Swipe, layer.ends, start, finish, layer.scale) end
     elseif layer.Swipe then
         layer.Swipe:Hide()
     end
