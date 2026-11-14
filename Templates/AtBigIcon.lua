@@ -55,6 +55,17 @@ local applyEventColor = function(frame)
 	end
 end
 
+---sets the spell name of a single event, none while the theme hides it
+---@param frame Frame
+---@param eventInfo EncounterTimelineEventInfo
+local applySpellName = function(frame, eventInfo)
+	if private.GetElementStyle("BigIcon").Text.Show then
+		frame.SpellName:SetText(eventInfo.spellName)
+	else
+		frame.SpellName:SetText("")
+	end
+end
+
 local SetMergedIcons = function(self, members)
 	local frame = self.frame
 	self.mergedMembers = members
@@ -96,7 +107,11 @@ local SetMergedIcons = function(self, members)
 		end
 	end
 	frame.SpellIcon:SetShown(count == 1)
-	frame.SpellName:SetText(count > 1 and string.format(private.getLocalisation("MultipleTimers"), count) or self.eventInfo.spellName)
+	if style.Text.Show then
+		frame.SpellName:SetText(count > 1 and string.format(private.getLocalisation("MultipleTimers"), count) or self.eventInfo.spellName)
+	else
+		frame.SpellName:SetText("")
+	end
 	frame.SpellName:SetTextColor(private.ThemeApply.Color(style.Text.Font.Color))
 	if count == 1 then applyEventColor(frame) end
 end
@@ -146,7 +161,7 @@ local function ApplySettings(self)
 	end
 
 	local background = style.Text.Background
-	if background.Show then
+	if background.Show and style.Text.Show then
 		frame.SpellNameBackground:SetPoint("LEFT", frame.SpellName, "LEFT", -background.Offset.x, 0)
 		frame.SpellNameBackground:SetPoint("RIGHT", frame.SpellName, "RIGHT", background.Offset.x, 0)
 		frame.SpellNameBackground:SetPoint("TOP", frame.SpellName, "TOP", 0, background.Offset.y)
@@ -155,6 +170,10 @@ local function ApplySettings(self)
 		frame.SpellNameBackground:Show()
 	else
 		frame.SpellNameBackground:Hide()
+	end
+	-- a single icon keeps its merge key, SetMergedIcons below changes nothing for it
+	if self.eventInfo and not frame.mergeKey then
+		applySpellName(frame, self.eventInfo)
 	end
 	frame.mergeKey = nil
 	if self.eventInfo then self:SetMergedIcons(self.mergedMembers) end
@@ -229,7 +248,7 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate, deferDisplay)
 	end
 
 	widget.frame.SpellIcon:SetTexture(eventInfo.iconFileID)
-	widget.frame.SpellName:SetText(eventInfo.spellName)
+	applySpellName(widget.frame, eventInfo)
 	widget.frame.eventID = eventInfo.id
 	private.ThemeApply.IconState(widget.frame, nil, eventInfo)
 	applyEventColor(widget.frame)

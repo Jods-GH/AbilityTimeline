@@ -139,6 +139,7 @@ private.RegisterTheme({
             },
             Border = BORDER,
             Text = {
+                Show = true,
                 Anchor = "LEFT",
                 Offset = { x = 16, y = 0 },
                 Font = { Media = FONT, Size = 14, Flags = { OUTLINE = true }, Color = WHITE, Shadow = true },
@@ -155,6 +156,7 @@ private.RegisterTheme({
             Overlay = false,
             Border = BORDER,
             Text = {
+                Show = true,
                 Anchor = "BOTTOM",
                 Offset = { x = 0, y = 10 },
                 Font = { Media = FONT, Size = 20, Flags = { OUTLINE = true }, Color = WHITE, Shadow = true },

@@ -372,34 +372,43 @@ local TEXT_ANCHORS = {
 
 ---the rows of a spell name's text
 ---@param kind string
----@param options table -- anchors (TEXT_ANCHORS entry), flags
+---@param options table -- anchors (TEXT_ANCHORS entry), flags, toggle (the name can be turned off)
 ---@return table[]
 local textRows = function(kind, options)
     local style = "Elements." .. kind .. ".Text"
+    local textOff = function()
+        return private.GetThemeValue(style .. ".Show") == false
+    end
     local backgroundOff = function()
-        return not private.GetThemeValue(style .. ".Background.Show")
+        return textOff() or not private.GetThemeValue(style .. ".Background.Show")
     end
     local rows = { heading("TextSettings") }
+    if options.toggle then
+        table.insert(rows, row("Checkbox", "SpellnameShow", { themePath = style .. ".Show" }))
+    end
     if options.anchors then
         table.insert(rows, row("Dropdown", "TextAnchor", {
             themePath = style .. ".Anchor",
             values = options.anchors.values,
             sorting = options.anchors.sorting,
+            hidden = textOff,
         }))
         table.insert(rows, row("Slider", "TextOffsetX",
-            { themePath = style .. ".Offset.x", minValue = -50, maxValue = 50, valueStep = 1 }))
+            { themePath = style .. ".Offset.x", minValue = -50, maxValue = 50, valueStep = 1, hidden = textOff }))
         table.insert(rows, row("Slider", "TextOffsetY",
-            { themePath = style .. ".Offset.y", minValue = -50, maxValue = 50, valueStep = 1 }))
+            { themePath = style .. ".Offset.y", minValue = -50, maxValue = 50, valueStep = 1, hidden = textOff }))
     end
-    table.insert(rows, row("Media", "SpellnameFont", { themePath = style .. ".Font.Media", mediaType = "font" }))
+    table.insert(rows, row("Media", "SpellnameFont",
+        { themePath = style .. ".Font.Media", mediaType = "font", hidden = textOff }))
     table.insert(rows, row("Slider", "SpellnameFontSize",
-        { themePath = style .. ".Font.Size", minValue = 1, maxValue = 64, valueStep = 1 }))
+        { themePath = style .. ".Font.Size", minValue = 1, maxValue = 64, valueStep = 1, hidden = textOff }))
     if options.flags then
         table.insert(rows, row("Dropdown", "SpellnameFontFlag", {
             themePath = style .. ".Font.Flags",
             multiselect = true,
             values = listOf({ "MONOCHROME", "OUTLINE", "THICKOUTLINE", "SLUG" }),
             sorting = { "MONOCHROME", "OUTLINE", "THICKOUTLINE", "SLUG" },
+            hidden = textOff,
         }))
     end
     local settings = variables.colorSettings[kind]
@@ -407,10 +416,11 @@ local textRows = function(kind, options)
         profileKey = settings .. ".colorOrder",
         values = function() return colorSources(settings) end,
         onChange = onColorOrderChanged(settings),
+        hidden = textOff,
     }))
-    table.insert(rows, row("Color", "SpellnameDefaultColor", { themePath = style .. ".Font.Color" }))
-    table.insert(rows, row("Checkbox", "SpellnameEnableShadow", { themePath = style .. ".Font.Shadow" }))
-    table.insert(rows, row("Checkbox", "SpellnameBackground", { themePath = style .. ".Background.Show" }))
+    table.insert(rows, row("Color", "SpellnameDefaultColor", { themePath = style .. ".Font.Color", hidden = textOff }))
+    table.insert(rows, row("Checkbox", "SpellnameEnableShadow", { themePath = style .. ".Font.Shadow", hidden = textOff }))
+    table.insert(rows, row("Checkbox", "SpellnameBackground", { themePath = style .. ".Background.Show", hidden = textOff }))
     table.insert(rows, row("Media", "SpellnameBackgroundTexture", {
         themePath = style .. ".Background.Media",
         mediaType = "background",
@@ -615,7 +625,7 @@ end
 
 local spellIconRows = join(
     iconRows("SpellIcon", "icon_settings", true),
-    textRows("SpellIcon", { anchors = TEXT_ANCHORS[false], flags = true }),
+    textRows("SpellIcon", { anchors = TEXT_ANCHORS[false], flags = true, toggle = true }),
     markerRows("SpellIcon", "icon_settings"),
     durationRows())
 
@@ -650,7 +660,7 @@ for _, vertical in ipairs({ true, false }) do
     bigIconRows[vertical] = join(
         bigIconGeneralRows,
         iconRows("BigIcon", "big_icon_settings", false),
-        textRows("BigIcon", { anchors = TEXT_ANCHORS[vertical], flags = true }),
+        textRows("BigIcon", { anchors = TEXT_ANCHORS[vertical], flags = true, toggle = true }),
         markerRows("BigIcon", "big_icon_settings"),
         durationRows())
 end

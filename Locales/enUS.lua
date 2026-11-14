@@ -149,6 +149,8 @@ if L then
     L["TextOffsetXDescription"] = "Moves the spell name left or right from its anchor."
     L["TextOffsetY"] = "Text Offset Y"
     L["TextOffsetYDescription"] = "Moves the spell name up or down from its anchor."
+    L["SpellnameShow"] = "Show Spell Name"
+    L["SpellnameShowDescription"] = "Shows the name of the ability next to the icon."
     L["SpellnameFontSize"] = "Font Size"
     L["SpellnameFontSizeDescription"] = "Sets the font size of the spell name."
     L["SpellnameFont"] = "Font"

@@ -227,6 +227,9 @@ ApplySpellName              = function(self, disableOnUpdate)
 		if eventInfo and eventInfo.id then
 			private.Debug("Timeline is in horizontal mode, hiding text for eventID: " .. eventInfo.id)
 		end
+	elseif not private.GetElementStyle("SpellIcon").Text.Show then
+		self.frame.SpellName:SetText("")
+		self.frame.atNameText = ""
 	else
 		self.frame.SpellName:SetText(eventInfo.spellName)
 		-- kept as set, a secret name or color is never read back from the label (theme exits copy them)
@@ -312,10 +315,13 @@ local SetMergedIcons        = function(self, members)
 		end
 	end
 	frame.SpellIcon:Hide()
-	if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction ~= private.TIMELINE_DIRECTIONS.HORIZONTAL then
+	if private.GetElementStyle("SpellIcon").Text.Show and private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].travel_direction ~= private.TIMELINE_DIRECTIONS.HORIZONTAL then
 		applyDefaultTextColor(frame)
 		frame.atNameText = string.format(private.getLocalisation("MultipleTimers"), count)
 		frame.SpellName:SetText(frame.atNameText)
+	else
+		frame.atNameText = ""
+		frame.SpellName:SetText("")
 	end
 end
 
@@ -414,7 +420,7 @@ local function ApplySettings(self)
 	handleRoleIconAnchors(frame, frame.isStopped)
 
 	local background = style.Text.Background
-	if background.Show then
+	if background.Show and style.Text.Show then
 		frame.SpellNameBackground:SetPoint("LEFT", frame.SpellName, "LEFT", -background.Offset.x, 0)
 		frame.SpellNameBackground:SetPoint("RIGHT", frame.SpellName, "RIGHT", background.Offset.x, 0)
 		frame.SpellNameBackground:SetPoint("TOP", frame.SpellName, "TOP", 0, background.Offset.y)
