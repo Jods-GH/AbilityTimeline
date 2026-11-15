@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -1153,7 +1153,7 @@ local function Session(target)
         if #disabled > 0 then
             section(scroll, L("CountdownDisabledChanges"), "section", function(body)
                 -- more than two rows scroll in place, so the page itself never scrolls the lanes away
-                local list, viewport = body, nil
+                local disabledList, viewport = body, nil
                 if #disabled > 2 then
                     viewport = AceGUI:Create("AtScrollFrame")
                     viewport:SetLayout("List")
@@ -1162,10 +1162,10 @@ local function Session(target)
                     state.disabledScroll = state.disabledScroll or {}
                     viewport:SetStatusTable(state.disabledScroll)
                     body:AddChild(viewport)
-                    list = AceGUI:Create("AtCountdownLayout")
-                    list:PauseLayout()
-                    list:Configure("stack", 8)
-                    viewport:AddChild(list)
+                    disabledList = AceGUI:Create("AtCountdownLayout")
+                    disabledList:PauseLayout()
+                    disabledList:Configure("stack", 8)
+                    viewport:AddChild(disabledList)
                 end
                 for _, change in ipairs(disabled) do
                     local value = change.property ~= "color" and label(change.property, change.value) or ""
@@ -1176,11 +1176,11 @@ local function Session(target)
                     row:SetRemoveText(L("CountdownEnable"))
                     row:SetCallback("OnEdit", function() pick(change) end)
                     row:SetCallback("OnRemove", function() change.enabled = nil; refresh(true) end)
-                    list:AddChild(row)
+                    disabledList:AddChild(row)
                 end
                 if viewport then
-                    list:ResumeLayout()
-                    list:DoLayout()
+                    disabledList:ResumeLayout()
+                    disabledList:DoLayout()
                     viewport:DoLayout()
                 end
             end)

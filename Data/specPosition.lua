@@ -1,4 +1,4 @@
-local appName, private = ...
+local _, private = ...
 
 private.SpecPosition = {
     melee= {
@@ -12,17 +12,17 @@ private.SpecPosition = {
         259, -- assa
         260, -- outlaw
         261, -- sub
-        263, -- enhancement	
-        269, -- windwalker	
+        263, -- enhancement
+        269, -- windwalker
         577, -- havoc
         255, -- survival
         -- tanks
         66, -- prot pala
         73, -- prot war
-        104, -- guardian 
+        104, -- guardian
         250, -- blood
         268, -- brewmaster
-        581, -- vengeance	
+        581, -- vengeance
         -- healers
         65, -- holy pala
         270, -- mistweaver
@@ -31,17 +31,17 @@ private.SpecPosition = {
         --ranged dps
         62, -- arcane
         63, -- fire
-        64, -- frost mage 
+        64, -- frost mage
         102, -- balance
         253, -- bm
         254, -- mm
-        258, -- shadow	
+        258, -- shadow
         262, -- elemental
         265, -- affliction
         266, -- demonology
         267, -- destruction
         1467, -- devestation
-        1473, -- augmentation	
+        1473, -- augmentation
         1480, -- devourer
         -- healers
         105, -- resto druid

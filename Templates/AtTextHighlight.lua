@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -117,7 +117,7 @@ local SetEventInfo = function(widget, eventInfo, disableOnUpdate, deferDisplay)
             private.ThemeApply.PlayEnter(widget.frame, private.GetElementStyle("TextHighlight").Enter)
         end
         HandleTexts(widget, eventInfo, eventInfo.duration)
-        widget.frame:SetScript("OnUpdate", function(self)
+        widget.frame:SetScript("OnUpdate", function(_)
             local remainingDuration = private.manager.getEventRemainingTime(widget.eventInfo.id)
             if remainingDuration and remainingDuration > 0 then
                 HandleTexts(widget, eventInfo, remainingDuration)

@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -253,9 +253,9 @@ private.CreateSettingsPreview = function(kind, getThemeKey)
         onRelease(self)
     end
     if getThemeKey then
-        local applySettings = widget.ApplySettings
+        local applyThemedSettings = widget.ApplySettings
         widget.ApplySettings = function(self)
-            private.DrawInTheme(getThemeKey(), applySettings, self)
+            private.DrawInTheme(getThemeKey(), applyThemedSettings, self)
         end
         -- the countdown reads the theme's colors every frame, the timeline's sparkles as they spawn
         for _, frame in ipairs({ widget.frame, widget.frame.Sparkles and widget.frame.Sparkles.driver }) do

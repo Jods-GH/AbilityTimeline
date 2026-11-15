@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI             = LibStub("AceGUI-3.0")
@@ -361,7 +361,7 @@ local function Constructor()
 
 	frame.DispellTypeBorderEdges = {}
 
-	for i, value in pairs(private.dispellTypeList) do
+	for i, _ in pairs(private.dispellTypeList) do
 		local topTexture = frame.TextureHolder:CreateTexture(nil, "BORDER")
 		topTexture:SetPoint("TOPLEFT", frame.TextureHolder, "TOPLEFT", 0, 0)
 		topTexture:SetPoint("TOPRIGHT", frame.TextureHolder, "TOPRIGHT", 0, 0)

@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -10,7 +10,7 @@ local variables = {
 }
 
 ---@param self AtTimelineTicks
-local function OnAcquire(self)
+local function OnAcquire(_)
 end
 
 ---@param self AtTimelineTicks

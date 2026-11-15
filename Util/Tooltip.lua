@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 
@@ -73,4 +73,4 @@ end
 private.ClearEventTooltip = function(frame)
     frame:SetScript("OnEnter", nil)
     frame:SetScript("OnLeave", nil)
-end 
+end

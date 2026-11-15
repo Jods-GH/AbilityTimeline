@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -52,7 +52,7 @@ end
 ---@param self AtImportDialog
 ---@param width number|nil
 ---@param height number
-local function LayoutFinished(self, width, height)
+local function LayoutFinished(self, _, height)
     local note = self.frame.Note
     local top = variables.headerHeight + variables.padding / 2 +
         (note:IsShown() and note:GetStringHeight() + variables.padding / 2 or 0)

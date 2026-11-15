@@ -14,8 +14,6 @@ local BREAK_PREFIX = "D5"
 local AbilityTimeline = LibStub("AceAddon-3.0"):NewAddon("AbilityTimeline", "AceConsole-3.0", "AceEvent-3.0")
 
 function AbilityTimeline:OnInitialize()
-    local buildVersion, buildNumber, buildDate, interfaceVersion, localizedVersion, buildInfo = GetBuildInfo() -- Mainline
-    assert(not private.isRetail or interfaceVersion >= 120000, private.getLocalisation("WrongWoWVersionMessage"))
     -- Called when the addon is loaded
     AbilityTimeline:RegisterEvent("ENCOUNTER_START")
     AbilityTimeline:RegisterEvent("ENCOUNTER_END")
@@ -85,11 +83,11 @@ function AbilityTimeline:OnInitialize()
     private.manager.refreshBossModBars()
 end
 
-function AbilityTimeline:OnEnable()
+function AbilityTimeline.OnEnable(_)
     -- Called when the addon is enabled
 end
 
-function AbilityTimeline:OnDisable()
+function AbilityTimeline.OnDisable(_)
     -- Called when the addon is disabled
 end
 
@@ -288,7 +286,7 @@ local function handleTestCommand(args)
 end
 
 
-function AbilityTimeline:SlashCommand(msg) -- called when slash command is used
+function AbilityTimeline.SlashCommand(_, msg) -- called when slash command is used
     if private.isRetail and not C_EncounterTimeline.IsFeatureEnabled() then
         AbilityTimeline:Print(private.getLocalisation("TimelineNotEnabledMessage"))
     elseif private.isRetail and not C_EncounterTimeline.IsFeatureAvailable() then
@@ -376,7 +374,7 @@ local function startBreak(seconds, sender)
     private.BreakTimerEventId = private.manager.addEvent(eventinfo)
 end
 
-function AbilityTimeline:PLAYER_ENTERING_WORLD(event, isInitialLogin, isReloadingUi)
+function AbilityTimeline.PLAYER_ENTERING_WORLD(_, _, isInitialLogin, isReloadingUi)
     if isInitialLogin or isReloadingUi then
         local breakTimer = private.db.global.breakTimer
         if breakTimer and not private.manager.hasBossMod() then
@@ -399,7 +397,7 @@ function AbilityTimeline:PLAYER_ENTERING_WORLD(event, isInitialLogin, isReloadin
     end
 end
 
-function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, difficultyID, groupSize, playerDifficultyID)
+function AbilityTimeline.ENCOUNTER_START(_, _, encounterID, encounterName, difficultyID, _, _)
     -- createTestBars(15)
     private.Debug("Encounter started: " .. tostring(encounterName) .. " " .. tostring(encounterID))
     -- store last encounter info
@@ -412,7 +410,7 @@ function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, diff
         encounterID = 1701
     end
     if not InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
-        local name, groupType, isHeroic, isChallengeMode, displayHeroic, displayMythic, toggleDifficultyID, isLFR, minPlayers, maxPlayers =
+        local name, _, _, _, _, _, _, _, _, _ =
         GetDifficultyInfo(difficultyID)
         private.db.global.active = true
         C_ChatInfo.SendChatMessage(private.getLocalisation("CurrentlyBusyInEncounter"):format(encounterName, name), "DND")
@@ -421,7 +419,7 @@ function AbilityTimeline:ENCOUNTER_START(event, encounterID, encounterName, diff
     private.createReminders(encounterID, private.GetDifficultyKey(difficultyID))
 end
 
-function AbilityTimeline:ENCOUNTER_END(event, encounterID, encounterName, difficultyID, groupSize, playerDifficultyID,
+function AbilityTimeline.ENCOUNTER_END(_, _, encounterID, encounterName, _, _, _,
                                        success)
     private.Debug("Encounter ended: " ..
     tostring(encounterName) .. " " .. tostring(encounterID) .. ", success: " .. tostring(success))
@@ -441,29 +439,29 @@ function AbilityTimeline:ENCOUNTER_END(event, encounterID, encounterName, diffic
     )
 end
 
-function AbilityTimeline:PLAYER_REGEN_ENABLED()
+function AbilityTimeline.PLAYER_REGEN_ENABLED(_)
     private.checkThemePrompt()
 end
 
-function AbilityTimeline:PLAYER_SPECIALIZATION_CHANGED(event, unit)
+function AbilityTimeline.PLAYER_SPECIALIZATION_CHANGED(_, _, unit)
     if unit == "player" then
         private.RefreshAutoTheme()
     end
 end
 
-function AbilityTimeline:PLAYER_TALENT_UPDATE()
+function AbilityTimeline.PLAYER_TALENT_UPDATE(_)
     private.RefreshAutoTheme()
 end
 
-function AbilityTimeline:GROUP_ROSTER_UPDATE()
+function AbilityTimeline.GROUP_ROSTER_UPDATE(_)
     private.announceGroupVersion()
 end
 
-function AbilityTimeline:WEATHER_CHANGED()
+function AbilityTimeline.WEATHER_CHANGED(_)
     private.CheckThemeConditions()
 end
 
-function AbilityTimeline:READY_CHECK(event, initiator, readyCheckTimeLeft)
+function AbilityTimeline.READY_CHECK(_, _, initiator, readyCheckTimeLeft)
     if private.db.profile.disableReadyCheck then
         private.Debug("Ready check detected but reminders on ready check are disabled, not showing reminder.")
         return
@@ -498,14 +496,14 @@ function AbilityTimeline:READY_CHECK(event, initiator, readyCheckTimeLeft)
     private.ReadyCheckEventId = private.manager.addEvent(eventinfo)
 end
 
-function AbilityTimeline:READY_CHECK_FINISHED()
+function AbilityTimeline.READY_CHECK_FINISHED(_)
     if private.ReadyCheckEventId then
         private.manager.removeEvent(private.ReadyCheckEventId)
         private.ReadyCheckEventId = nil
     end
 end
 
-function AbilityTimeline:PullCommand(msg)
+function AbilityTimeline.PullCommand(_, msg)
     if msg and msg:lower():trim() == "cancel" then
         C_PartyInfo.DoCountdown(0)
         return
@@ -523,7 +521,7 @@ function AbilityTimeline:PullCommand(msg)
     C_PartyInfo.DoCountdown(seconds)
 end
 
-function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemaining, totalTime, informChat, initiatedByName)
+function AbilityTimeline.START_PLAYER_COUNTDOWN(_, _, _, timeRemaining, _, _, initiatedByName)
     local timeleft = tonumber(timeRemaining)
     local color
     local name = initiatedByName
@@ -566,14 +564,14 @@ function AbilityTimeline:START_PLAYER_COUNTDOWN(event, initiatedBy, timeRemainin
     private.PullTimerEventId = private.manager.addEvent(eventinfo)
 end
 
-function AbilityTimeline:CANCEL_PLAYER_COUNTDOWN()
+function AbilityTimeline.CANCEL_PLAYER_COUNTDOWN(_)
     if private.PullTimerEventId then
         private.manager.removeEvent(private.PullTimerEventId)
         private.PullTimerEventId = nil
     end
 end
 
-function AbilityTimeline:BreakCommand(msg)
+function AbilityTimeline.BreakCommand(_, msg)
     local seconds = (tonumber(msg) or -1) * 60
     if seconds < 0 or seconds > 3600 or (seconds > 0 and seconds < 60) then
         AbilityTimeline:Print(private.getLocalisation("BreakTimerUsage"))
@@ -589,7 +587,7 @@ function AbilityTimeline:BreakCommand(msg)
     end
 end
 
-function AbilityTimeline:CHAT_MSG_ADDON(event, prefix, message, channel, sender)
+function AbilityTimeline.CHAT_MSG_ADDON(_, _, prefix, message, channel, sender)
     if prefix ~= BREAK_PREFIX or issecretvalue(message) then return end
     if channel ~= "PARTY" and channel ~= "RAID" and channel ~= "INSTANCE_CHAT" then return end
     local _, _, subPrefix, seconds = strsplit("\t", message)
@@ -600,20 +598,20 @@ function AbilityTimeline:CHAT_MSG_ADDON(event, prefix, message, channel, sender)
     startBreak(seconds, sender)
 end
 
-function AbilityTimeline:CHALLENGE_MODE_RESET(event, mapID)
+function AbilityTimeline.CHALLENGE_MODE_RESET(_, _, _)
     if not InChatMessagingLockdown() and private.db.profile.enableDNDMessage and private.db.global.active then
         C_ChatInfo.SendChatMessage(private.getLocalisation("CurrentlyDoingMplusKeyFallback"), "DND")
         private.db.global.active = false
     end
 end
 
-function AbilityTimeline:CHALLENGE_MODE_START()
+function AbilityTimeline.CHALLENGE_MODE_START(_)
     if not InChatMessagingLockdown() and private.db.profile.enableDNDMessage then
         local message = private.getLocalisation("CurrentlyDoingMplusKeyFallback")
-        local activeKeystoneLevel, activeAffixIDs, wasActiveKeystoneCharged = C_ChallengeMode.GetActiveKeystoneInfo()
+        local activeKeystoneLevel, _, _ = C_ChallengeMode.GetActiveKeystoneInfo()
         local challengeMapID = C_ChallengeMode.GetActiveChallengeMapID()
         if challengeMapID then
-            local name, id, timeLimit, texture, backgroundTexture, mapID = C_ChallengeMode.GetMapUIInfo(challengeMapID)
+            local name, _, timeLimit, _, _, _ = C_ChallengeMode.GetMapUIInfo(challengeMapID)
             if name and timeLimit then
                 local calenderTime = C_DateAndTime.GetCurrentCalendarTime()
                 local adjustedTime = C_DateAndTime.AdjustTimeByMinutes(calenderTime, timeLimit / 60)
@@ -627,7 +625,7 @@ function AbilityTimeline:CHALLENGE_MODE_START()
     end
 end
 
-function AbilityTimeline:CHALLENGE_MODE_COMPLETED()
+function AbilityTimeline.CHALLENGE_MODE_COMPLETED(_)
     if private.db.profile.enableKeyRerollTimer then
         local info = C_ChallengeMode.GetChallengeCompletionInfo()
         if not info or not info.onTime then
@@ -656,7 +654,7 @@ function AbilityTimeline:CHALLENGE_MODE_COMPLETED()
 end
 
 -- TODO cancel the event if the player actually rerolls the key before the timer ends
-function AbilityTimeline:ZONE_CHANGED_NEW_AREA()
+function AbilityTimeline.ZONE_CHANGED_NEW_AREA(_)
     if private.RerollKeyEventId then
         private.manager.removeEvent(private.RerollKeyEventId)
         private.RerollKeyEventId = nil

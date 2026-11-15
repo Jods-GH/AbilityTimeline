@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -499,11 +499,11 @@ local function Setup(self, config)
 end
 
 ---@param self AtGroupAnchorFrame
-local function OnAcquire(self)
+local function OnAcquire(_)
 end
 
 ---@param self AtGroupAnchorFrame
-local function OnRelease(self)
+local function OnRelease(_)
 end
 
 local function Constructor()

@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -162,11 +162,11 @@ end
 
 ---lists the themes whose name, description or class contain query
 ---@param list table -- the scroll frame the cards are added to
----@param query string
-local fillList = function(list, query)
-    query = query:lower()
+---@param searchText string
+local fillList = function(list, searchText)
+    searchText = searchText:lower()
     local matches = function(text)
-        return text and text:lower():find(query, 1, true) ~= nil
+        return text and text:lower():find(searchText, 1, true) ~= nil
     end
     list:PauseLayout()
     list:ReleaseChildren()

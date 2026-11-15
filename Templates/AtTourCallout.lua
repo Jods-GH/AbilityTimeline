@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -166,7 +166,7 @@ local createCallout = function()
     callout.box:SetScript("OnUpdate", fitBox)
 
     -- the window grows with its text
-    callout.Layout = function(self)
+    callout.Layout = function(_)
         frame:SetHeight(variables.headerHeight + padding * 3 + frame.Text:GetStringHeight() + variables.buttonHeight +
             padding)
     end
@@ -229,7 +229,7 @@ local createCallout = function()
     ---without an anchor it is centered
     ---@param anchor Frame|nil
     ---@param side string|nil -- TOP, BOTTOM, LEFT or RIGHT
-    callout.Place = function(self, anchor, side)
+    callout.Place = function(_, anchor, side)
         local x, y
         if anchor then
             x, y = anchor:GetCenter()

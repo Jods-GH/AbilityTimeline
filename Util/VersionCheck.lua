@@ -29,7 +29,7 @@ local sendVersion = function(distribution)
     return true
 end
 
-AceCom:RegisterComm(VERSION_PREFIX, function(prefix, message, distribution, sender)
+AceCom:RegisterComm(VERSION_PREFIX, function(_, message, distribution, _)
     if not OWN_KEY or InChatMessagingLockdown() or issecretvalue(message) then return end
     local key = sortKey(message)
     if not key then return end

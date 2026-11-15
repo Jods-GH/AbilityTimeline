@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local CustomNames = C_AddOns.IsAddOnLoaded("CustomNames") and LibStub("CustomNames")
@@ -113,7 +113,7 @@ end
 -- Parse MRT note format (plain text with {time:} and {spell:} markers)
 ---@param mrtText string Complete MRT note text
 ---@return table array of parsed reminders
-function ImportUtil:ParseMRTFormat(mrtText)
+function ImportUtil.ParseMRTFormat(_, mrtText)
     local reminders = {}
 
     -- Split by lines
@@ -219,14 +219,14 @@ function ImportUtil:ParseJSONFormat(jsonText)
 
     -- the parsed reminders and rules by their position in the export, for the lanes listed beside them
     local reminderAt, ruleAt = {}, {}
-    local function findRemindersInJSON(text)
+    local function findRemindersInJSON(json)
         local results = {}
 
         -- Look for array elements: {time:X,spellId:X,...} or {"time":X,"spellId":X,...}
         -- Pattern matches JSON objects with curly braces, handling nested structures
         local pattern = "{[^{}]*}"
 
-        for match in text:gmatch(pattern) do
+        for match in json:gmatch(pattern) do
             local ruleMatch = match:match('"match"%s*:%s*"([^"]*)"')
             if ruleMatch then
                 table.insert(rules, ImportUtil.ParseJSONRule(match, ruleMatch))
@@ -397,14 +397,14 @@ end
 -- Check if a tag applies to the current player
 ---@param tag string Tag string (can contain multiple values separated by space)
 ---@return boolean True if tag applies to player
-function ImportUtil:DoesTagApplyToPlayer(tag)
+function ImportUtil.DoesTagApplyToPlayer(_, tag)
     if not tag or tag == "" or tag == "everyone" then
         return true
     end
 
     -- Get player info
     local playerName = UnitName("player")
-    local playerClass, classFile = UnitClass("player")
+    local _, classFile = UnitClass("player")
     local playerSpecID, playerSpec, playerRole, _
     local specIndex = C_SpecializationInfo.GetSpecialization and C_SpecializationInfo.GetSpecialization()
     if specIndex then
@@ -489,15 +489,15 @@ function ImportUtil:ParseEncodedFormat(text)
     end
 
     -- Decompress
-    local success, serialized = pcall(C_EncodingUtil.DecompressString, compressed)
-    if not success then
+    local decompressed, serialized = pcall(C_EncodingUtil.DecompressString, compressed)
+    if not decompressed then
         private.Debug("Failed to decompress data")
         return reminders, rules
     end
 
     -- Deserialize CBOR
-    local success, data = pcall(C_EncodingUtil.DeserializeCBOR, serialized)
-    if not success or type(data) ~= "table" then
+    local deserialized, data = pcall(C_EncodingUtil.DeserializeCBOR, serialized)
+    if not deserialized or type(data) ~= "table" then
         private.Debug("Failed to deserialize CBOR data")
         return reminders, rules
     end
@@ -550,7 +550,7 @@ end
 ---@param reminders table array of reminder tables
 ---@return boolean valid
 ---@return string|nil validation message
-function ImportUtil:ValidateReminders(reminders)
+function ImportUtil.ValidateReminders(_, reminders)
     if type(reminders) ~= "table" then
         return false, "Invalid reminders format"
     end
@@ -641,7 +641,7 @@ end
 ---@param encounterID number
 ---@param rules table[]
 ---@param mergeMode boolean
-function ImportUtil:ApplyTimerRules(encounterID, rules, mergeMode)
+function ImportUtil.ApplyTimerRules(_, encounterID, rules, mergeMode)
     private.db.profile.timerRules = private.db.profile.timerRules or {}
     local stored = mergeMode and private.db.profile.timerRules[encounterID] or {}
     local keyOf = function(rule)
@@ -704,7 +704,7 @@ end
 ---@param reminders table
 ---@param encounterID number|nil
 ---@return string
-function ImportUtil:ExportAsJSON(reminders, encounterID, difficulty)
+function ImportUtil.ExportAsJSON(_, reminders, encounterID, difficulty)
     local export = { exportVersion = EXPORT_VERSION, difficulty = difficulty }
 
     if encounterID then
@@ -734,8 +734,8 @@ function ImportUtil:ExportAsJSON(reminders, encounterID, difficulty)
             for display, shown in pairs(rule.displays or {}) do
                 item["show_" .. display] = shown
             end
-            for difficulty, shown in pairs(rule.difficulties or {}) do
-                item["difficulty_" .. difficulty] = shown
+            for difficultyKey, shown in pairs(rule.difficulties or {}) do
+                item["difficulty_" .. difficultyKey] = shown
             end
             table.insert(export.rules, item)
             -- own lanes are nested, they travel beside the flat objects with the position of their rule
@@ -776,7 +776,7 @@ function ImportUtil:ExportAsJSON(reminders, encounterID, difficulty)
         if not isArray then
             isArrayTable = true
             local maxKey = 0
-            for k, v in pairs(tbl) do
+            for k, _ in pairs(tbl) do
                 if type(k) ~= "number" or k < 1 or k % 1 ~= 0 then
                     isArrayTable = false
                     break
@@ -850,7 +850,7 @@ end
 -- Export as MRT format
 ---@param reminders table
 ---@return string
-function ImportUtil:ExportAsMRT(reminders)
+function ImportUtil.ExportAsMRT(_, reminders)
     local result = ""
 
     for _, reminder in ipairs(reminders) do
@@ -875,7 +875,7 @@ end
 ---@param encounterID number
 ---@param encounterName string|nil
 ---@return string
-function ImportUtil:ExportAsViserio(reminders, encounterID, encounterName, difficulty)
+function ImportUtil.ExportAsViserio(_, reminders, encounterID, encounterName, difficulty)
     local result = "EncounterID:" .. tostring(encounterID)
     if difficulty then result = result .. ";Difficulty:" .. difficulty:gsub("^%l", string.upper) end
 
@@ -943,7 +943,7 @@ end
 ---@param reminders table
 ---@param encounterID number|nil
 ---@return string
-function ImportUtil:ExportAsEncoded(reminders, encounterID, difficulty)
+function ImportUtil.ExportAsEncoded(_, reminders, encounterID, difficulty)
     local data = {
         version = EXPORT_VERSION,
         difficulty = difficulty,

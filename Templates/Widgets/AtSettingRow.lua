@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -71,7 +71,7 @@ end
 ---@param self AtSettingRow
 ---@param width number|nil
 ---@param height number
-local function LayoutFinished(self, width, height)
+local function LayoutFinished(self, _, height)
     self:SetHeight(height)
 end
 

@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI                = LibStub("AceGUI-3.0")
@@ -25,13 +25,13 @@ private.TIMELINE_DIRECTIONS = {
 private.TimelineFrame       = {}
 
 ---@param self AtTimelineFrame
-local function OnAcquire(self)
+local function OnAcquire(_)
 end
 
 ---@param self AtTimelineFrame
-local function OnRelease(self)
+local function OnRelease(_)
 end
-local function onPositionChanged(frame, layoutName, point, x, y)
+local function onPositionChanged(_, layoutName, point, x, y)
     -- from here you can save the position into a savedvariable
     private.db.global.timeline_frame[layoutName] = private.db.global.timeline_frame[layoutName] or {}
     private.db.global.timeline_frame[layoutName].x = x
@@ -42,7 +42,7 @@ local function onPositionChanged(frame, layoutName, point, x, y)
         private.db.global.timeline_frame[layoutName].x, private.db.global.timeline_frame[layoutName].y)
 end
 
-local function HandleTickVisibility(layoutName)
+local function HandleTickVisibility(_)
     for _, tick in ipairs(private.TIMELINE_FRAME.frame.Ticks) do
         if private.db.profile.timeline_settings.ticks_enabled then
             tick:SetTick(private.TIMELINE_FRAME.frame, tick.tick, private.TIMELINE_FRAME:GetMoveSize(),

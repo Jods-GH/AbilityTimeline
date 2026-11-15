@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceCom = LibStub("AceComm-3.0")
@@ -67,7 +67,7 @@ local ChatHandler = function(prefix, message, _, sender)
             private.Debug("ChatHandler: Invalid request format couldn't find encounter ID" .. message)
         end
     elseif string.find(message, CHAT_REMINDERS_PREFIX) then
-        local prefix, encounterIDStr, journalIDStr, instanceIDStr, encodedReminders = strsplit("-", message, 5)
+        local _, encounterIDStr, journalIDStr, instanceIDStr, encodedReminders = strsplit("-", message, 5)
         private.Debug("ChatHandler: Received reminders from " .. sender .. " for encounter ID " .. encounterIDStr)
 
         local encounterID = tonumber(encounterIDStr)
@@ -116,8 +116,6 @@ private.StartExportingToChat = function(encounterID, difficulty)
         private.Debug("ExportToChat: Not in a group, cannot send reminders.")
         return
     end
-    local name = UnitNameUnmodified("player")
-    local realm = GetNormalizedRealmName()
     local msg = CHAT_LINK_MESSAGE:format(encounterID, difficulty)
     private.Debug("Sending reminder link to " ..
         private.FindComChannel() .. " for encounter ID " .. encounterID .. " link: " .. msg)
@@ -127,7 +125,7 @@ end
 AceCom:RegisterComm(COM_CHAT_PREFIX, ChatHandler)
 
 -- this is inspired by WeakAuras / MDT link handling
-hooksecurefunc("SetItemRef", function(link, text)
+hooksecurefunc("SetItemRef", function(link, _)
     if InChatMessagingLockdown() then
         private.Debug("SetItemRef: In chat messaging lockdown, cannot request reminders.")
         return
@@ -173,7 +171,7 @@ hooksecurefunc("SetItemRef", function(link, text)
     end
 end)
 
-local filterfunc = function(self, event, msg, author, ...)
+local filterfunc = function(_, _, msg, author, ...)
     if msg and string.find(msg, CHAT_LINK_MESSAGE:sub(1, 24)) then
         local encounterID, difficulty = msg:match("BetterTimeline Reminder: (%d+)%s*(%a*)")
         encounterID = tonumber(encounterID)

@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -56,9 +56,9 @@ local function Setup(self, getPreviewKey)
     icon.frame:SetPoint("TOP", bar.frame, "BOTTOM", 0, -variables.inset)
     -- the icon has a size of its own, big icons can be too small or too large to show a theme
     local applySettings = icon.ApplySettings
-    icon.ApplySettings = function(self)
-        applySettings(self)
-        self.frame:SetSize(variables.iconSize, variables.iconSize)
+    icon.ApplySettings = function(widget)
+        applySettings(widget)
+        widget.frame:SetSize(variables.iconSize, variables.iconSize)
     end
     icon:ApplySettings()
     self.bar, self.icon = bar, icon

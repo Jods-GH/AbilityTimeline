@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 
@@ -25,7 +25,7 @@ local excludedTimers = {
     ["開怪倒數"] = true, -- CN-ZH-TW for Pull
 }
 
-local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, icon, timerIsApprox, timerMaxDuration, eventID, spellIndicators)
+local function TimerStarted(_, module, timerKey, timerMsg, timerDuration, icon, timerIsApprox, _, eventID, spellIndicators)
     private.Debug("!!!!!!!!!!!!!!!!!!!!!!!!")
     if eventID then
         if private.claimEncounterTimelineEvent then
@@ -43,7 +43,7 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
     end
     if excludedTimers[timerMsg] then return end
     if type(icon) == "string" then
-        -- bigwigs uses filepaths for icons but the script event expects fileIDs, so we need to convert it 
+        -- bigwigs uses filepaths for icons but the script event expects fileIDs, so we need to convert it
         local iconpath = string.gsub(icon, "\\", "/")
         icon = GetFileIDFromPath(iconpath)
     end
@@ -101,14 +101,14 @@ local function TimerStarted(event, module, timerKey, timerMsg, timerDuration, ic
     end
 end
 
-local function TimerStopped(event, module, text)
+local function TimerStopped(_, _, text)
     local eventID = private.manager.getEventIDFromSource(SOURCE, text)
     if eventID then
         private.manager.removeEvent(eventID)
     end
 end
 
-local function TimerUpdated(event, module, text)
+local function TimerUpdated(event, _, text)
     local eventID = private.manager.getEventIDFromSource(SOURCE, text)
     if not eventID then return end
     if event =="BigWigs_PauseBar" then
@@ -129,7 +129,7 @@ BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_StopBar", TimerStopped);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_PauseBar", TimerUpdated);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_ResumeBar", TimerUpdated);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_StopBars", StopAllTimers);
-BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_SetStage", function(event, module, stage)
+BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_SetStage", function(_, _, stage)
     private.SetReminderStage(stage)
 end);
 BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_OnBossDisable", StopAllTimers);
@@ -157,7 +157,7 @@ BigWigsLoader.RegisterMessage(BWCallbackObj, "BigWigs_BarEmphasized", hideBWEmph
 
 local hidesBlizzTimers = false
 
-local function DisableBlizApi(event)
+local function DisableBlizApi(_)
     private.Debug("BigWigs Disable Blizzard Timers")
     hidesBlizzTimers = true
     if private.refreshEncounterTimelineVisibility then
@@ -165,7 +165,7 @@ local function DisableBlizApi(event)
     end
 end
 
-local function EnableBlizApi(event)
+local function EnableBlizApi(_)
     private.Debug("BigWigs Enable Blizzard Timers")
     hidesBlizzTimers = false
     if private.refreshEncounterTimelineVisibility then

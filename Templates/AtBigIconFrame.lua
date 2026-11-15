@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -35,13 +35,13 @@ private.SetBigIconSize = function(size)
 end
 
 ---@param self AtBigIconFrame
-local function OnAcquire(self)
+local function OnAcquire(_)
 end
 
 ---@param self AtBigIconFrame
-local function OnRelease(self)
+local function OnRelease(_)
 end
-local function onPositionChanged(frame, layoutName, point, x, y)
+local function onPositionChanged(_, layoutName, point, x, y)
     -- from here you can save the position into a savedvariable
     private.db.global.bigicon_frame[layoutName] = private.db.global.bigicon_frame[layoutName] or {}
     private.db.global.bigicon_frame[layoutName].x = x

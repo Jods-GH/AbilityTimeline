@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local ThemeApply = private.ThemeApply
@@ -101,7 +101,7 @@ do
                 motion.pauseVisible, motion.pauseHiding = false, false
             end)
             frame:HookScript("OnHide", function()
-                for _, group in ipairs(motion.groups) do group:Stop() end
+                for _, animationGroup in ipairs(motion.groups) do animationGroup:Stop() end
                 motion.Container:SetScale(1)
                 motion.Glow:SetAlpha(0)
                 motion.Swirl:SetAlpha(0)
@@ -343,10 +343,10 @@ do
         return (state == nil or state == private.manager.STATES.Finished) and exit.Finished or exit.Canceled
     end
 
-    behavior.SetupGhost = function(host, ghost, icon, iconFile, frame)
-        local scale = frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    behavior.SetupGhost = function(host, ghost, _, _, frame)
+        local frameScale = frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
         local left, bottom = frame:GetRect()
-        host.exitX, host.exitY = left and left * scale, bottom and bottom * scale
+        host.exitX, host.exitY = left and left * frameScale, bottom and bottom * frameScale
         host.exitHorizontal = frame.timelineMotion and select(2, private.TimelineFrame.GetArrivalPoint())
         if ghost.Overlay and not host.GhostOverlay then
             host.GhostOverlay = host:CreateTexture(nil, "OVERLAY")
@@ -384,7 +384,7 @@ do
                 host.ExitLabelLayer:SetAllPoints(host)
             end
             host.ExitLabelLayer:SetFrameLevel(host:GetFrameLevel() + 2)
-            local scale = frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
+            local labelScale = frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
             for index, source in ipairs({ frame.SpellName, frame.Cooldown }) do
                 local label = host.ExitLabels[index]
                 if not label then
@@ -401,7 +401,7 @@ do
                         label:SetText(source.atCountdownText or "")
                         label:SetTextColor(source:GetTextColor())
                     end
-                    label:SetScale(scale)
+                    label:SetScale(labelScale)
                     label:ClearAllPoints()
                     label:SetPoint(anchor[1], host, anchor[2], anchor[3], anchor[4])
                     label:Show()
@@ -416,11 +416,10 @@ do
     end
 
     behavior.StepGhost = function(host, ghost, progress)
-        local scale = 1
         if ghost.FlashAlpha then host.GhostFlash:SetAlpha(ghost.FlashAlpha * (1 - progress)) end
         if ghost.Flash and ghost.Flash.Offsets then
             local offsets = ghost.Flash.Offsets
-            local factor = scale * (ghost.Flash.ReferenceSize and host:GetWidth() / ghost.Flash.ReferenceSize or 1)
+            local factor = ghost.Flash.ReferenceSize and host:GetWidth() / ghost.Flash.ReferenceSize or 1
             host.GhostFlash:ClearAllPoints()
             host.GhostFlash:SetPoint("TOPLEFT", host.Ghost, "TOPLEFT", offsets.left * factor, offsets.top * factor)
             host.GhostFlash:SetPoint("BOTTOMRIGHT", host.Ghost, "BOTTOMRIGHT", offsets.right * factor, offsets.bottom * factor)
@@ -428,7 +427,7 @@ do
         if host.GhostOverlay then
             local offsets = ghost.Overlay and ghost.Overlay.Offsets or {}
             local reference = ghost.Overlay and ghost.Overlay.ReferenceSize
-            local factor = scale * (reference and host:GetWidth() / reference or 1)
+            local factor = reference and host:GetWidth() / reference or 1
             host.GhostOverlay:ClearAllPoints()
             host.GhostOverlay:SetPoint("TOPLEFT", host.Ghost, "TOPLEFT", (offsets.left or 0) * factor, (offsets.top or 0) * factor)
             host.GhostOverlay:SetPoint("BOTTOMRIGHT", host.Ghost, "BOTTOMRIGHT", (offsets.right or 0) * factor, (offsets.bottom or 0) * factor)

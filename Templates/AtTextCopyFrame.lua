@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -35,7 +35,7 @@ local function OnRelease(self)
 end
 
 local function RegisterKeyBinds(widget)
-    widget.EditBox.editbox:SetScript("OnKeyUp", function(self, key)
+    widget.EditBox.editbox:SetScript("OnKeyUp", function(_, key)
         if IsControlKeyDown() then
             -- handle copy or cut
             if key == "C" or key == "X" then

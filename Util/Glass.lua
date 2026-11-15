@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 
@@ -602,7 +602,7 @@ end
 
 -- a particle landing on the glass leaves a bead there, Land = { Behavior = "GlassBead", Chance, Size }
 private.ThemeApply.RegisterBehavior("GlassBead", {
-    LandParticle = function(host, x, y, particle, land)
+    LandParticle = function(host, x, y, _, land)
         if host.Glass and math.random() < (land.Chance or 1) then
             host.Glass:Bead(x, y, land.Size and between(land.Size))
         end

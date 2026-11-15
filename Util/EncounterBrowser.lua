@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 ---validates the encounter ID before opening its reminders
@@ -60,7 +60,7 @@ local function ensureEJButton()
                     btn:SetNormalTexture(0)
                     btn:SetPushedTexture(0)
                     btn:SetDisabledTexture(0)
-                    local E, L, V, P, G = unpack(ElvUI)
+                    local E, _, _, _, _ = unpack(ElvUI)
                     local HighlightTexture = btn:GetHighlightTexture()
                     local r, g, b = unpack(E.media.rgbvaluecolor)
                     HighlightTexture:SetColorTexture(r, g, b, .2)
@@ -68,7 +68,7 @@ local function ensureEJButton()
                 end
 
             end
-            
+
             applyTexture()
             btn:HookScript("OnShow", applyTexture)
 
@@ -101,11 +101,11 @@ local function ensureEJButton()
                 private.openTimingsEditor(params)
                 HideUIPanel(EncounterJournal)
             end)
-            EncounterJournalEncounterFrameInfoModelTab:HookScript("OnDisable", function(self)
+            EncounterJournalEncounterFrameInfoModelTab:HookScript("OnDisable", function(_)
                 btn:DesaturateHierarchy(100)
                 btn:Disable()
             end)
-            EncounterJournalEncounterFrameInfoModelTab:HookScript("OnEnable", function(self)
+            EncounterJournalEncounterFrameInfoModelTab:HookScript("OnEnable", function(_)
                 btn:DesaturateHierarchy(0)
                 btn:Enable()
                 -- Reapply texture after desaturation
@@ -123,7 +123,7 @@ end
 
 local ejListener = CreateFrame("Frame")
 ejListener:RegisterEvent("ADDON_LOADED")
-ejListener:SetScript("OnEvent", function(self, event, name)
+ejListener:SetScript("OnEvent", function(_, _, name)
     if name == "Blizzard_EncounterJournal" then
         ensureEJButton()
     end

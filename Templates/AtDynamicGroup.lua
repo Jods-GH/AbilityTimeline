@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -17,16 +17,16 @@ local HORIZONTAL_GROWS = {
 ---@param acc number -- summed size and spacing of all previous items
 ---@param total number -- summed size and spacing of all visible items
 local growers = {
-   [GROW.UP] = function(acc, total)
+   [GROW.UP] = function(acc, _)
       return "BOTTOM", "BOTTOM", 0, acc
    end,
-   [GROW.DOWN] = function(acc, total)
+   [GROW.DOWN] = function(acc, _)
       return "TOP", "TOP", 0, -acc
    end,
-   [GROW.RIGHT] = function(acc, total)
+   [GROW.RIGHT] = function(acc, _)
       return "LEFT", "LEFT", acc, 0
    end,
-   [GROW.LEFT] = function(acc, total)
+   [GROW.LEFT] = function(acc, _)
       return "RIGHT", "RIGHT", -acc, 0
    end,
    [GROW.HORIZONTAL] = function(acc, total)

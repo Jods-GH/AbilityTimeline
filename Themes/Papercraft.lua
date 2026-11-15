@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local ThemeApply = private.ThemeApply
@@ -394,9 +394,9 @@ do
                             labelIndex = labelIndex + 1
                             local label = art.Labels[labelIndex]
                             if not label then
-                                local clip = CreateFrame("Frame", nil, art)
-                                clip:SetClipsChildren(true)
-                                label = { clip = clip, texture = clip:CreateFontString() }
+                                local labelClip = CreateFrame("Frame", nil, art)
+                                labelClip:SetClipsChildren(true)
+                                label = { clip = labelClip, texture = labelClip:CreateFontString() }
                                 art.Labels[labelIndex] = label
                             end
                             local text = label.texture
@@ -439,9 +439,9 @@ do
                 if font and not (isSecret(r) or isSecret(g) or isSecret(b) or isSecret(a)) then
                     local label = art.EditText
                     if not label then
-                        local clip = CreateFrame("Frame", nil, art)
-                        clip:SetClipsChildren(true)
-                        label = { clip = clip, texture = clip:CreateFontString(nil, "OVERLAY") }
+                        local labelClip = CreateFrame("Frame", nil, art)
+                        labelClip:SetClipsChildren(true)
+                        label = { clip = labelClip, texture = labelClip:CreateFontString(nil, "OVERLAY") }
                         art.EditText = label
                     end
                     local l, rInset, t, bInset = source:GetTextInsets()
@@ -534,7 +534,7 @@ do
         window:SetAlpha(0)
     end
 
-    behavior.SetupGhost = function(host, ghost, icon, iconFile, frame)
+    behavior.SetupGhost = function(host, ghost, icon, _, frame)
         local texture, sketch = host.Ghost, ghost.Sketch
         if not host.GhostBack then
             host.GhostBack = host:CreateTexture(nil, "ARTWORK", nil, -1)
@@ -600,7 +600,7 @@ do
         end
     end
 
-    behavior.SkipWindowAnimation = function(frame, enter)
+    behavior.SkipWindowAnimation = function(_, enter)
         return enter.Ghost.Source == "Window" and private.AmbientEffectsEnabled()
     end
 

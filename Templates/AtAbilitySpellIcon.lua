@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -113,7 +113,7 @@ end
 ---@return boolean -- is moving
 local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isStopped, unclamped)
 	local timelineOtherPosition = 0
-	local timelineMainPosition = 0
+	local timelineMainPosition
 	local isMoving = false
 	local margin = private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].iconMargin or 5
 	if isStopped then
@@ -125,7 +125,8 @@ local getRawIconPosition = function(iconSize, moveHeight, remainingDuration, isS
 		end
 	end
 	local thresholdTime = private.db.profile.timeline_settings.threshold_time
-	if not unclamped and not (remainingDuration < thresholdTime) then
+	local isBeforeThreshold = unclamped or remainingDuration < thresholdTime
+	if not isBeforeThreshold then
 		-- We are out of range of the moving timeline
 		if private.db.global.timeline_frame[private.ACTIVE_EDITMODE_LAYOUT].inverse_travel_direction then
 			timelineMainPosition = 0 - (iconSize / 2)
@@ -509,33 +510,33 @@ local function Constructor()
 	end
 
 	private.Debug(frame, Type .. count)
-	
+
 	frame:SetFrameStrata(private.FrameStrata.FULLSCREEN)
 	local borderWidth = 3
-	
+
 	frame.BossModsBorderEdges = {}
-	
+
 	-- Top edge
 	local topEdge = frame:CreateTexture(nil, "ARTWORK")
 	topEdge:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
 	topEdge:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
 	topEdge:SetHeight(borderWidth)
 	topEdge:Hide()
-	
+
 	-- Bottom edge
 	local bottomEdge = frame:CreateTexture(nil, "ARTWORK")
 	bottomEdge:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
 	bottomEdge:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
 	bottomEdge:SetHeight(borderWidth)
 	bottomEdge:Hide()
-	
+
 	-- Left edge
 	local leftEdge = frame:CreateTexture(nil, "ARTWORK")
 	leftEdge:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
 	leftEdge:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
 	leftEdge:SetWidth(borderWidth)
 	leftEdge:Hide()
-	
+
 	-- Right edge
 	local rightEdge = frame:CreateTexture(nil, "ARTWORK")
 	rightEdge:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
@@ -581,7 +582,7 @@ local function Constructor()
 
 	frame.DispellTypeBorderEdges = {}
 
-	for i, value in pairs(private.dispellTypeList) do
+	for i, _ in pairs(private.dispellTypeList) do
 		local topTexture = frame:CreateTexture(nil, "ARTWORK")
 		topTexture:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
 		topTexture:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)

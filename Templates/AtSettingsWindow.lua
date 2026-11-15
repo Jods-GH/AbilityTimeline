@@ -113,11 +113,11 @@ local function ApplySettings(self)
 end
 
 ---@param self AtSettingsWindow
-local function OnAcquire(self)
+local function OnAcquire(_)
 end
 
 ---@param self AtSettingsWindow
-local function LayoutFinished(self, width, height)
+local function LayoutFinished(_, _, _)
 end
 
 ---the first child holds what a page pins above its scrolling rows, the second child scrolls below it. An empty

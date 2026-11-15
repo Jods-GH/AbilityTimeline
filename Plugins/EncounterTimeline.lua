@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 
@@ -149,7 +149,7 @@ local eventFrame = CreateFrame("Frame")
 for event in pairs(handlers) do
     eventFrame:RegisterEvent(event)
 end
-eventFrame:SetScript("OnEvent", function(self, event, ...)
+eventFrame:SetScript("OnEvent", function(_, event, ...)
     handlers[event](...)
 end)
 

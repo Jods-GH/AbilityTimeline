@@ -1,4 +1,4 @@
-local appName, app                             = ...
+local _, app                             = ...
 ---@class AbilityTimeline
 local private                                  = app
 local AceGUI                                   = LibStub("AceGUI-3.0")
@@ -86,7 +86,8 @@ end
 ---@param positionRemaining number
 ---@return string
 local getZone                                  = function(state, positionRemaining)
-   local isWaiting = not (positionRemaining < getTimelineSettings().threshold_time)
+   local isBeforeThreshold = positionRemaining < getTimelineSettings().threshold_time
+   local isWaiting = not isBeforeThreshold
    if state == private.ENCOUNTER_STATES.Queued then
       return ZONES.QUEUED
    elseif state == private.ENCOUNTER_STATES.Paused then
@@ -454,8 +455,6 @@ private.removeAtIconFrame                      = function(eventID)
       if not next(private.activeFrames) then
          driver:Hide()
       end
-   else
-      -- private.Debug("No frame found for eventID".. eventID)
    end
 end
 
@@ -559,7 +558,7 @@ private.handleFrame = function(show)
 end
 
 private.removeAllFrames = function()
-   for eventID, frame in pairs(private.activeFrames) do
+   for eventID, _ in pairs(private.activeFrames) do
       private.removeAtIconFrame(eventID)
    end
 end

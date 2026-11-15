@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local LibEditMode = LibStub("LibEditMode")
@@ -41,7 +41,7 @@ LibEditMode:RegisterCallback('rename', function(oldLayoutName, newLayoutName)
     end
 end)
 
-LibEditMode:RegisterCallback('create', function(layoutName, layoutIndex, sourceLayoutName)
+LibEditMode:RegisterCallback('create', function(layoutName, _, sourceLayoutName)
     for _, key in ipairs(PER_LAYOUT_KEYS) do
         if not private.db.global[key] then
             private.db.global[key] = {}

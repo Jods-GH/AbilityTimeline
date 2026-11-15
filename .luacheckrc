@@ -222,3 +222,12 @@ stds.wow.read_globals.C_Weather = { fields = {
 } }
 
 files["spec/**/*.lua"] = { std = "lua51+busted" }
+
+-- Addon-owned popup entries and DBM's documented option are mutable.
+stds.wow.read_globals.StaticPopupDialogs = { other_fields = true, fields = {
+    ABILITYTIMELINE_RELOAD = { read_only = false },
+    ABILITYTIMELINE_CANNOT_RESOLVE = { read_only = false },
+} }
+stds.wow.read_globals.DBM = { other_fields = true, fields = {
+    Options = { other_fields = true, fields = { HideDBMBars = { read_only = false } } },
+} }

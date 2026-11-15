@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local SharedMedia = LibStub("LibSharedMedia-3.0")
@@ -47,7 +47,7 @@ local SOUND_ALERTS = {
     [1] = "1",
 }
 private.REGISTERED_AUDIO_ALERTS = {}
-private.AUDIO_ALERT_FRAME:SetScript("OnUpdate", function(self, elapsed)
+private.AUDIO_ALERT_FRAME:SetScript("OnUpdate", function(_, _)
     for id, value in pairs(private.REGISTERED_AUDIO_ALERTS) do
         local remaining = private.manager.getEventRemainingTime(id)
         for soundTime, soundName in pairs(SOUND_ALERTS) do

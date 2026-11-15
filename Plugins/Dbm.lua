@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 
@@ -17,8 +17,8 @@ local hidesBlizzTimers = false
 local excludedTimers = {
     ["pull"] = true,
 }
-local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID, timerCount, timerIsPriority, timerType2, timerHasVariance, timerVariance)
-    
+local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID, _, _, _, _, _)
+
     private.Debug("Dbm timer started")
     private.Debug(event)
     private.Debug(timerId)
@@ -37,11 +37,11 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
     private.Debug(excludedTimers[timerType])
     private.Debug(excludedTimers, "excluded timers")
     private.Debug("---")
-    if excludedTimers[timerType] then 
+    if excludedTimers[timerType] then
         private.Debug("DBM Timer Ignored (Excluded Type): ".. timerId .. " Type: " .. timerType)
-        return 
+        return
     end
-    
+
     local spellInfo = nil
     if timerSpellId and type(timerSpellId) == "number" then
         spellInfo = C_Spell.GetSpellInfo(timerSpellId)
@@ -76,7 +76,7 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
                 eventinfo.iconFileID = 134400 -- 134400 is the ? icon
             end
         elseif string.find(timerIcon, "/") then
-            local icon = GetFileIDFromPath(iconpath)
+            local icon = GetFileIDFromPath(timerIcon)
             if icon then
                 eventinfo.iconFileID = icon
             else
@@ -119,13 +119,13 @@ local function TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, 
 end
 
 local function TimerBegin(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID, timerCount, timerIsPriority, timerType2, timerHasVariance, timerVariance, isEnabled)
-    if not isEnabled then 
+    if not isEnabled then
         private.Debug("DBM Timer Begin Ignored (Disabled): ".. timerId)
         return end
     TimerStarted(event, timerId, timerMsg, timerDuration, timerIcon, timerType, timerSpellId, timerColordId, timerEncouterId, timerKeep, timerFade, timerSpellName, timerMobGUID, timerCount, timerIsPriority, timerType2, timerHasVariance, timerVariance)
 end
 
-local function TimerStopped(event, timerId)
+local function TimerStopped(_, timerId)
     private.Debug("DBM Timer Stopped: ".. timerId)
     local eventID = private.manager.getEventIDFromSource(SOURCE, timerId)
     if eventID then
@@ -154,7 +154,7 @@ local function TimerUpdated(event, timerId, timerElapsed, timerModified)
     end
 end
 
-local function DisableBlizApi(event)
+local function DisableBlizApi(_)
     if DBM.Options.HideDBMBars then
         private.Debug("DBM bars are hidden by settings, force enabling them")
         DBM.Options.HideDBMBars = false
@@ -165,7 +165,7 @@ local function DisableBlizApi(event)
     end
 end
 
-local function EnableBlizApi(event)
+local function EnableBlizApi(_)
     hidesBlizzTimers = false
     if private.refreshEncounterTimelineVisibility then
         private.refreshEncounterTimelineVisibility()
@@ -178,7 +178,7 @@ DBM:RegisterCallback("DBM_TimerBegin", TimerBegin)
 DBM:RegisterCallback("DBM_TimerUpdate", TimerUpdated)
 DBM:RegisterCallback("DBM_TimerPause", TimerUpdated)
 DBM:RegisterCallback("DBM_TimerResume", TimerUpdated)
-DBM:RegisterCallback("DBM_SetStage", function(event, mod, modId, stage)
+DBM:RegisterCallback("DBM_SetStage", function(_, _, _, stage)
     private.SetReminderStage(stage)
 end)
 DBM:RegisterCallback("DBM_IgnoreBlizzAPI", DisableBlizApi)
@@ -207,8 +207,8 @@ local function refreshBars()
         if AddOnSkins and AddOnSkins[1]:CheckOption('DBM-Core') == true then
             assert(false, "Hiding DBM bars while AddonSkins skinning is turned on doesn't work pls either disable the DBM-Core option or the addon and try again")
         end
-            
-        
+
+
     elseif DBT and not (private.db.profile.disableBossModsBars or private.db.profile.disableBossModsEmphasisedBars) then
         if DBT:GetSkins().Better_Timeline_Skin then
             private.Debug("Reverting to default DBM skin as bars are enabled in settings")

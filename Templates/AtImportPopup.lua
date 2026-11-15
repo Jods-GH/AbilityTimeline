@@ -1,4 +1,4 @@
-local appName, app = ...
+local _, app = ...
 ---@class AbilityTimeline
 local private = app
 local AceGUI = LibStub("AceGUI-3.0")
@@ -78,7 +78,6 @@ local function StartImport(self, duration, onComplete, onCancel)
 
             local elapsed = GetTime() - self.importStartTime
             local progress = math.min(elapsed / self.importDuration, 1.0)
-            local remainingTime = math.max(0, self.importDuration - elapsed)
 
             self.frame.progressBar:SetValue(progress * 100)
 
@@ -181,7 +180,7 @@ local function Constructor()
     frame.progressText:SetPoint("BOTTOM", frame.progressBar, "TOP", 0, 5)
     frame.progressText:SetText("0%")
 
-    frame.progressBar:SetScript("OnValueChanged", function(self, value)
+    frame.progressBar:SetScript("OnValueChanged", function(_, value)
         frame.progressText:SetText(string.format("%d%%", math.floor(value)))
     end)
 
