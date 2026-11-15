@@ -22,9 +22,12 @@ concurrency:
   cancel-in-progress: true  
 # a workflow is built up as jobs, and within these jobs are steps
 jobs:
+  validate:
+    uses: ./.github/workflows/validate.yml
 
   # "release" is a job, you can name it anything you want
   release:
+    needs: validate
 
     # we can run our steps on pretty much anything, but the "ubuntu-latest" image is a safe bet
     runs-on: ubuntu-latest
@@ -42,7 +45,7 @@ jobs:
 
       # we first have to clone the AddOn project, this is a required step
       - name: Clone project
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # gets git history for changelogs
           
@@ -51,7 +54,17 @@ jobs:
         run: .github/generate_changelog.sh
    
       # once cloned, we just run the GitHub Action for the packager project
-      - name: Package and release
+      - name: Package without uploading
         uses: BigWigsMods/packager@v2
+        with:
+          args: -d
+
+      - name: Verify package excludes development files
+        run: python3 .github/validation/check_package.py .release
+
+      - name: Release verified package contents
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -c -e -o
     
       

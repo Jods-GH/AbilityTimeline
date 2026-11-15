@@ -1,0 +1,22 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build validation image
+        run: docker build --tag abilitytimeline-validation .github/validation
+      - name: Lint and test
+        run: docker run --rm --network none --read-only --tmpfs /tmp --mount "type=bind,source=$GITHUB_WORKSPACE,target=/addon,readonly" abilitytimeline-validation

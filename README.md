@@ -22,6 +22,13 @@ Continuation of the ever-popular [RaidAbilityTimeline Weakaura](https://wago.io/
 - adding of smart /pull feature automagically deciding on duration depending if you are in a dungeon or raid
 
 
+## Development validation
+
+Run `./.github/validation/check.ps1` with Docker Desktop running before submitting
+changes. Luacheck and Lua 5.1 behavioral tests are required before alpha or release
+publishing. Setup, test authoring, and lint policy live in the local OpenWiki page
+`openwiki/operations/testing-and-release.md`.
+
 # Trailer:
 
 [![Youtube Video](https://github.com/user-attachments/assets/8de8153b-48e7-4fbc-bc16-1a75e284a9d6)](https://www.youtube.com/watch?list=TLGGvwm3Ft5G0j4yNzEyMjAyNQ&v=_rC3vVAC3NE)
