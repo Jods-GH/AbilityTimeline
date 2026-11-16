@@ -2,6 +2,7 @@ name: Upload localization strings to CurseForge
 
 on:
   push:
+    branches: [main]
     paths:
       - 'Locales/**'
   workflow_dispatch:
