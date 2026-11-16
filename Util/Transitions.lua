@@ -258,7 +258,7 @@ local setupWindowDissolve = function(host, ghost, shaped)
     host.windowDissolve = true
 end
 
-local stepWindowDissolve = function(host, dissolve, progress)
+local stepWindowDissolve = function(host, dissolve, progress, alpha)
     local index = math.min(math.floor(progress * dissolve.Count) + 1, dissolve.Count)
     local nextArt = host.WindowDissolveFrames[index]
     local function ready(region)
@@ -277,7 +277,7 @@ local stepWindowDissolve = function(host, dissolve, progress)
     end
     local active = host.windowDissolveActive
     if active then
-        active.Color:SetAlpha(host.Ghost:GetAlpha())
+        active.Color:SetAlpha(alpha)
         active.Edge:SetAlpha(dissolve.Edge and 1 - progress * progress or 0)
         host.Ghost:SetAlpha(0)
     end
@@ -301,7 +301,7 @@ local stepGhost = function(host, ghost, progress)
     end
     local dissolve = ghost.Dissolve
     if dissolve and host.windowDissolve then
-        stepWindowDissolve(host, dissolve, progress)
+        stepWindowDissolve(host, dissolve, progress, alpha)
     elseif dissolve then
         local index = math.min(math.floor(progress * dissolve.Count) + 1, dissolve.Count)
         if index ~= host.dissolveFrame then

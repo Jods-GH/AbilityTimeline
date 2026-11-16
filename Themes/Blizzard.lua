@@ -393,13 +393,19 @@ do
                 end
                 local anchor = index == 1 and frame.atSpellNameAnchor or { "CENTER", "CENTER", 0, 0 }
                 if anchor then
-                    label:SetFont(source:GetFont())
+                    local font = source.atCountdownFont
+                    if index == 1 or not font then
+                        ThemeApply.Font(label, index == 1 and private.GetElementStyle("SpellIcon").Text.Font
+                            or private.GetElementStyle("Cooldown").Font)
+                    else
+                        label:SetFont(font.path, source.atCountdownSize or font.size, font.flags)
+                    end
                     if index == 1 then
                         label:SetText(frame.atNameText or "")
                         label:SetTextColor(unpack(frame.atNameColor or { 1, 1, 1 }))
                     else
                         label:SetText(source.atCountdownText or "")
-                        label:SetTextColor(source:GetTextColor())
+                        label:SetTextColor(ThemeApply.Color(source.atCountdownColor))
                     end
                     label:SetScale(scale)
                     label:ClearAllPoints()

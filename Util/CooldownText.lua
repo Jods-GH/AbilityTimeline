@@ -481,6 +481,7 @@ function Countdown.Apply(frame, region, display, remaining, info, state)
         end
     end
     local color = style.color or Countdown.BaseColor(display)
+    region.atCountdownColor = color
     region:SetTextColor(private.ThemeApply.Color(color))
     if style.glow and remaining > 0 and state ~= private.manager.STATES.Queued and
         (not frame.countdownPreview or frame:IsVisible()) then
@@ -514,7 +515,7 @@ function Countdown.Reset(frame, region)
     if frame.atShownDimmed then frame:SetAlpha(1) end
     frame.atShownDimmed = nil
     private.ThemeApply.ResetDuration(frame)
-    region.atCountdownFont, region.atCountdownSize, region.atCountdownText = nil, nil, nil
+    region.atCountdownFont, region.atCountdownSize, region.atCountdownText, region.atCountdownColor = nil, nil, nil, nil
 end
 
 Countdown.Generation = function() return generation end
