@@ -11,7 +11,8 @@ local WholeAddon = {}
 ---@return table handle { world, private, errors, files }
 function WholeAddon.Load(options)
     options = options or {}
-    local world = World.Build({ client = options.client, restricted = options.restricted, libraries = false })
+    local world = World.Build({ client = options.client, restricted = options.restricted, locale = options.locale,
+        cvars = options.cvars, libraries = false })
     for name, info in pairs(options.addons or {}) do world.game.addons[name] = info end
     for key, value in pairs(options.globals or {}) do world.env[key] = value end
     world.env.AbilityTimeline = options.savedVariables

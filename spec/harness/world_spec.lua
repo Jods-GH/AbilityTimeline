@@ -33,7 +33,10 @@ describe("world generation", function()
                 for _, name in ipairs(Blizzard.AddonGlobals(World.ROOT .. "/.luacheckrc")) do
                     local clientHas = world.docs.functions[name] or world.blizzardPlan.byGlobal[name]
                         or dump.strings[name] or (dump.runtime and dump.globalAPI[name])
-                    if clientHas and not missingData[name] then assert.is_not_nil(_G[name], name) end
+                    local namespace, field = name:match("^([^%.]+)%.(.+)$")
+                    local value
+                    if namespace then value = _G[namespace] and _G[namespace][field] else value = _G[name] end
+                    if clientHas and not missingData[name] then assert.is_not_nil(value, name) end
                 end
             end)
 

@@ -18,8 +18,6 @@ stds.wow = {
         "BigWigsLoader",
         "bit",
         "CANCEL",
-        "ChatEdit_ActivateChat",
-        "ChatFrame_AddMessageEventFilter",
         "COMBAT_WARNINGS_HIDE_QUEUED_COUNTDOWNS_LABEL",
         "COMBAT_WARNINGS_HIDE_QUEUED_COUNTDOWNS_TOOLTIP",
         "CopyTable",
@@ -127,6 +125,11 @@ stds.wow.read_globals.C_AddOns = { fields = {
     IsAddOnLoaded = {},
     LoadAddOn = {},
 } }
+-- Blizzard_ChatFrameBase/Shared/ChatFrameUtil.lua and ChatFrameFilters.lua (every client)
+stds.wow.read_globals.ChatFrameUtil = { fields = {
+    ActivateChat = {},
+    AddMessageEventFilter = {},
+} }
 stds.wow.read_globals.C_ChallengeMode = { fields = {
     GetActiveChallengeMapID = {},
     GetActiveKeystoneInfo = {},
@@ -227,7 +230,7 @@ stds.wow.read_globals.C_Weather = { fields = {
 stds.testworld = {
     read_globals = {
         "bit", "C_ChallengeMode", "C_EditMode", "C_EncounterTimeline", "C_Spell", "C_Timer", "C_Weather",
-        "CreateFrame", "Enum", "GameFontNormal", "GetTime", "issecretvalue", "NORMAL_FONT_COLOR",
+        "CreateFrame", "Enum", "GameFontNormal", "GetTime", "issecretvalue", "LibStub", "NORMAL_FONT_COLOR",
         "securecallfunction", "strsplit", "strtrim", "UIParent", "WOW_PROJECT_ID", "WOW_PROJECT_MAINLINE",
     },
     globals = {

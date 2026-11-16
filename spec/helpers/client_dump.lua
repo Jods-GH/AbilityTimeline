@@ -107,11 +107,21 @@ function M.Load(client)
     end
     -- ChrClasses: class file name -> male and female names (Name_lang when a gendered name is empty)
     dump.classes = {}
+    local classByID = {}
     for _, record in ipairs(assert(csvTable(folder .. "ChrClasses.csv"), "missing wago ChrClasses of " .. client)) do
         if record.Filename and record.Filename ~= "" then
             local male = record.Name_male_lang ~= "" and record.Name_male_lang or record.Name_lang
             local female = record.Name_female_lang ~= "" and record.Name_female_lang or record.Name_lang
-            dump.classes[record.Filename] = { male = male, female = female }
+            dump.classes[record.Filename] = { male = male, female = female, id = tonumber(record.ID) }
+            classByID[tonumber(record.ID)] = record.Filename
+        end
+    end
+    -- ChrSpecialization: spec ID -> its class file and name (empty before Mists of Pandaria)
+    dump.specs = {}
+    for _, record in ipairs(csvTable(folder .. "ChrSpecialization.csv") or {}) do
+        local class = classByID[tonumber(record.ClassID)]
+        if class and tonumber(record.ID) then
+            dump.specs[tonumber(record.ID)] = { class = class, name = record.Name_lang, role = record.Role }
         end
     end
 

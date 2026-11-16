@@ -78,6 +78,7 @@ if L then
     L["ReminderCancelButton"] = "Cancel"
     L["ReminderSeverityLabel"] = "Severity"
     L["EditRemindersForEncounter"] = "Edit Reminders for Encounter"
+    L["CannotResolveEncounter"] = "Could not resolve encounter"
     L["ReminderEffectTypesLabel"] = "Effect Types"
     L["DeadlyEffect"] = "Deadly |TInterface\\EncounterJournal\\UI-EJ-Icons:::::256:64:135:153:7:25|t"
     L["EnrageEffect"] = "Enrage |TInterface\\EncounterJournal\\UI-EJ-Icons:::::256:64:103:121:39:57|t"

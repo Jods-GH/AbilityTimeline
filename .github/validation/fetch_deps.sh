@@ -95,6 +95,9 @@ for product in $wago_products; do
         curl --fail --silent --show-error --retry 3 --max-time 120 -o "$deps/wago/$product/$table.csv" \
             "https://wago.tools/db2/$table/csv?product=$product"
     done
+    # ChrSpecialization: specializations and their class; clients before Mists of Pandaria have none
+    curl --silent --retry 3 --max-time 120 -o "$deps/wago/$product/ChrSpecialization.csv" \
+        "https://wago.tools/db2/ChrSpecialization/csv?product=$product" || true
     echo "wago/$product $(curl --fail --silent --max-time 60 https://wago.tools/api/builds/latest | grep -oE "\"product\":\"$product\",\"version\":\"[0-9.]+" | cut -d'"' -f8)" >> "$manifest"
 done
 

@@ -53,7 +53,7 @@ local function scriptSetsOf(client)
 end
 
 ---builds a fresh world into the globals and returns it
----@param options table|nil { client = "retail", restricted = false, libraries = true, blizzard = true }
+---@param options table|nil { client = "retail", restricted = false, locale = "enUS", cvars = {}, libraries = true, blizzard = true }
 function World.Build(options)
     options = options or {}
     restoreGlobals()
@@ -108,6 +108,10 @@ function World.Build(options)
 
     require("spec.helpers.xml_templates").Install(world, env)
     require("spec.helpers.game").Install(world)
+    -- AceLocale-3.0 reads GetLocale() when it loads, so the client's locale is set before the libraries; CVars a spec
+    -- sets apply before Blizzard's Lua runs (loadDeprecationFallbacks decides whether Blizzard_Deprecated* load)
+    if options.locale then world.game.locale = options.locale end
+    for name, value in pairs(options.cvars or {}) do world.game.cvars[name] = value end
     require("spec.helpers.ui_frames").InstallScreen(world, env)
 
     if options.blizzard ~= false then

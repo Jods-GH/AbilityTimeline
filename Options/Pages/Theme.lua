@@ -465,7 +465,7 @@ private.checkThemePrompt = function()
         C_Timer.After(3, private.checkThemePrompt)
         return
     end
-    if InCombatLockdown() or IsEncounterInProgress() then return end
+    if InCombatLockdown() or C_InstanceEncounter.IsEncounterInProgress() then return end
     promptedThisSession = true
     private.ShowTourWelcome()
 end

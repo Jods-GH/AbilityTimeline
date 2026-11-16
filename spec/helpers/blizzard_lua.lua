@@ -140,11 +140,16 @@ function M.Load(world, plan)
     return failures
 end
 
----the globals .luacheckrc declares the addon reads
+---the globals .luacheckrc declares the addon reads: the read_globals list, and each namespace table it restricts to
+---fields (stds.wow.read_globals.X = { fields = ... }) with its fields as "X.field"
 function M.AddonGlobals(rcPath)
     local rc = assert(Toc.Read(rcPath or ".luacheckrc"))
     local names = {}
     for name in rc:match("read_globals = (%b{})"):gmatch('"([%w_]+)"') do names[#names + 1] = name end
+    for namespace, fields in rc:gmatch("stds%.wow%.read_globals%.([%w_]+) = { [%w_ =,]-fields = (%b{})") do
+        names[#names + 1] = namespace
+        for field in fields:gmatch("([%w_]+) = {") do names[#names + 1] = namespace .. "." .. field end
+    end
     return names
 end
 

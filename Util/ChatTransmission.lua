@@ -144,7 +144,7 @@ hooksecurefunc("SetItemRef", function(link, _)
                 local chatFrame = DEFAULT_CHAT_FRAME
                 if chatFrame and chatFrame.editBox then
                     if not chatFrame.editBox:IsShown() then
-                        ChatEdit_ActivateChat(chatFrame.editBox)
+                        ChatFrameUtil.ActivateChat(chatFrame.editBox)
                     end
                     chatFrame.editBox:Insert(originalMessage)
                 end
@@ -180,16 +180,16 @@ local filterfunc = function(_, _, msg, author, ...)
     end
     return false, msg, author, ...
 end
-ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL", filterfunc)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_GUILD", filterfunc)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_PARTY", filterfunc)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_PARTY_LEADER", filterfunc)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_RAID", filterfunc)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_RAID_LEADER", filterfunc)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_SAY", filterfunc)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", filterfunc)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER_INFORM", filterfunc)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_BN_WHISPER", filterfunc)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_BN_WHISPER_INFORM", filterfunc)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_INSTANCE_CHAT", filterfunc)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_INSTANCE_CHAT_LEADER", filterfunc)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_CHANNEL", filterfunc)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_GUILD", filterfunc)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_PARTY", filterfunc)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_PARTY_LEADER", filterfunc)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_RAID", filterfunc)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_RAID_LEADER", filterfunc)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_SAY", filterfunc)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_WHISPER", filterfunc)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_WHISPER_INFORM", filterfunc)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_BN_WHISPER", filterfunc)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_BN_WHISPER_INFORM", filterfunc)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_INSTANCE_CHAT", filterfunc)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_INSTANCE_CHAT_LEADER", filterfunc)

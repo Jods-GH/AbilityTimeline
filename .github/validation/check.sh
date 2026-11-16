@@ -27,6 +27,6 @@ if [ $# -gt 0 ]; then
 else
     rm -f /tmp/luacov.stats.out
     busted --lua=lua5.1 --config-file=.busted --coverage || status=1
-    lua5.1 spec/tools/coverage_gate.lua /tmp/luacov.stats.out || status=1
+    lua5.1 spec/coverage_gate.lua /tmp/luacov.stats.out || status=1
 fi
 exit "$status"
