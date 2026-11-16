@@ -9,7 +9,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $image = 'abilitytimeline-validation:local'
 $deps = 'abilitytimeline-deps'
 
-docker build --tag $image (Join-Path $PSScriptRoot '.')
+docker build --quiet --tag $image (Join-Path $PSScriptRoot '.') | Out-Null
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 if (-not $NoFetch) {

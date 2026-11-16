@@ -1,0 +1,8 @@
+-- luacov settings for busted --coverage (.github/validation/check.sh); spec/tools/coverage_gate.lua reads the stats.
+return {
+    statsfile = "/tmp/luacov.stats.out",
+    reportfile = "/tmp/luacov.report.out",
+    deletestats = false,
+    -- the addon's own files only: not the fetched libraries and UI source, not the test harness
+    exclude = { "^/deps/", "^spec/", "^%./spec/", "^/usr/" },
+}

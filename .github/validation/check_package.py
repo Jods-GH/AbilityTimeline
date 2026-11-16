@@ -9,7 +9,7 @@ def check_package(directory):
     archives = sorted(Path(directory).glob("*.zip"))
     if not archives:
         raise ValueError("No package archives found")
-    forbidden = {"spec", ".github", ".busted", ".luacheckrc", "Dockerfile"}
+    forbidden = {"spec", ".github", ".busted", ".luacheckrc", ".luacov", "Dockerfile"}
     for archive in archives:
         with zipfile.ZipFile(archive) as package:
             names = package.namelist()

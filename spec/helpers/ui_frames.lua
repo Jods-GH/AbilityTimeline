@@ -3,42 +3,24 @@
 -- them is kept to the members the addon uses, each with its warcraft.wiki.gg or Blizzard source reference.
 local M = {}
 
--- Localized global strings the addon reads (GlobalStrings.lua is not part of the UI source), set to their enUS text.
-M.GLOBAL_STRINGS = {
-    CANCEL = "Cancel",
-    OKAY = "Okay",
-    RELOADUI = "Reload UI",
-    COMBAT_WARNINGS_HIDE_QUEUED_COUNTDOWNS_LABEL = "Hide Queued Countdowns",
-    COMBAT_WARNINGS_HIDE_QUEUED_COUNTDOWNS_TOOLTIP = "Hides countdowns of queued events.",
-}
+
+---UIParent and WorldFrame, which exist before any UI file loads: the screen, 1920x1080 at the bottom left
+function M.InstallScreen(world, env)
+    for _, name in ipairs({ "WorldFrame", "UIParent" }) do
+        if not env[name] then
+            local frame = world.widgets.New("Frame", name)
+            world.widgets.State(frame).screen = { width = 1920, height = 1080 }
+        end
+    end
+end
 
 function M.Install(world, env)
     local widgets = world.widgets
 
-    -- UIParent and WorldFrame: the screen, 1920x1080 at the bottom left (API_UIParent)
-    local function screen(name)
-        if env[name] then return env[name] end
-        local frame = widgets.New("Frame", name)
-        widgets.State(frame).screen = { width = 1920, height = 1080 }
-        return frame
-    end
-    screen("WorldFrame")
-    screen("UIParent")
-
-    for name, text in pairs(M.GLOBAL_STRINGS) do
-        if env[name] == nil then env[name] = text end
-    end
-
-    -- FrameXML/Fonts.xml font paths and font objects (Blizzard_SharedXML Fonts.xml)
+    -- Font paths the client sets in C before the UI loads (warcraft.wiki.gg/wiki/STANDARD_TEXT_FONT); the font
+    -- objects themselves come from Blizzard's font XML (spec/helpers/xml_templates.lua)
     env.STANDARD_TEXT_FONT = env.STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
     env.DAMAGE_TEXT_FONT = env.DAMAGE_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
-    for _, name in ipairs({ "GameFontNormal", "GameFontHighlight", "GameFontHighlightSmall", "GameFontNormalSmall",
-        "GameFontNormalLarge", "GameFontDisable", "GameFontHighlightLarge", "ChatFontNormal", "NumberFontNormal" }) do
-        if not env[name] then
-            local font = widgets.CreateFont(name)
-            font:SetFont(env.STANDARD_TEXT_FONT, 12, "")
-        end
-    end
 
     -- API_IsInGroup: LE_PARTY_CATEGORY_INSTANCE is the instance group (2)
     env.LE_PARTY_CATEGORY_HOME = env.LE_PARTY_CATEGORY_HOME or 1
@@ -60,25 +42,62 @@ function M.Install(world, env)
     env.ShowUIPanel = env.ShowUIPanel or function(frame) if frame then frame:Show() end end
     env.HideUIPanel = env.HideUIPanel or function(frame) if frame then frame:Hide() end end
 
-    -- GameTooltip (Blizzard_SharedXML GameTooltip): a GameTooltip frame
-    if not env.GameTooltip then widgets.CreateFrame("GameTooltip", "GameTooltip", env.UIParent) end
+    -- GameTooltip (Blizzard_GameTooltip GameTooltip.xml): a GameTooltip widget; its methods are the documented ones
+    if not env.GameTooltip then widgets.CreateFrame("GameTooltip", "GameTooltip", env.UIParent):Hide() end
+
+    -- Blizzard_EditMode EditModeManager.lua: showing the manager enters Edit Mode (OnShow -> EnterEditMode ->
+    -- EventRegistry "EditMode.Enter"), hiding it leaves (OnHide -> ExitEditMode -> "EditMode.Exit"); SelectSystem and
+    -- ClearSelectedSystem select Edit Mode systems; AccountSettings holds the account setting check buttons. The
+    -- client's EditMode UI needs GlobalStrings, which the UI source lacks, so it cannot load here.
+    if not env.EditModeManagerFrame then
+        local manager = widgets.CreateFrame("Frame", "EditModeManagerFrame", env.UIParent)
+        manager:Hide()
+        manager.AccountSettings = widgets.CreateFrame("Frame", nil, manager)
+        manager.AccountSettings.settingsCheckButtons = {}
+        function manager.AccountSettings.RefreshEncounterEvents() end
+        function manager:IsEditModeActive() return self.editModeActive == true end
+        function manager:EnterEditMode()
+            self.editModeActive = true
+            if env.EventRegistry then env.EventRegistry:TriggerEvent("EditMode.Enter") end
+        end
+        function manager:ExitEditMode()
+            self.editModeActive = false
+            if env.EventRegistry then env.EventRegistry:TriggerEvent("EditMode.Exit") end
+        end
+        function manager:SelectSystem(systemFrame) self.selectedSystem = systemFrame end
+        function manager:ClearSelectedSystem() self.selectedSystem = nil end
+        function manager:ShowNewLayoutDialog() self.newLayoutDialogShown = true end
+        manager:SetScript("OnShow", manager.EnterEditMode)
+        manager:SetScript("OnHide", manager.ExitEditMode)
+    end
+    -- Blizzard_EditMode EditModeDialogs.xml: the settings dialog of the selected system
+    if not env.EditModeSystemSettingsDialog then
+        widgets.CreateFrame("Frame", "EditModeSystemSettingsDialog", env.UIParent):Hide()
+    end
+    -- Blizzard_FrameXML ColorPickerFrame (ColorPickerFrame.lua): SetupColorPickerAndShow(info) shows the picker for
+    -- info's color and callbacks; GetColorRGB/GetColorAlpha read the picked color
+    if not env.ColorPickerFrame then
+        local picker = widgets.CreateFrame("Frame", "ColorPickerFrame", env.UIParent)
+        picker:Hide()
+        picker.color = { r = 1, g = 1, b = 1, a = 1 }
+        function picker:SetupColorPickerAndShow(info)
+            self.info = info
+            self.func, self.opacityFunc, self.cancelFunc = info.swatchFunc, info.opacityFunc, info.cancelFunc
+            self.hasOpacity, self.opacity = info.hasOpacity, info.opacity
+            self.color = { r = info.r or 1, g = info.g or 1, b = info.b or 1, a = info.opacity or 1 }
+            self:Show()
+        end
+        function picker:SetColorRGB(r, g, b) self.color.r, self.color.g, self.color.b = r, g, b end
+        function picker:GetColorRGB() return self.color.r, self.color.g, self.color.b end
+        function picker:GetColorAlpha() return self.color.a end
+    end
 
     -- DEFAULT_CHAT_FRAME: the chat frame AddMessage writes to (recorded in world.chat)
     world.chat = {}
     if not env.DEFAULT_CHAT_FRAME then
         local chat = widgets.CreateFrame("Frame", "ChatFrame1", env.UIParent)
-        function chat:AddMessage(text) world.chat[#world.chat + 1] = text end
+        function chat.AddMessage(_, text) world.chat[#world.chat + 1] = text end
         env.DEFAULT_CHAT_FRAME = chat
-    end
-
-    -- Blizzard_EditMode: EditModeManagerFrame with AccountSettings, Enter/ExitEditMode
-    if not env.EditModeManagerFrame then
-        local manager = widgets.CreateFrame("Frame", "EditModeManagerFrame", env.UIParent)
-        manager:Hide()
-        manager.AccountSettings = widgets.CreateFrame("Frame", nil, manager)
-        function manager:IsEditModeActive() return self:IsShown() end
-        function manager:EnterEditMode() self:Show() end
-        function manager:ExitEditMode() self:Hide() end
     end
 
     -- Blizzard_EncounterTimeline (Retail): the EncounterTimeline frame the addon hides when it shows its own timeline
@@ -104,6 +123,11 @@ function M.Install(world, env)
                 return category
             end,
             RegisterAddOnCategory = function(category) category.registered = true end,
+            GetCategory = function(id)
+                for _, category in ipairs(world.settingsCategories) do
+                    if category.ID == id then return category end
+                end
+            end,
             OpenToCategory = function(id) world.openedCategory = id end,
         }
     end
@@ -115,13 +139,13 @@ function M.Install(world, env)
             CreateContextMenu = function(owner, generator)
                 local menu = { owner = owner, entries = {} }
                 local root = {}
-                function root:CreateButton(text, callback, data)
+                function root.CreateButton(_, text, callback, data)
                     local entry = { kind = "button", text = text, callback = callback, data = data }
                     menu.entries[#menu.entries + 1] = entry
                     return entry
                 end
-                function root:CreateTitle(text) menu.entries[#menu.entries + 1] = { kind = "title", text = text } end
-                function root:CreateDivider() menu.entries[#menu.entries + 1] = { kind = "divider" } end
+                function root.CreateTitle(_, text) menu.entries[#menu.entries + 1] = { kind = "title", text = text } end
+                function root.CreateDivider() menu.entries[#menu.entries + 1] = { kind = "divider" } end
                 generator(owner, root)
                 world.menus[#world.menus + 1] = menu
                 return menu

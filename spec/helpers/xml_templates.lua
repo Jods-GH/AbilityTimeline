@@ -4,7 +4,6 @@
 -- (Layers), child frames and animation groups (each with its parentKey), and its scripts (method= calls the mixin
 -- method of that name, function= the global function, a body is compiled with the handler's arguments). OnLoad runs
 -- after everything is in place. The templates are read from the XML files of the addons fetch_deps.sh fetches.
-local Docs = require("spec.helpers.api_docs")
 local Toc = require("spec.helpers.toc")
 
 local M = {}
@@ -25,7 +24,9 @@ function M.Parse(content)
             table.remove(stack)
         else
             local element = { tag = tag, attributes = {}, children = {} }
-            for key, value in attributes:gmatch('([%w_:]+)%s*=%s*"([^"]*)"') do element.attributes[key] = value end
+            for key, _, value in attributes:gmatch("([%w_:]+)%s*=%s*([\"'])(.-)%2") do
+                element.attributes[key] = value
+            end
             current.children[#current.children + 1] = element
             if selfClosing ~= "/" then stack[#stack + 1] = element end
         end
@@ -46,22 +47,37 @@ local registries = {}
 function M.Registry(client)
     if registries[client] then return registries[client] end
     local registry = {}
-    local root = Docs.Root(client) .. "/Interface/AddOns"
-    local listing = io.popen('find "' .. root .. '" -name "*.xml" 2>/dev/null')
-    for path in listing:lines() do
-        local parsed = M.Parse(assert(Toc.Read(path)))
-        local function visit(element)
+    for _, file in ipairs(require("spec.helpers.blizzard_lua").AddonFiles(client)) do
+        local path = file.path
+        local parsed = path:find("%.xml$") and M.Parse(assert(Toc.Read(path))) or { children = {} }
+        local function visit(element, depth)
             for _, child in ipairs(element.children) do
-                if child.attributes.virtual == "true" and child.attributes.name then
-                    child.source = path
-                    registry[child.attributes.name] = registry[child.attributes.name] or child
+                local name = child.attributes.name
+                -- Font and FontFamily elements at the top level are font objects whether virtual or not
+                local isFont = depth == 0 and (child.tag == "Font" or child.tag == "FontFamily")
+                -- a named top-level frame the client creates when its addon loads
+                if depth == 0 and name and child.attributes.virtual ~= "true" and not isFont
+                    and child.tag ~= "Script" and child.tag ~= "Include" then
+                    registry.__frames = registry.__frames or {}
+                    if not registry.__frames[name] then
+                        registry.__frameCount = (registry.__frameCount or 0) + 1
+                        registry.__frames[name] = { element = child, addon = file.addon, onDemand = file.onDemand, order = registry.__frameCount }
+                    end
                 end
-                visit(child)
+                if name and (child.attributes.virtual == "true" or isFont) then
+                    child.source = path
+                    registry[name] = registry[name] or child
+                    if isFont then
+                        registry.__fonts = registry.__fonts or {}
+                        table.insert(registry.__fonts, child)
+                    end
+                end
+                visit(child, depth + 1)
             end
         end
-        visit(parsed)
+        local ui = parsed.children[1] or parsed
+        visit(ui, 0)
     end
-    listing:close()
     registries[client] = registry
     return registry
 end
@@ -77,6 +93,48 @@ function M.Install(world, env)
     world.templateRegistry = registry
     local state = world.widgets.State
 
+    -- Font objects from the client's font XML (Blizzard_Fonts_Shared): font file, height and outline, inherited
+    -- through inherits=; a FontFamily takes its roman alphabet member.
+    local function fontSpec(element, seen)
+        seen = seen or {}
+        if seen[element] then return {} end
+        seen[element] = true
+        if element.tag == "FontFamily" then
+            for _, member in ipairs(element.children) do
+                if member.tag == "Member" and (member.attributes.alphabet or "roman") == "roman" then
+                    for _, font in ipairs(member.children) do
+                        if font.tag == "Font" then return fontSpec(font, seen) end
+                    end
+                end
+            end
+            return {}
+        end
+        local spec = {}
+        local parent = element.attributes.inherits and registry[element.attributes.inherits]
+        if parent then spec = fontSpec(parent, seen) end
+        local a = element.attributes
+        spec.font = a.font or spec.font
+        spec.height = tonumber(a.height) or spec.height
+        spec.outline = a.outline or spec.outline
+        for _, child in ipairs(element.children) do
+            if child.tag == "FontHeight" then
+                for _, absolute in ipairs(child.children) do
+                    if absolute.tag == "AbsValue" then spec.height = tonumber(absolute.attributes.val) or spec.height end
+                end
+            end
+        end
+        return spec
+    end
+    for _, element in ipairs(registry.__fonts or {}) do
+        local name = element.attributes.name
+        if not env[name] then
+            local spec = fontSpec(element)
+            local font = world.widgets.CreateFont(name)
+            local flags = spec.outline == "NORMAL" and "OUTLINE" or spec.outline == "THICK" and "THICKOUTLINE" or ""
+            font:SetFont(spec.font or "Fonts\\FRIZQT__.TTF", spec.height or 12, flags)
+        end
+    end
+
     local function value(raw, valueType)
         if valueType == "number" then return tonumber(raw) end
         if valueType == "boolean" then return raw == "true" end
@@ -86,7 +144,7 @@ function M.Install(world, env)
 
     local apply
 
-    local function scriptHandler(object, element)
+    local function scriptHandler(element)
         local method, func = element.attributes.method, element.attributes["function"]
         if method then
             return function(self, ...)
@@ -152,15 +210,23 @@ function M.Install(world, env)
         for _, inherited in ipairs(list(element.attributes.inherits)) do
             local template = registry[inherited] or world.templates[inherited]
             if not template then error(("Couldn't find inherited node \"%s\""):format(inherited), 0) end
-            if type(template) == "function" then template(object) else apply(object, template, onLoads) end
+            if type(template) == "function" then
+                template(object)
+            elseif template.tag == "Font" or template.tag == "FontFamily" then
+                if object.SetFontObject then object:SetFontObject(env[inherited]) end
+            else
+                apply(object, template, onLoads)
+            end
         end
         for _, mixin in ipairs(list(element.attributes.mixin)) do
             local source = env[mixin]
-            if not source then error(("template %s: mixin %s is not loaded"):format(element.attributes.name or element.tag, mixin), 0) end
+            if type(source) ~= "table" then
+                error(("template %s: mixin %s is not loaded (%s)"):format(element.attributes.name or element.tag, mixin, type(source)), 0)
+            end
             env.Mixin(object, source)
         end
         for _, mixin in ipairs(list(element.attributes.secureMixin)) do
-            env.Mixin(object, assert(env[mixin], "mixin " .. mixin))
+            env.Mixin(object, (assert(env[mixin], "mixin " .. mixin)))
         end
         if element.attributes.parentArray and false then return end
         applyAnchors(object, element)
@@ -230,7 +296,7 @@ function M.Install(world, env)
                 end
             elseif child.tag == "Scripts" then
                 for _, scriptElement in ipairs(child.children) do
-                    local handler = scriptHandler(object, scriptElement)
+                    local handler = scriptHandler(scriptElement)
                     if handler and scriptElement.tag == "OnLoad" then
                         onLoads[#onLoads + 1] = function() world.call(handler, object) end
                     elseif handler then
@@ -260,11 +326,25 @@ function M.Install(world, env)
         for _, onLoad in ipairs(onLoads) do onLoad() end
     end
 
+    ---creates a named frame of the client's XML (the way the client creates it when its addon loads)
+    function world.createNamedFrame(name)
+        local info = registry.__frames and registry.__frames[name]
+        if not info or env[name] then return env[name] end
+        local element = info.element
+        local parent = element.attributes.parent and env[element.attributes.parent] or nil
+        local frameType = element.tag == "Frame" and "Frame" or element.tag
+        local frame = world.widgets.CreateFrame(frameType, name, parent)
+        local onLoads = {}
+        apply(frame, element, onLoads)
+        for _, onLoad in ipairs(onLoads) do onLoad() end
+        return frame
+    end
+
     ---the mixins the templates the addon inherits need, so blizzard_lua.lua loads the files defining them
     function world.templateMixins(names)
         local mixins, seen = {}, {}
         local function visit(name)
-            local element = registry[name]
+            local element = registry[name] or (registry.__frames and registry.__frames[name] and registry.__frames[name].element)
             if not element or seen[name] then return end
             seen[name] = true
             local function walk(node)

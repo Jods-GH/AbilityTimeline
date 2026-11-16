@@ -9,26 +9,64 @@ local Toc = require("spec.helpers.toc")
 
 local M = {}
 
-M.ADDONS = { "Blizzard_SharedXMLBase", "Blizzard_SharedXML", "Blizzard_FrameXMLBase" }
+-- Load order of the fetched addons (their TOC dependencies); any other fetched addon follows alphabetically.
+M.ORDER = { "Blizzard_SharedXMLBase", "Blizzard_Fonts_Shared", "Blizzard_SharedXML", "Blizzard_SharedXMLGame", "Blizzard_ChatFrameBase", "Blizzard_FrameXMLBase", "Blizzard_FrameXMLUtil",
+    "Blizzard_GameTooltip", "Blizzard_FrameXML", "Blizzard_EditMode" }
 
-local function deprecatedAddons(root)
-    local addons = {}
+local function fetchedAddons(root)
+    local rank, addons = {}, {}
+    for index, name in ipairs(M.ORDER) do rank[name] = index end
     local listing = io.popen('ls -1 "' .. root .. '/Interface/AddOns" 2>/dev/null')
     for name in listing:lines() do
-        if name:find("^Blizzard_Deprecated") then addons[#addons + 1] = name end
+        if name ~= "Blizzard_APIDocumentationGenerated" then addons[#addons + 1] = name end
     end
     listing:close()
-    table.sort(addons)
+    table.sort(addons, function(a, b)
+        local rankA, rankB = rank[a] or #M.ORDER + 1, rank[b] or #M.ORDER + 1
+        if rankA ~= rankB then return rankA < rankB end
+        return a < b
+    end)
     return addons
+end
+
+local addonFiles = {}
+---every file of the fetched Blizzard addons a client loads, in load order: { addon, path, onDemand }
+function M.AddonFiles(client)
+    if addonFiles[client] then return addonFiles[client] end
+    local root = Docs.Root(client)
+    local gameType = Docs.CLIENTS[client].gameType
+    local files = {}
+    for _, addon in ipairs(fetchedAddons(root)) do
+        local folder = root .. "/Interface/AddOns/" .. addon
+        local tocPath = Toc.Pick(folder, addon, gameType)
+        if Toc.Exists(tocPath) then
+            local toc = Toc.Parse(tocPath)
+            local allowed = toc.metadata.AllowLoadGameType
+            if not allowed or Toc.Allows({ AllowLoadGameType = { allowed:lower() } }, gameType) then
+                for _, file in ipairs((Toc.Files(tocPath, gameType, function(path)
+                    return Toc.Exists(path) and path or nil
+                end))) do
+                    files[#files + 1] = { addon = addon, path = file.path, onDemand = toc.metadata.LoadOnDemand == "1" }
+                end
+            end
+        end
+    end
+    addonFiles[client] = files
+    return files
 end
 
 ---the globals a Lua file defines at its top level, and the identifiers it reads
 local function scan(content)
     local defines, reads = {}, {}
-    for name in ("\n" .. content):gmatch("\nfunction ([%a_][%w_]*)%s*%(") do defines[name] = true end
-    for name in ("\n" .. content):gmatch("\n([%a_][%w_]*)%s*=[^=]") do defines[name] = true end
+    local lines = "\n" .. content
+    for name in lines:gmatch("\nfunction ([%a_][%w_]*)%s*%(") do defines[name] = true end
+    for name in lines:gmatch("\n([%a_][%w_]*)%s*=[^=]") do defines[name] = true end
+    -- members a file adds to a table another file creates: function T.m(, function T:m(, T.m =
+    for table, member in lines:gmatch("\nfunction ([%a_][%w_]*)[%.:]([%a_][%w_]*)%s*%(") do defines[table .. "." .. member] = true end
+    for table, member in lines:gmatch("\n([%a_][%w_]*)%.([%a_][%w_]*)%s*=[^=]") do defines[table .. "." .. member] = true end
     local code = content:gsub("%-%-%[(=*)%[.-%]%1%]", ""):gsub("%-%-[^\n]*", "")
     for name in code:gmatch("[%a_][%w_]*") do reads[name] = true end
+    for table, member in code:gmatch("([%a_][%w_]*)[%.:]([%a_][%w_]*)") do reads[table .. "." .. member] = true end
     return defines, reads
 end
 
@@ -39,43 +77,33 @@ local plans = {}
 ---@param wanted string[] globals the addon reads
 function M.Plan(client, wanted)
     if plans[client] then return plans[client] end
-    local root = Docs.Root(client)
-    local gameType = Docs.CLIENTS[client].gameType
-    local files, byGlobal = {}, {}
-    local addons = {}
-    for _, addon in ipairs(M.ADDONS) do addons[#addons + 1] = addon end
-    for _, addon in ipairs(deprecatedAddons(root)) do addons[#addons + 1] = addon end
-    for _, addon in ipairs(addons) do
-        local folder = root .. "/Interface/AddOns/" .. addon
-        local tocPath = Toc.Pick(folder, addon, gameType)
-        if Toc.Exists(tocPath) then
-            local toc = Toc.Parse(tocPath)
-            local allowed = toc.metadata.AllowLoadGameType
-            local onDemand = toc.metadata.LoadOnDemand == "1"
-            if not onDemand and (not allowed or Toc.Allows({ AllowLoadGameType = { allowed:lower() } }, gameType)) then
-                for _, file in ipairs((Toc.Files(tocPath, gameType, function(path)
-                    return Toc.Exists(path) and path or nil
-                end))) do
-                    if file.path:find("%.lua$") then
-                        local content = assert(Toc.Read(file.path))
-                        local defines, reads = scan(content)
-                        local entry = { path = file.path, defines = defines, reads = reads, index = #files + 1 }
-                        files[#files + 1] = entry
-                        for name in pairs(defines) do
-                            byGlobal[name] = byGlobal[name] or entry
-                        end
-                    end
+    local files, byGlobal, byMember = {}, {}, {}
+    for _, file in ipairs(M.AddonFiles(client)) do
+        if not file.onDemand and file.path:find("%.lua$") then
+            local content = assert(Toc.Read(file.path))
+            local defines, reads = scan(content)
+            local entry = { path = file.path, defines = defines, reads = reads, index = #files + 1 }
+            files[#files + 1] = entry
+            for name in pairs(defines) do
+                byGlobal[name] = byGlobal[name] or entry
+                -- a table's members may be defined in several files
+                if name:find("%.") then
+                    byMember[name] = byMember[name] or {}
+                    table.insert(byMember[name], entry)
                 end
             end
         end
     end
     local selected, queue = {}, {}
-    local function want(name)
-        local entry = byGlobal[name]
+    local function select(entry)
         if entry and not selected[entry] then
             selected[entry] = true
             queue[#queue + 1] = entry
         end
+    end
+    local function want(name)
+        select(byGlobal[name])
+        for _, entry in ipairs(byMember[name] or {}) do select(entry) end
     end
     for _, name in ipairs(wanted) do want(name) end
     while #queue > 0 do
@@ -93,11 +121,17 @@ end
 ---loads the planned files into the world; returns the failures as { path = message }
 function M.Load(world, plan)
     local failures = {}
+    -- every file of an addon gets the addon's name and the one namespace table of that addon
+    local namespaces = {}
     for _, entry in ipairs(plan.files) do
-        local chunk, message = loadfile(entry.path)
+        -- the client's color objects exist once CreateColor does (client_dump.lua)
+        require("spec.helpers.client_dump").InstallColors(world, world.env)
+        local chunk, message = Toc.LoadLua(entry.path)
         if chunk then
             setfenv(chunk, world.env)
-            local ok, err = pcall(chunk, entry.path:match("AddOns/([^/]+)"), {})
+            local addon = entry.path:match("AddOns/([^/]+)")
+            namespaces[addon] = namespaces[addon] or {}
+            local ok, err = pcall(chunk, addon, namespaces[addon])
             if not ok then failures[entry.path] = err end
         else
             failures[entry.path] = message

@@ -7,10 +7,11 @@
 -- Used for the addon's TOC and for Blizzard's own addons in the UI source.
 local M = {}
 
--- Game type (as the TOC directives name it) -> family, [Game] name and TOC suffixes, most specific first.
+-- Game type (as the TOC directives name it) -> family, [Game] name and TOC suffixes, most specific first. A client may
+-- go by several names: Blizzard's own TOCs call the Forever client camelot ([Game] is Camelot), addons call it forever.
 M.GAME_TYPES = {
     standard = { family = "Mainline", game = "Standard", suffixes = { "Standard", "Mainline" } },
-    forever = { family = "Mainline", game = "Forever", suffixes = { "Forever", "Mainline" } },
+    forever = { family = "Mainline", game = "Camelot", names = { "forever", "camelot" }, suffixes = { "Camelot", "Forever", "Mainline" } },
     mists = { family = "Classic", game = "Mists", suffixes = { "Mists", "Classic" } },
     cata = { family = "Classic", game = "Cata", suffixes = { "Cata", "Classic" } },
     wrath = { family = "Classic", game = "Wrath", suffixes = { "Wrath", "Classic" } },
@@ -34,6 +35,13 @@ local function exists(path)
 end
 M.Exists = exists
 
+---compiles a Lua file as the client does: a UTF-8 byte order mark at its start is skipped
+function M.LoadLua(path)
+    local content = read(path)
+    if not content then return nil, "cannot read " .. path end
+    return loadstring((content:gsub("^\239\187\191", "")), "@" .. path)
+end
+
 local function directory(path)
     return path:match("^(.*)/[^/]*$") or "."
 end
@@ -46,9 +54,13 @@ end
 
 ---whether a list of game types or families names gameType
 local function names(items, gameType)
-    local family = M.GAME_TYPES[gameType].family:lower()
+    local info = M.GAME_TYPES[gameType]
+    local family = info.family:lower()
     for _, item in ipairs(items) do
         if item == gameType or item == family then return true end
+        for _, name in ipairs(info.names or {}) do
+            if item == name then return true end
+        end
     end
     return false
 end
@@ -82,8 +94,8 @@ function M.Parse(path)
             parsed.metadata[key] = value
         elseif not line:find("^%s*#") and line:find("%S") then
             local directives = {}
-            local entry = line:gsub("%s*%[(%a+)%s+([^%]]*)%]", function(name, value)
-                directives[name] = list(value)
+            local entry = line:gsub("%s*%[(%a+)%s+([^%]]*)%]", function(name, items)
+                directives[name] = list(items)
                 return ""
             end)
             entry = entry:gsub("^%s+", ""):gsub("%s+$", "")
@@ -98,7 +110,7 @@ function M.XmlEntries(path)
     local content = assert(read(path), "missing XML " .. path)
     local entries = {}
     content = content:gsub("<!%-%-.-%-%->", "")
-    for tag, file in content:gmatch("<(%a+)%s+file%s*=%s*\"([^\"]+)\"") do
+    for tag, file in content:gmatch("<(%a+)%s+file%s*=%s*[\"']([^\"']+)[\"']") do
         if tag == "Script" or tag == "Include" then
             entries[#entries + 1] = { tag = tag, file = file:gsub("\\", "/") }
         end

@@ -27,3 +27,4 @@ ignore:
     - .github
     - .busted
     - .luacheckrc
+    - .luacov

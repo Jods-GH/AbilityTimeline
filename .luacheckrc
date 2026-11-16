@@ -221,7 +221,24 @@ stds.wow.read_globals.C_Weather = { fields = {
     GetCurrentWeather = {},
 } }
 
-files["spec/**/*.lua"] = { std = "lua51+busted" }
+-- Specs and the test world (spec/helpers/world.lua) run against the client the world builds: they read its globals,
+-- and the world defines WoW's extensions of the string and table libraries (spec/helpers/lua_extensions.lua) and
+-- makes string.format, string.join and string.concat take secrets (spec/helpers/secrets.lua).
+stds.testworld = {
+    read_globals = {
+        "bit", "C_ChallengeMode", "C_EditMode", "C_EncounterTimeline", "C_Spell", "C_Timer", "C_Weather",
+        "CreateFrame", "Enum", "GameFontNormal", "GetTime", "issecretvalue", "NORMAL_FONT_COLOR",
+        "securecallfunction", "strsplit", "strtrim", "UIParent", "WOW_PROJECT_ID", "WOW_PROJECT_MAINLINE",
+    },
+    globals = {
+        string = { fields = {
+            split = { read_only = false }, join = { read_only = false }, trim = { read_only = false },
+            concat = { read_only = false }, format = { read_only = false },
+        } },
+        table = { fields = { wipe = { read_only = false } } },
+    },
+}
+files["spec/**/*.lua"] = { std = "lua51+busted+testworld" }
 
 -- Addon-owned popup entries and DBM's documented option are mutable.
 stds.wow.read_globals.StaticPopupDialogs = { other_fields = true, fields = {

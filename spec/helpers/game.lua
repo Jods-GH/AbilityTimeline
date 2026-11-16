@@ -4,7 +4,7 @@
 -- each function's documentation (or its warcraft.wiki.gg page for legacy functions).
 local M = {}
 
-function M.Install(world, env)
+function M.Install(world)
     local game = {
         locale = "enUS",
         player = { name = "Player", realm = "Realm", class = "MAGE", className = "Mage", classID = 8, specIndex = 1, specID = 63 },
@@ -13,7 +13,10 @@ function M.Install(world, env)
         instance = { inInstance = false, type = "none" },
         encounter = nil,     -- the encounter in progress
         inCombat = false,
+        -- the client's CVar defaults (client_dump.lua); without a dump, CVar_loadDeprecationFallbacks' release default
         cvars = {},
+        loggedIn = false,
+        region = "US",
         addons = { AbilityTimeline = { loaded = true, version = "@project-version@" } },
         spells = {},         -- spellID -> { name, iconID }
         atlases = {},        -- atlas name -> AtlasInfo
@@ -29,6 +32,18 @@ function M.Install(world, env)
         build = { version = "", number = "", date = "", interface = 0 },
     }
     world.game = game
+    if world.dump.runtime then
+        for name, value in pairs(world.dump.cvars) do game.cvars[name] = value end
+        -- AtlasInfo.lua: width, height, left, right, top, bottom, tilesHorizontally, tilesVertically
+        setmetatable(game.atlases, { __index = function(_, atlas)
+            local info = world.dump.atlases[atlas]
+            if not info then return nil end
+            return { width = info[1], height = info[2], leftTexCoord = info[3], rightTexCoord = info[4],
+                topTexCoord = info[5], bottomTexCoord = info[6], tilesHorizontally = info[7], tilesVertically = info[8], file = 0 }
+        end })
+    else
+        game.cvars.loadDeprecationFallbacks = "1"
+    end
 
     local function set(name, implementation)
         if world.api.has(name) then world.api.set(name, implementation) end
@@ -41,6 +56,17 @@ function M.Install(world, env)
     world.unit = unit
 
     set("GetLocale", function() return game.locale end)
+    -- LocalizedClassList(isFemale) (ClassUtilDocumentation) and API_FillLocalizedClassList(table, isFemale): class file
+    -- name -> localized name, from the client's ChrClasses (client_dump.lua)
+    local function classNames(isFemale, into)
+        into = into or {}
+        for file, names in pairs(world.dump.classes) do into[file] = isFemale and names.female or names.male end
+        return into
+    end
+    set("LocalizedClassList", function(isFemale) return classNames(isFemale) end)
+    set("FillLocalizedClassList", function(tbl, isFemale) classNames(isFemale, tbl) return tbl end)
+    set("GetCurrentRegionName", function() return game.region end)
+    set("IsLoggedIn", function() return game.loggedIn or nil end)
     set("GetBuildInfo", function()
         local build = game.build
         return build.version, build.number, build.date, build.interface, build.version, build.version
@@ -62,6 +88,13 @@ function M.Install(world, env)
         if info then return info.className, info.class, info.classID end
     end)
     set("UnitExists", function(token) return unit(token) ~= nil end)
+    -- API_UnitRace: raceName, raceFile, raceID; API_UnitFactionGroup: englishFaction, localizedFaction
+    set("UnitRace", function(token)
+        if unit(token) then return "Human", "Human", 1 end
+    end)
+    set("UnitFactionGroup", function(token)
+        if unit(token) then return "Alliance", "Alliance" end
+    end)
     set("UnitIsGroupLeader", function(token) local info = unit(token) return info and info.leader or false end)
     set("UnitIsGroupAssistant", function(token) local info = unit(token) return info and info.assistant or false end)
     set("UnitInRaid", function(token)
@@ -109,7 +142,7 @@ function M.Install(world, env)
         game.addonMessages[#game.addonMessages + 1] = { prefix = prefix, message = message, channel = channel, target = target }
         return Enum.SendAddonMessageResult and Enum.SendAddonMessageResult.Success or true
     end)
-    set("C_ChatInfo.SendChatMessage", function(message, chatType, languageID, target)
+    set("C_ChatInfo.SendChatMessage", function(message, chatType, _, target)
         game.chatMessages[#game.chatMessages + 1] = { message = message, chatType = chatType, target = target }
     end)
 
@@ -151,6 +184,31 @@ function M.Install(world, env)
         if spell then return spell.iconID or 134400, spell.iconID or 134400 end
     end)
     set("C_Texture.GetAtlasInfo", function(atlas) return game.atlases[atlas] end)
+
+    -- C_EditMode.GetLayouts (EditModeManagerDocumentation.lua): EditModeLayouts { layouts = the account's and
+    -- character's own layouts, activeLayout = index counting the preset layouts first }; preset 1 is active by default
+    game.editMode = { layouts = {}, activeLayout = 1 }
+    set("C_EditMode.GetLayouts", function()
+        local layouts = {}
+        for i, layout in ipairs(game.editMode.layouts) do layouts[i] = layout end
+        return { layouts = layouts, activeLayout = game.editMode.activeLayout }
+    end)
+
+    -- C_UIFileAsset.IsKnownFile (UIFileAssetDocumentation.lua): whether the client has a file. Paths into this addon
+    -- are looked up in the addon's folder (case-insensitively, as the client does); file IDs and other client paths
+    -- cannot be checked here and count as known.
+    local addonPrefix = "interface/addons/" .. world.appName:lower() .. "/"
+    local known = {}
+    set("C_UIFileAsset.IsKnownFile", function(file)
+        if type(file) ~= "string" then return true end
+        local normalized = file:gsub("\\", "/"):lower()
+        if normalized:sub(1, #addonPrefix) ~= addonPrefix then return true end
+        if known[normalized] == nil then
+            local relative = file:gsub("\\", "/"):sub(#addonPrefix + 1)
+            known[normalized] = world.fileExists(relative)
+        end
+        return known[normalized]
+    end)
 
     set("PlaySoundFile", function(sound, channel)
         game.sounds[#game.sounds + 1] = { sound = sound, channel = channel }

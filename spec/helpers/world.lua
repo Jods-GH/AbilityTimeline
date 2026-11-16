@@ -66,6 +66,8 @@ function World.Build(options)
         implementations = {}, documented = {}, templates = {}, undocumentedEvents = {},
     }
     world.secrets = Secrets
+    world.appName = World.APP_NAME
+    world.fileExists = World.FileExists
 
     ---calls f the way the client calls scripts and callbacks: an error goes to the error handler
     function world.call(f, ...)
@@ -94,23 +96,33 @@ function World.Build(options)
     require("spec.helpers.lua_extensions").Install(world, env)
     restoreSecrets = Secrets.Install(env)
     require("spec.helpers.api_mocks").Install(world, env)
+    require("spec.helpers.client_dump").Install(world, env)
     require("spec.helpers.legacy_api").Install(world, env)
 
     world.clock = require("spec.helpers.clock").New(world)
+    require("spec.helpers.lua_extensions").InstallDocumented(world, env)
     world.widgets = Widgets.New(world)
-    world.clock.Install(env)
+    world.clock.Install()
     env.CreateFrame = world.widgets.CreateFrame
     world.api.set("CreateFont", world.widgets.CreateFont)
 
     require("spec.helpers.xml_templates").Install(world, env)
-    require("spec.helpers.game").Install(world, env)
+    require("spec.helpers.game").Install(world)
+    require("spec.helpers.ui_frames").InstallScreen(world, env)
 
     if options.blizzard ~= false then
         local Blizzard = require("spec.helpers.blizzard_lua")
         local wanted = Blizzard.AddonGlobals(World.ROOT .. "/.luacheckrc")
-        for _, mixin in ipairs(world.templateMixins(World.TemplatesInUse(world))) do wanted[#wanted + 1] = mixin end
+        local templates, _, hooked = World.TemplatesInUse(world)
+        for _, mixin in ipairs(world.templateMixins(templates)) do wanted[#wanted + 1] = mixin end
+        for _, name in ipairs(hooked) do wanted[#wanted + 1] = name end
         world.blizzardPlan = Blizzard.Plan(client, wanted)
+        -- errors Blizzard's own files raise while loading are Blizzard's, kept apart from the addon's
+        local handler = env.geterrorhandler()
+        world.blizzardErrors = {}
+        env.seterrorhandler(function(message) world.blizzardErrors[#world.blizzardErrors + 1] = tostring(message) end)
         world.blizzardFailures = Blizzard.Load(world, world.blizzardPlan)
+        env.seterrorhandler(handler)
     end
     require("spec.helpers.ui_frames").Install(world, env)
     require("spec.helpers.encoding_util").Install(world)
@@ -161,9 +173,21 @@ function World.Resolve(path)
     return World.ROOT .. "/" .. relative
 end
 
+local addonFiles
+---whether a file exists in the addon's folder, matched case-insensitively as the client matches paths
+function World.FileExists(relative)
+    if not addonFiles then
+        addonFiles = {}
+        local listing = io.popen('cd "' .. World.ROOT .. '" && find . -type f -not -path "./.git/*" 2>/dev/null')
+        for path in listing:lines() do addonFiles[path:gsub("^%./", ""):lower()] = true end
+        listing:close()
+    end
+    return addonFiles[relative:gsub("\\", "/"):gsub("^/", ""):lower()] == true
+end
+
 ---loads a Lua file of the addon or its libraries as the client does: with the addon's name and namespace
 function World.LoadFile(world, path, namespace)
-    local chunk = assert(loadfile(path))
+    local chunk = assert(Toc.LoadLua(path))
     setfenv(chunk, world.env)
     return chunk(World.APP_NAME, namespace)
 end
@@ -178,23 +202,41 @@ function World.TocFiles(gameType, filter)
 end
 
 local templatesInUse = {}
----the Blizzard templates the addon and its libraries name in their Lua (string literals that are template names)
+---the Blizzard templates the addon and its libraries name in their Lua (string literals that are template names),
+---and the client's named XML frames they read (identifiers that are such frames), in the client's load order
 function World.TemplatesInUse(world)
-    if templatesInUse[world.client] then return templatesInUse[world.client] end
-    local names, seen = {}, {}
+    local cached = templatesInUse[world.client]
+    if cached then return cached.templates, cached.frames, cached.hooked end
+    local registry = world.templateRegistry
+    local named = registry.__frames or {}
+    local templates, frames, hooked, seen = {}, {}, {}, {}
     for _, file in ipairs(World.TocFiles(world.info.gameType)) do
         if file.path:find("%.lua$") then
             local content = Toc.Read(file.path) or ""
+            -- globals hooked by name (hooksecurefunc("Name", ...)), which read_globals does not list
+            for name in content:gmatch("hooksecurefunc%(%s*[\"']([%w_]+)[\"']") do
+                if not seen["hook:" .. name] then
+                    seen["hook:" .. name] = true
+                    hooked[#hooked + 1] = name
+                end
+            end
             for literal in content:gmatch("[\"']([%w_]+)[\"']") do
-                if world.templateRegistry[literal] and not seen[literal] then
+                if registry[literal] and not seen[literal] then
                     seen[literal] = true
-                    names[#names + 1] = literal
+                    templates[#templates + 1] = literal
+                end
+            end
+            for identifier in content:gmatch("[%a_][%w_]*") do
+                if named[identifier] and not seen[identifier] then
+                    seen[identifier] = true
+                    frames[#frames + 1] = identifier
                 end
             end
         end
     end
-    templatesInUse[world.client] = names
-    return names
+    table.sort(frames, function(a, b) return named[a].order < named[b].order end)
+    templatesInUse[world.client] = { templates = templates, frames = frames, hooked = hooked }
+    return templates, frames, hooked
 end
 
 ---loads the libraries embeds.xml lists, from /deps/Libs

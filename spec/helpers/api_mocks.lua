@@ -114,21 +114,34 @@ function M.Secretize(docs, field, value, depth)
     return Secrets.Secret(value)
 end
 
----raises the client's argument errors for the arguments given to a documented function
+---raises the client's argument errors for the arguments given to a documented function. secretsOnly checks only the
+---secret rule: widget method docs type arguments more narrowly than the client accepts (SimpleFrameAPI documents
+---SetAttribute's value as cstring, while Blizzard's CallbackRegistry.lua stores tables with it).
 function M.CheckArguments(world, doc, name, ...)
+    return M.CheckArgumentsOf(world, doc, name, false, ...)
+end
+
+-- The helpers that exist to inspect secrets take them from addon code although FrameScriptDocumentation.lua marks them
+-- AllowedWhenUntainted (warcraft.wiki.gg/wiki/API_issecretvalue: "Returns true if a supplied value is a secret value").
+M.SECRET_PREDICATES = {
+    issecretvalue = true, canaccessvalue = true, canaccessallvalues = true, hasanysecretvalues = true,
+    issecrettable = true, canaccesstable = true, scrubsecretvalues = true, scrub = true,
+}
+
+function M.CheckArgumentsOf(world, doc, name, secretsOnly, ...)
     local docs = world.docs
-    local acceptsSecrets = doc.SecretArguments == "AllowedWhenTainted"
+    local acceptsSecrets = doc.SecretArguments == "AllowedWhenTainted" or M.SECRET_PREDICATES[name] == true
     for i = 1, select("#", ...) do
         local value = select(i, ...)
         if Secrets.IsSecret(value) then
             if not acceptsSecrets then
-                error(("bad argument #%d to '%s' (secret value given to an API that does not take secrets from tainted callers)"):format(i, name), 3)
+                error(("bad argument #%d to '%s' (secret value given to an API that does not take secrets from tainted callers)"):format(i, name), 4)
             end
-        elseif value ~= nil then
+        elseif value ~= nil and not secretsOnly then
             local argument = doc.Arguments and doc.Arguments[i]
             local kind = argument and M.Kind(docs, argument.Type)
             if kind and not accepts(kind, value) then
-                error(("bad argument #%d to '%s' (%s expected, got %s)"):format(i, name, kind, type(value)), 3)
+                error(("bad argument #%d to '%s' (%s expected, got %s)"):format(i, name, kind, type(value)), 4)
             end
         end
     end
@@ -175,7 +188,16 @@ function M.Install(world, env)
     env.Constants = copy(docs.constants)
     for namespace in pairs(docs.namespaces) do env[namespace] = env[namespace] or {} end
     for fullName, doc in pairs(docs.functions) do
-        world.implementations[fullName] = defaultImplementation(world, doc)
+        -- The docs also describe functions the world already has (the string.* extensions of lua_extensions.lua):
+        -- those keep their implementation and get the documented argument and secret rules around it.
+        local namespace, name = fullName:match("^([^%.]+)%.(.+)$")
+        local existing
+        if namespace then
+            existing = type(env[namespace]) == "table" and env[namespace][name]
+        else
+            existing = env[fullName]
+        end
+        world.implementations[fullName] = type(existing) == "function" and existing or defaultImplementation(world, doc)
         world.documented[fullName] = doc
         place(env, fullName, function(...)
             M.CheckArguments(world, doc, fullName, ...)

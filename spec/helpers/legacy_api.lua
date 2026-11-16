@@ -1,7 +1,7 @@
--- legacy_api.lua: C functions the addon calls that the client has but neither Blizzard_APIDocumentationGenerated nor
--- Blizzard's Lua defines. Each is installed only when the client's documentation does not describe it, with the
--- signature and game types its warcraft.wiki.gg page gives. The wiki lists no Titan (wrath) game type; Titan is a
--- Classic client, so these count it with the other Classic clients. Behaviour comes from spec/helpers/game.lua.
+-- legacy_api.lua: C functions the addon and its libraries call that the client has but neither
+-- Blizzard_APIDocumentationGenerated nor Blizzard's Lua defines, with the signature their warcraft.wiki.gg page gives.
+-- Each is installed when the client's documentation does not describe it and the client's GlobalAPI dump lists it
+-- (client_dump.lua); Titan (wrath) has no dump, so there all of them are installed. Behaviour comes from game.lua.
 local M = {}
 
 -- name -> { wiki page, returns (documented-style fields) }; every entry exists on every supported client
@@ -27,6 +27,14 @@ M.FUNCTIONS = {
     IsMouseButtonDown = { wiki = "API_IsMouseButtonDown", returns = { { Type = "bool" } } },
     UnitClass = { wiki = "API_UnitClass", returns = {} },
     UnitName = { wiki = "API_UnitName", returns = {} },
+    -- read by AceDB-3.0 for its profile keys
+    UnitRace = { wiki = "API_UnitRace", returns = {} },
+    UnitFactionGroup = { wiki = "API_UnitFactionGroup", returns = {} },
+    GetCurrentRegionName = { wiki = "API_GetCurrentRegionName", returns = { { Type = "string" } } },
+    -- read by Classic's Blizzard_FrameXMLBase Constants.lua for LOCALIZED_CLASS_NAMES_MALE
+    FillLocalizedClassList = { wiki = "API_FillLocalizedClassList", returns = {} },
+    -- read by AceAddon-3.0; nil before PLAYER_LOGIN
+    IsLoggedIn = { wiki = "API_IsLoggedIn", returns = {} },
     GetLocale = { wiki = "API_GetLocale", returns = { { Type = "string" } } },
     GetNormalizedRealmName = { wiki = "API_GetRealmName", returns = {} },
     GetRealmName = { wiki = "API_GetRealmName", returns = { { Type = "string" } } },
@@ -35,11 +43,14 @@ M.FUNCTIONS = {
     date = { wiki = "API_date", returns = {} },
 }
 
----installs the functions the client's documentation lacks
+---installs the functions the client's documentation lacks: those its dump's GlobalAPI lists (client_dump.lua), or
+---every one for a client without a dump
 function M.Install(world, env)
     local Mocks = require("spec.helpers.api_mocks")
+    local globalAPI = world.dump.runtime and world.dump.globalAPI
     for name, info in pairs(M.FUNCTIONS) do
-        if not world.documented[name] then
+        local exists = not globalAPI or globalAPI[name] or name == "time" or name == "date"
+        if not world.documented[name] and exists then
             local doc = { Name = name, Returns = info.returns, Legacy = info.wiki }
             world.documented[name] = doc
             world.implementations[name] = function()

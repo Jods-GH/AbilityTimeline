@@ -76,22 +76,39 @@ function M.New(world)
 
     -- Generated methods ---------------------------------------------------------------------------------------------
 
-    local function generated(doc, typeName)
+    -- A getter documented with arguments (GetAttribute(name)) reads what its setter stored under the first argument
+    -- (SetAttribute(name, value)); an unset key reads nil.
+    local function generated(doc, typeName, siblings)
         local name = typeName .. ":" .. doc.Name
         local suffix = doc.Name:match("^Set(.+)$")
         local getter = doc.Name:match("^Get(.+)$") or doc.Name:match("^Is(.+)$")
+        local getterDoc = suffix and (siblings["Get" .. suffix] or siblings["Is" .. suffix])
+        local keyedSetter = getterDoc and getterDoc.Arguments and #getterDoc.Arguments > 0
+        local keyedGetter = getter and doc.Arguments and #doc.Arguments > 0
         return function(self, ...)
-            Mocks.CheckArguments(world, doc, name, ...)
+            Mocks.CheckArgumentsOf(world, doc, name, true, ...)
+            local values = state(self).values
             if suffix then
-                state(self).values[suffix] = { n = select("#", ...), ... }
+                if keyedSetter then
+                    values[suffix] = values[suffix] or { keyed = true }
+                    values[suffix][(...)] = { n = select("#", ...) - 1, select(2, ...) }
+                else
+                    values[suffix] = { n = select("#", ...), ... }
+                end
                 return
             end
-            local stored = getter and state(self).values[getter]
-            if stored then return unpack(stored, 1, stored.n) end
+            if keyedGetter then
+                local keyed = values[getter]
+                local stored = keyed and keyed.keyed and keyed[(...)]
+                if stored then return unpack(stored, 1, stored.n) end
+                return nil
+            end
+            local stored = getter and values[getter]
+            if stored and not stored.keyed then return unpack(stored, 1, stored.n) end
             if doc.MayReturnNothing or not doc.Returns then return end
-            local values = {}
-            for i, field in ipairs(doc.Returns) do values[i] = Mocks.DefaultValue(docs, field) end
-            return unpack(values, 1, #doc.Returns)
+            local returned = {}
+            for i, field in ipairs(doc.Returns) do returned[i] = Mocks.DefaultValue(docs, field) end
+            return unpack(returned, 1, #doc.Returns)
         end
     end
 
@@ -100,13 +117,24 @@ function M.New(world)
         local info = assert(M.HIERARCHY[typeName], "CreateFrame: unknown frame type " .. tostring(typeName))
         local methods = info.parent and setmetatable({}, { __index = methodsOf(info.parent) }) or {}
         for _, docName in ipairs(info.docs) do
-            for methodName, doc in pairs(docs.scriptObjects[docName] or {}) do
-                methods[methodName] = generated(doc, typeName)
+            local siblings = docs.scriptObjects[docName] or {}
+            for methodName, doc in pairs(siblings) do
+                methods[methodName] = generated(doc, typeName, siblings)
             end
         end
-        for methodName, implementation in pairs(core[typeName] or {}) do
-            -- Only what the client documents exists: the core gives behaviour, never new methods.
-            if methods[methodName] then methods[methodName] = implementation end
+        -- Only what the client documents exists: the core gives behaviour, never new methods. A type's docs may
+        -- document a method again (SimpleFrameAPI has Hide and IsShown), so the core of the type and of every
+        -- ancestor applies, the closest first.
+        local applied = {}
+        local current = typeName
+        while current do
+            for methodName, implementation in pairs(core[current] or {}) do
+                if not applied[methodName] and methods[methodName] then
+                    methods[methodName] = implementation
+                    applied[methodName] = true
+                end
+            end
+            current = M.HIERARCHY[current].parent
         end
         methodTables[typeName] = methods
         return methods
@@ -416,6 +444,22 @@ function M.New(world)
             if s.level then return s.level end
             return s.parent and state(s.parent) and state(s.parent).level and state(s.parent).level + 1 or 1
         end,
+        -- API_Frame_SetAttribute: stores the value and fires OnAttributeChanged(name, value); NoHandler skips the script
+        SetAttribute = function(self, name, value)
+            local s = state(self)
+            s.attributes = s.attributes or {}
+            s.attributes[name] = value
+            fire(self, "OnAttributeChanged", name, value)
+        end,
+        SetAttributeNoHandler = function(self, name, value)
+            local s = state(self)
+            s.attributes = s.attributes or {}
+            s.attributes[name] = value
+        end,
+        GetAttribute = function(self, name)
+            local attributes = state(self).attributes
+            return attributes and attributes[name]
+        end,
         GetID = function(self) return state(self).frameID or 0 end,
         SetID = function(self, id) state(self).frameID = id end,
     }
@@ -486,6 +530,33 @@ function M.New(world)
         IsEnabled = function(self) return not state(self).disabled end,
         Click = function(self, button) fire(self, "OnClick", button or "LeftButton", false) end,
     }
+    -- SimpleButtonAPI: Set<State>Texture/Atlas fill the button's texture region of that state, which
+    -- Get<State>Texture returns (created on first use, as the client does)
+    for _, buttonState in ipairs({ "Normal", "Pushed", "Highlight", "Disabled" }) do
+        local key = buttonState:lower() .. "Texture"
+        local function region(self)
+            local s = state(self)
+            if not s[key] then
+                s[key] = createRegion("Texture")(self, nil, buttonState == "Highlight" and "HIGHLIGHT" or "ARTWORK")
+                s[key]:SetAllPoints(self)
+            end
+            return s[key]
+        end
+        core.Button["Set" .. buttonState .. "Texture"] = function(self, asset)
+            if type(asset) == "table" then
+                state(self)[key] = asset
+            elseif asset ~= nil then
+                region(self):SetTexture(asset)
+            end
+        end
+        core.Button["Set" .. buttonState .. "Atlas"] = function(self, atlas) region(self):SetAtlas(atlas) end
+        core.Button["Get" .. buttonState .. "Texture"] = function(self)
+            local s = state(self)
+            if not s[key] and state(self).values[buttonState .. "Texture"] then return region(self) end
+            return s[key]
+        end
+        core.Button["Clear" .. buttonState .. "Texture"] = function(self) state(self)[key] = nil end
+    end
     core.CheckButton = {
         SetChecked = function(self, checked) state(self).checked = not not checked end,
         GetChecked = function(self) return state(self).checked == true end,
@@ -521,7 +592,16 @@ function M.New(world)
         return total
     end
 
+    -- AnimationGroup and Animation document their own script methods (SimpleAnimGroupAPI, SimpleAnimAPI)
+    local scripts = {
+        SetScript = core.ScriptRegion.SetScript,
+        GetScript = core.ScriptRegion.GetScript,
+        HookScript = core.ScriptRegion.HookScript,
+        HasScript = core.ScriptRegion.HasScript,
+    }
+
     core.AnimationGroup = {
+        SetScript = scripts.SetScript, GetScript = scripts.GetScript, HookScript = scripts.HookScript, HasScript = scripts.HasScript,
         CreateAnimation = function(self, animationType, name, template)
             animationType = animationType or "Animation"
             local animation = new(animationType, name, self)
@@ -570,6 +650,7 @@ function M.New(world)
         IsSetToFinalAlpha = function(self) return state(self).finalAlpha == true end,
     }
     core.Animation = {
+        SetScript = scripts.SetScript, GetScript = scripts.GetScript, HookScript = scripts.HookScript, HasScript = scripts.HasScript,
         SetDuration = function(self, duration) state(self).duration = duration end,
         GetDuration = function(self) return state(self).duration or 0 end,
         SetStartDelay = function(self, delay) state(self).startDelay = delay end,

@@ -77,6 +77,14 @@ function M.Install(world, env)
         mod = function(a, b) return toSigned(math.fmod(a, b)) end,
     }
 
+    -- API_xpcall: the client's xpcall(f, handler, ...) passes its extra arguments to f (Lua 5.1's drops them);
+    -- AceAddon-3.0's safecall depends on it
+    local luaXpcall = xpcall
+    env.xpcall = function(f, handler, ...)
+        local args, count = { ... }, select("#", ...)
+        return luaXpcall(function() return f(unpack(args, 1, count)) end, handler)
+    end
+
     -- API_geterrorhandler: errors reported to the handler go to world.errors.
     local handler = function(message)
         world.errors[#world.errors + 1] = tostring(message)
@@ -84,10 +92,16 @@ function M.Install(world, env)
     env.geterrorhandler = function() return handler end
     env.seterrorhandler = function(newHandler) handler = newHandler end
 
-    -- API_securecall: an error goes to the error handler and the call returns nothing.
+    -- API_securecall: an error goes to the error handler and the call returns nothing. The traceback of each error
+    -- is kept in world.errorTraces for the spec that reports it.
+    world.errorTraces = {}
     local function securecall(func, ...)
         if type(func) == "string" then func = env[func] end
-        local results = { pcall(func, ...) }
+        local args, count = { ... }, select("#", ...)
+        local results = { xpcall(function() return func(unpack(args, 1, count)) end, function(message)
+            world.errorTraces[#world.errorTraces + 1] = debug.traceback(tostring(message), 2)
+            return message
+        end) }
         if not results[1] then
             handler(results[2])
             return
@@ -96,6 +110,11 @@ function M.Install(world, env)
     end
     env.securecall = securecall
     env.securecallfunction = securecall
+
+    -- API_secureexecuterange: calls func(key, value, ...) for each pair of tbl; an error goes to the error handler
+    env.secureexecuterange = function(tbl, func, ...)
+        for key, value in pairs(tbl) do securecall(func, key, value, ...) end
+    end
 
     -- API_hooksecurefunc: ([table,] name, hook); the hook runs after the original with the same arguments and its
     -- returns are dropped.
@@ -112,9 +131,66 @@ function M.Install(world, env)
         end
     end
 
+    -- (the documented FrameScript functions get their behaviour in M.InstallDocumented)
+
+    -- API_GetCurrentEnvironment: the global environment of the calling function
+    env.GetCurrentEnvironment = function() return getfenv(2) end
+
     -- API_debugstack and API_debugprofilestop
     env.debugstack = function(start) return debug.traceback("", (start or 1) + 1) end
     env.debugprofilestop = function() return world.clock.now * 1000 end
+end
+
+---behaviour of the documented FrameScript functions (FrameScriptDocumentation.lua), once api_mocks.lua generated them
+function M.InstallDocumented(world, env)
+    local secrets = world.secrets
+    local function set(name, implementation)
+        if world.api.has(name) then world.api.set(name, implementation) end
+    end
+    -- API_Mixin: copies every key of each mixin into object and returns object
+    local function mixin(object, ...)
+        for i = 1, select("#", ...) do
+            for key, value in pairs((select(i, ...))) do object[key] = value end
+        end
+        return object
+    end
+    set("Mixin", mixin)
+    -- API_CreateFromMixins: a new table with the mixins' keys
+    set("CreateFromMixins", function(...) return mixin({}, ...) end)
+    -- CreateSecureDelegate(func): a function that runs func securely and returns its results (FrameScript); this
+    -- world has no taint, so it calls func
+    set("CreateSecureDelegate", function(func) return function(...) return func(...) end end)
+    -- API_securecallmethod: securecall of object[method](object, ...)
+    set("securecallmethod", function(object, method, ...) return env.securecallfunction(object[method], object, ...) end)
+    -- warcraft.wiki.gg/wiki/Secret_Values: the predicates tainted code may use
+    set("canaccessvalue", function(value) return not secrets.IsSecret(value) end)
+    set("canaccesssecrets", function() return false end)
+    set("canaccesstable", function() return true end)
+    set("issecrettable", function() return false end)
+    set("canaccessallvalues", function(...)
+        for i = 1, select("#", ...) do
+            if secrets.IsSecret((select(i, ...))) then return false end
+        end
+        return true
+    end)
+    set("hasanysecretvalues", function(...)
+        for i = 1, select("#", ...) do
+            if secrets.IsSecret((select(i, ...))) then return true end
+        end
+        return false
+    end)
+    -- API_scrubsecretvalues: the values, secrets replaced by nil
+    local function scrub(...)
+        local values = { ... }
+        local count = select("#", ...)
+        for i = 1, count do
+            if secrets.IsSecret(values[i]) then values[i] = nil end
+        end
+        return unpack(values, 1, count)
+    end
+    set("scrubsecretvalues", scrub)
+    set("scrub", scrub)
+    set("debugprofilestop", function() return world.clock.now * 1000 end)
 end
 
 return M

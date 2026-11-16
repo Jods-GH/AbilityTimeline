@@ -13,6 +13,9 @@
 -- guard the tables the addon indexes with API values with SecretKeyGuard.
 local M = {}
 
+-- Lua's own type: the world's type reports a secret's real type (M.Install)
+local type = type
+
 local secretMeta = {}
 
 local function forbidden(operation)

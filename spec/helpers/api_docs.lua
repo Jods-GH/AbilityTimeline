@@ -10,13 +10,13 @@ M.DEPS = os.getenv("AT_DEPS") or "/deps"
 -- The client of each UI source branch, by the game type the TOC's [AllowLoadGameType] names. Each branch's
 -- version.txt gives its interface number, which spec/toc_spec.lua matches against the TOC's ## Interface list.
 M.CLIENTS = {
-    retail = { branch = "live", gameType = "standard", retail = true },
-    ptr = { branch = "ptr", gameType = "standard", retail = true },
-    forever = { branch = "forever", gameType = "forever" },
-    mists = { branch = "classic", gameType = "mists" },
-    wrath = { branch = "classic_titan", gameType = "wrath" },
-    tbc = { branch = "classic_anniversary", gameType = "tbc" },
-    vanilla = { branch = "classic_era", gameType = "vanilla" },
+    retail = { branch = "live", dump = "live", wago = "wow", gameType = "standard", retail = true },
+    ptr = { branch = "ptr", dump = "ptr", wago = "wowt", gameType = "standard", retail = true },
+    forever = { branch = "forever", dump = "forever", wago = "wowf", gameType = "forever" },
+    mists = { branch = "classic", dump = "classic", wago = "wow_classic", gameType = "mists" },
+    wrath = { branch = "classic_titan", wago = "wow_classic_titan", gameType = "wrath" },
+    tbc = { branch = "classic_anniversary", dump = "classic_anniversary", wago = "wow_anniversary", gameType = "tbc" },
+    vanilla = { branch = "classic_era", dump = "classic_era", wago = "wow_classic_era", gameType = "vanilla" },
 }
 M.CLIENT_ORDER = { "retail", "ptr", "forever", "mists", "wrath", "tbc", "vanilla" }
 

@@ -68,7 +68,7 @@ function M.New(world)
         world.widgets.RunOnUpdate(0)
     end
 
-    function clock.Install(env)
+    function clock.Install()
         world.api.set("GetTime", function() return clock.now end)
         world.api.set("time", function(t)
             if t then return os.time(t) end

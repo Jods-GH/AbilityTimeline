@@ -1,6 +1,6 @@
 FROM alpine:3.22.2@sha256:4b7ce07002c69e8f3d704a9c5d6fd3053be500b7f1c69fc0d80990c2ad8dd412
 
-RUN apk add --no-cache build-base ca-certificates unzip git subversion \
+RUN apk add --no-cache build-base ca-certificates unzip git subversion curl \
     lua5.1=5.1.5-r13 lua5.1-dev=5.1.5-r13 luarocks5.1=3.11.1-r0 \
     && luarocks-5.1 install argparse 0.7.2-1 \
     && luarocks-5.1 install luafilesystem 1.9.0-1 \

@@ -25,8 +25,11 @@ Continuation of the ever-popular [RaidAbilityTimeline Weakaura](https://wago.io/
 ## Development validation
 
 Run `./.github/validation/check.ps1` with Docker Desktop running before submitting
-changes. Luacheck and Lua 5.1 behavioral tests are required before alpha or release
-publishing. Setup, test authoring, and lint policy live in the local OpenWiki page
+changes. It fetches the latest packaged libraries and Blizzard's UI source and client
+data into a Docker volume, then runs Luacheck, the Lua 5.1 behavioral tests and the
+coverage gate offline; all are required before alpha or release publishing. Use
+`-Spec spec/<file>_spec.lua` for a targeted run and `-NoFetch` to reuse the last fetch.
+Setup, test authoring, and lint policy live in the local OpenWiki page
 `openwiki/operations/testing-and-release.md`.
 
 # Trailer:
