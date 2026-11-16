@@ -12,10 +12,14 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Build validation image
         run: docker build --tag abilitytimeline-validation .github/validation
+      - name: Fetch the latest libraries and Blizzard UI source
+        run: |
+          mkdir -p "$RUNNER_TEMP/deps"
+          docker run --rm --mount "type=bind,source=$GITHUB_WORKSPACE,target=/addon,readonly" --mount "type=bind,source=$RUNNER_TEMP/deps,target=/deps" abilitytimeline-validation fetch
       - name: Lint and test
-        run: docker run --rm --network none --read-only --tmpfs /tmp --mount "type=bind,source=$GITHUB_WORKSPACE,target=/addon,readonly" abilitytimeline-validation
+        run: docker run --rm --network none --read-only --tmpfs /tmp --mount "type=bind,source=$GITHUB_WORKSPACE,target=/addon,readonly" --mount "type=bind,source=$RUNNER_TEMP/deps,target=/deps,readonly" abilitytimeline-validation test
