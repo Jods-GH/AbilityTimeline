@@ -66,6 +66,7 @@ local function ApplySettings(self)
     local style = private.GetWindowStyle("Window")
     ThemeApply.Window(frame, style, frame.CloseButton, frame.Title)
     private.DrawFooterLinks(frame.Footer, style)
+    ThemeApply.FontRole(frame.Footer.GamePad, "Footer")
     for _, panel in ipairs({ frame.Nav, frame.Details }) do
         ThemeApply.PanelStyle(panel.AtFill, panel.AtEdge)
         panel.AtFill:SetVertexColor(ThemeApply.Color("Card"))
@@ -263,13 +264,30 @@ local function SetMedia(self, preview, image)
 end
 
 ---@param self AtSettingsWindow
+local drawButtonTexts = function(self)
+    local frame, buttons = self.frame, self.gamePadButtons or {}
+    for key, button in pairs({ Test = frame.TestButton, Move = frame.MoveButton, Reset = frame.Details.Reset,
+        ResetPage = frame.Details.ResetPage }) do
+        button:SetText(buttons[key] and buttons[key] .. " " .. button.atText or button.atText)
+    end
+    for _, key in ipairs({ "Undo", "Redo" }) do
+        local button = frame.Details[key]
+        button.Glyph:SetText(buttons[key] or "")
+        button.Icon:SetPoint("CENTER", buttons[key] and 10 or 0, 0)
+    end
+    frame.TestButton:SetWidth(buttons.Test and 170 or 150)
+    frame.MoveButton:SetWidth(buttons.Move and 140 or 120)
+end
+
+---@param self AtSettingsWindow
 ---@param onReset function|nil -- nil hides the button
 ---@param text string|nil -- instead of Reset Page to Theme
 local function SetResetPage(self, onReset, text)
     local button = self.frame.Details.ResetPage
     button:SetShown(onReset ~= nil)
-    button:SetText(text or private.getLocalisation("SettingsResetPage"))
+    button.atText = text or private.getLocalisation("SettingsResetPage")
     button.onReset = onReset
+    drawButtonTexts(self)
 end
 
 ---undo and redo of a page that keeps its own history, side by side above the page reset
@@ -300,7 +318,17 @@ end
 ---@param self AtSettingsWindow
 ---@param running boolean
 local function SetTestRunning(self, running)
-    self.frame.TestButton:SetText(private.getLocalisation(running and "SettingsStopTest" or "SettingsStartTest"))
+    self.frame.TestButton.atText = private.getLocalisation(running and "SettingsStopTest" or "SettingsStartTest")
+    drawButtonTexts(self)
+end
+
+---@param self AtSettingsWindow
+---@param text string
+---@param buttons table|nil -- the gamepad buttons of Test, Move, Reset and ResetPage, shown on those buttons
+local function SetGamePadHints(self, text, buttons)
+    self.frame.Footer.GamePad:SetText(text)
+    self.gamePadButtons = buttons
+    drawButtonTexts(self)
 end
 
 ---@param parent Frame
@@ -311,6 +339,7 @@ local createButton = function(parent, text, onClick)
     local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     ThemedWidgets.SkinButton(button)
     button:SetHeight(variables.buttonHeight)
+    button.atText = text
     button:SetText(text)
     button:SetScript("OnClick", onClick)
     return button
@@ -475,8 +504,10 @@ local function Constructor()
     frame.Footer.AddonName:SetFormattedText("%s %s", private.getLocalisation("SettingsTitle"),
         C_AddOns.GetAddOnMetadata(appName, "Version"))
     private.CreateFooterLinks(frame.Footer)
+    frame.Footer.GamePad = frame.Footer:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.Footer.GamePad:SetPoint("RIGHT", frame.Footer.Links[#frame.Footer.Links], "LEFT", -variables.padding, 0)
 
-    frame.Nav = CreateFrame("Frame", nil, frame)
+    frame.Nav =CreateFrame("Frame", nil, frame)
     frame.Nav:SetPoint("TOPLEFT", frame, "TOPLEFT", variables.padding, top)
     frame.Nav:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", variables.padding, bottom)
     frame.Nav:SetWidth(variables.navWidth)
@@ -527,6 +558,8 @@ local function Constructor()
         button.Icon = button:CreateTexture(nil, "OVERLAY")
         button.Icon:SetSize(18, 18)
         button.Icon:SetPoint("CENTER")
+        button.Glyph = button:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        button.Glyph:SetPoint("RIGHT", button.Icon, "LEFT", -4, 0)
         if mirrored then button.Icon:SetTexCoord(1, 0, 0, 1) end
         button:HookScript("OnEnter", function()
             GameTooltip:SetOwner(button, "ANCHOR_TOP")
@@ -561,6 +594,7 @@ local function Constructor()
         SetPageHistory = SetPageHistory,
         ClearSearch = ClearSearch,
         SetTestRunning = SetTestRunning,
+        SetGamePadHints = SetGamePadHints,
         type = Type,
         count = count,
         frame = frame,

@@ -37,6 +37,13 @@ local function ApplySettings(self)
     local style = private.GetWindowStyle("Window")
     private.ThemeApply.Window(self.frame, style, self.closeButton, self.frame.Title)
     private.DrawFooterLinks(self.frame.Footer, style)
+    private.ThemeApply.FontRole(self.frame.Footer.GamePad, "Footer")
+end
+
+---@param self ATTimingsEditorContainer
+---@param text string
+local function SetGamePadHint(self, text)
+    self.frame.Footer.GamePad:SetText(text)
 end
 
 local function Constructor()
@@ -78,12 +85,15 @@ local function Constructor()
     frame.Footer.AddonName:SetFormattedText("%s %s", private.getLocalisation("SettingsTitle"),
         C_AddOns.GetAddOnMetadata(appName, "Version"))
     private.CreateFooterLinks(frame.Footer)
+    frame.Footer.GamePad = frame.Footer:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.Footer.GamePad:SetPoint("RIGHT", frame.Footer.Links[#frame.Footer.Links], "LEFT", -variables.padding, 0)
 
     ---@class ATTimingsEditorContainer : AceGUIWidget
     local widget = {
         OnAcquire = OnAcquire,
         OnRelease = OnRelease,
         SetTitle = SetTitle,
+        SetGamePadHint = SetGamePadHint,
         ApplySettings = ApplySettings,
         closeButton = closeButton,
         content = contentFrame,

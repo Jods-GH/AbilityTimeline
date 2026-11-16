@@ -28,6 +28,9 @@ local function cursorTime(self)
     local x = GetCursorPosition()
     local width = math.max(1, self.frame:GetWidth() - labelWidth - 8)
     local offset = x / self.frame:GetEffectiveScale() - self.frame:GetLeft() - labelWidth
+    if self.gamePadItem then
+        offset = self.gamePadItem:GetCenter() - self.frame:GetLeft() - labelWidth
+    end
     local viewEnd = self.model.viewEnd or 0
     return math.max(math.max(0.1, viewEnd), math.min(self.model.zoom, math.floor((self.model.zoom - offset / width * (self.model.zoom - viewEnd)) * 10 + 0.5) / 10))
 end

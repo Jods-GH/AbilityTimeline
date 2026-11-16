@@ -114,6 +114,7 @@ local closeImportDialog = function()
     local dialog = private.IMPORT_DIALOG_WINDOW
     if not dialog then return end
     private.IMPORT_DIALOG_WINDOW = nil
+    private.SetGamePadRoot(nil)
     dialog:Release()
     private.OnTourEvent("importClosed")
 end
@@ -223,6 +224,7 @@ private.createImportDialog = function(editorWindow, encounterID, initialImportTe
         importText:SetText(initialImportText)
     end
     updatePreview()
+    private.SetGamePadRoot(dialog)
     private.OnTourEvent("importOpen")
     return dialog
 end

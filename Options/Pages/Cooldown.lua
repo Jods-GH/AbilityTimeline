@@ -435,6 +435,7 @@ local function Session(target)
         if opening then
             local owner = target.Owner()
             editor:ShowBeside(owner and owner.frame)
+            private.SetGamePadRoot(editor)
         end
         target.Rebuild()
     end
@@ -994,6 +995,7 @@ local function Session(target)
         editor = nil
         chooser, state.error, state.base, state.selectionEdit = nil, nil, nil, nil
         if current then
+            private.SetGamePadRoot(nil)
             current:Release()
             tour("ruleClosed")
         end

@@ -33,8 +33,9 @@ end
 
 ---@param item Button
 local drawItem = function(item)
-    local r, g, b, a = ThemeApply.Color(item.selected and "Accent" or "Highlight")
-    ThemeApply.Solid(item.Fill, r, g, b, item.selected and 0.25 or a * (item.hover and 1 or 0))
+    local hover = item.hover or item.name == popup.picked
+    local r, g, b, a = ThemeApply.Color(item.selected and not hover and "Accent" or "Highlight")
+    ThemeApply.Solid(item.Fill, r, g, b, item.selected and not hover and 0.25 or a * (hover and 1 or 0))
 end
 
 ---shows the media of the owner's type whose name contains the search, from popup.offset on
@@ -46,6 +47,10 @@ local refreshPopup = function()
         if query == "" or name:lower():find(query, 1, true) then
             table.insert(names, name)
         end
+    end
+    popup.names = names
+    if popup.picked and not tContains(names, popup.picked) then
+        popup.picked = names[1]
     end
     popup.offset = math.max(0, math.min(popup.offset, #names - variables.visibleItems))
     popup.SearchHint:SetShown(query == "")
@@ -198,6 +203,7 @@ local createPopup = function()
     end)
     popup:SetScript("OnHide", function()
         popup.Search:ClearFocus()
+        popup.picked = nil
         local owner = popup.owner
         popup.owner = nil
         if owner then owner.frame.AtDraw() end
@@ -224,6 +230,40 @@ local openPopup = function(widget)
     refreshPopup()
     popup.Search:SetFocus()
     widget.frame.AtDraw()
+end
+
+---@param self AtMediaPicker
+local function OpenList(self)
+    openPopup(self)
+    popup.Search:ClearFocus()
+    popup.picked = getMediaName(self)
+    refreshPopup()
+end
+
+---picks the media step places down in the open list and keeps it in the middle of the list
+---@param self AtMediaPicker
+---@param step number
+---@return boolean open
+local function StepList(self, step)
+    if not popup or popup.owner ~= self then return false end
+    local names = popup.names
+    local index = math.max(1, math.min(#names, (tIndexOf(names, popup.picked) or 1) + step))
+    popup.picked = names[index]
+    popup.offset = index - math.ceil(variables.visibleItems / 2)
+    refreshPopup()
+    return true
+end
+
+---@param self AtMediaPicker
+---@param use boolean
+local function CloseList(self, use)
+    if not popup or popup.owner ~= self then return end
+    local name = popup.picked
+    popup:Hide()
+    if use and name then
+        self:SetValue(name)
+        self:Fire("OnValueChanged", name)
+    end
 end
 
 ---@param self AtMediaPicker
@@ -300,6 +340,9 @@ local function Constructor()
         ApplySettings = ApplySettings,
         SetMediaType = SetMediaType,
         SetValue = SetValue,
+        OpenList = OpenList,
+        StepList = StepList,
+        CloseList = CloseList,
         SetDisabled = SetDisabled,
         type = Type,
         frame = frame,

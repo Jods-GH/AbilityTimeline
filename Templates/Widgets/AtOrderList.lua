@@ -32,6 +32,45 @@ local function Refresh(self)
     self:SetHeight(math.max(#self.shown, 1) * step - variables.gap)
 end
 
+---fires the order of the rows shown, keys without a label keep their place
+---@param self AtOrderList
+local function FireOrder(self)
+    local order, shownIndex = {}, 1
+    for index, key in ipairs(self.order) do
+        if self.values[key] then
+            order[index] = self.shown[shownIndex]
+            shownIndex = shownIndex + 1
+        else
+            order[index] = key
+        end
+    end
+    self.order = order
+    self:Fire("OnValueChanged", order)
+end
+
+---@param self AtOrderList
+---@param key string|nil
+local function Pick(self, key)
+    self.dragKey = key
+    Refresh(self)
+end
+
+---moves the picked row step places down and fires the new order
+---@param self AtOrderList
+---@param step number
+---@return number index -- where the row is now
+local function Move(self, step)
+    local from = tIndexOf(self.shown, self.dragKey)
+    local to = math.max(1, math.min(#self.shown, from + step))
+    if to ~= from then
+        table.remove(self.shown, from)
+        table.insert(self.shown, to, self.dragKey)
+        Refresh(self)
+        FireOrder(self)
+    end
+    return to
+end
+
 ---moves the dragged row to the place under the pointer, the new order is fired once the button is let go
 local function OnUpdate(frame)
     local self = frame.obj
@@ -41,17 +80,7 @@ local function OnUpdate(frame)
         Refresh(self)
         if self.moved then
             self.moved = nil
-            local order, shownIndex = {}, 1
-            for index, key in ipairs(self.order) do
-                if self.values[key] then
-                    order[index] = self.shown[shownIndex]
-                    shownIndex = shownIndex + 1
-                else
-                    order[index] = key
-                end
-            end
-            self.order = order
-            self:Fire("OnValueChanged", order)
+            FireOrder(self)
         end
         return
     end
@@ -159,6 +188,8 @@ local function Constructor()
         ApplySettings = ApplySettings,
         SetList = SetList,
         SetDisabled = SetDisabled,
+        Pick = Pick,
+        Move = Move,
         type = Type,
         frame = frame,
         rows = {},

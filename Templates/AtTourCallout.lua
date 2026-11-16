@@ -146,6 +146,35 @@ local createCallout = function()
     frame.CloseButton:SetScript("OnClick", function()
         callout.info.onClose()
     end)
+    ---@param button string
+    ---@return boolean handled
+    callout.OnGamePadButton = function(self, button)
+        if not frame:IsShown() or button ~= "PADLTRIGGER" and button ~= "PADRTRIGGER" then
+            return false
+        end
+        if button == "PADRTRIGGER" and not self.info.nextDisabled then
+            self.info.onNext()
+        elseif button == "PADLTRIGGER" and not self.info.backDisabled then
+            self.info.onBack()
+        end
+        return true
+    end
+    -- the settings window and the timings editor pass the triggers on to the tour. Where neither is open, as in Edit
+    -- Mode, the callout watches whether they are held instead: a frame that takes a gamepad's buttons keeps them all
+    -- from what the step is about
+    local held = {}
+    frame:SetScript("OnUpdate", function()
+        if not (C_GamePad and C_GamePad.IsEnabled()) then return end
+        local settings, editor = private.GetSettingsWindow(), private.TIMINGS_EDITOR_WINDOW
+        local passed = settings ~= nil and settings.frame:IsShown() or editor ~= nil and editor.frame:IsShown()
+        for _, button in ipairs({ "PADLTRIGGER", "PADRTRIGGER" }) do
+            local down = IsKeyDown(button)
+            if down and not held[button] and not passed then
+                callout:OnGamePadButton(button)
+            end
+            held[button] = down
+        end
+    end)
     callout.dim = createDim()
     -- one glow around several targets together; outside of them, so a scroll frame they are in doesn't cut it off
     callout.box = CreateFrame("Frame", nil, UIParent)
@@ -177,10 +206,11 @@ local createCallout = function()
         frame.Title:SetText(info.title)
         frame.Text:SetText(info.text)
         frame.Counter:SetText(info.counter or "")
-        self.back:SetText(info.back)
+        local gamePad = C_GamePad ~= nil and C_GamePad.IsEnabled()
+        self.back:SetText(gamePad and GetBindingText("PADLTRIGGER", 1) .. " " .. info.back or info.back)
         self.back:SetDisabled(info.backDisabled == true)
         self.next:SetDisabled(info.nextDisabled == true)
-        self.next:SetText(info.next)
+        self.next:SetText(gamePad and GetBindingText("PADRTRIGGER", 1) .. " " .. info.next or info.next)
         self.next:SetStyle(info.nextStyle or "Primary")
         self:Layout()
         frame:Show()
@@ -283,6 +313,13 @@ local createCallout = function()
 end
 
 local callout
+
+---the windows that take a gamepad's buttons offer them to the tour first, while its callout is shown
+---@param button string
+---@return boolean handled
+private.OnTourGamePadButton = function(button)
+    return callout ~= nil and callout:OnGamePadButton(button)
+end
 
 ---the tour's callout, created the first time it is needed
 ---@return table

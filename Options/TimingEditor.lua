@@ -10,11 +10,31 @@ local updateTimelineEditorFrame = function(encounterParams)
     return frame
 end
 
+private.UpdateTimingsEditorGamePad = function()
+    local frame = private.TIMINGS_EDITOR_WINDOW
+    if not (frame and C_GamePad and frame.frame.EnableGamePadButton) then return end
+    local gamePad = C_GamePad.IsEnabled()
+    frame.frame:EnableGamePadButton(gamePad and not private.IMPORT_DIALOG_WINDOW)
+    frame.frame:SetScript("OnGamePadButtonDown", function(_, button)
+        if private.OnTourGamePadButton(button) then
+            return
+        elseif button == "PAD4" and frame.encounterID then
+            private.showImportDialog(frame.encounterID, frame, nil, frame.difficulty)
+        elseif button == "PAD2" then
+            private.closeTimingsEditor()
+        end
+    end)
+    frame.container:SetGamePadHint(gamePad and ("%s   %s %s   %s %s"):format(
+        private.getLocalisation("GamePadEditorHint"), GetBindingText("PAD4", 1), private.getLocalisation("EditorImport"),
+        GetBindingText("PAD2", 1), private.getLocalisation("GamePadClose")) or "")
+end
+
 private.openTimingsEditor = function(encounterParams)
     private.Debug("Opening timing editor (table) for encounter: " ..
     tostring(encounterParams.dungeonEncounterID or encounterParams.journalEncounterID or "nil"))
     local frame = updateTimelineEditorFrame(encounterParams)
     frame.frame:Show()
+    private.UpdateTimingsEditorGamePad()
     -- the editor's frame is reused, it is hooked once
     if not frame.frame.atTourHooked then
         frame.frame.atTourHooked = true

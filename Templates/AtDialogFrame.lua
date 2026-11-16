@@ -79,12 +79,19 @@ local function SetQuestion(self, question)
     self.question = question
     frame.Title:SetText(question.title)
     frame.Text:SetText(question.text)
-    self.check:SetLabel(question.check or "")
+    local gamePad = C_GamePad ~= nil and frame.EnableGamePadButton ~= nil and C_GamePad.IsEnabled()
+    local withButton = function(button, text)
+        return gamePad and text and GetBindingText(button, 1) .. " " .. text or text
+    end
+    if frame.EnableGamePadButton then
+        frame:EnableGamePadButton(gamePad)
+    end
+    self.check:SetLabel(withButton("PAD4", question.check) or "")
     self.check:SetValue(false)
     self.check.frame:SetShown(question.check ~= nil)
-    self.accept:SetText(question.accept)
+    self.accept:SetText(withButton("PAD1", question.accept))
     self.accept:SetStyle(question.acceptStyle or "Primary")
-    self.back:SetText(question.back)
+    self.back:SetText(withButton("PAD2", question.back))
     local padding = variables.padding
     frame:SetHeight(variables.headerHeight + padding * 3 + frame.Text:GetStringHeight() +
         (question.check and self.check.frame:GetHeight() + padding or 0) + variables.buttonHeight + padding)
@@ -119,6 +126,17 @@ local function Constructor()
         ApplySettings = ApplySettings,
         SetQuestion = SetQuestion,
     }
+    if frame.EnableGamePadButton then
+        frame:SetScript("OnGamePadButtonDown", function(_, button)
+            if button == "PAD1" then
+                Answer(widget, true)
+            elseif button == "PAD2" then
+                Answer(widget, false)
+            elseif button == "PAD4" and widget.question and widget.question.check then
+                widget.check:SetValue(not widget.check:GetValue())
+            end
+        end)
+    end
     private.RegisterThemed(widget)
     return AceGUI:RegisterAsWidget(widget)
 end

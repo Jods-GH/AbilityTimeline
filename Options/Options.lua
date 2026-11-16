@@ -226,6 +226,44 @@ private.RegisterOptionsPage = function()
     frame.AtThemed:ApplySettings()
     private.RegisterThemed(frame.AtThemed)
 
+    -- Blizzard's gamepad cursor enters a category on the first row of its settings list, which a page of an addon's
+    -- own doesn't have: it is sent to the page's first button instead. Both calls are made for addons to call, not
+    -- in combat
+    if SmartNavigation and SettingsPanel and SettingsPanel.FocusContainer then
+        -- the cursor finds its way between the buttons by where they are, which takes it from Open Settings to a
+        -- link below instead of the tour beside it: every button names its neighbours
+        local neighboursSet = false
+        local setNeighbours = function()
+            if neighboursSet then return end
+            neighboursSet = true
+            local directions = SMART_NAV_INPUT_DIRECTION
+            local link = function(from, direction, to)
+                if from and to then
+                    SmartNavigation_AddJumpNavigationOverride(from, direction, to)
+                end
+            end
+            link(open, directions.RIGHT, tour)
+            link(tour, directions.LEFT, open)
+            link(open, directions.DOWN, columns[1].buttons[1])
+            link(tour, directions.DOWN, columns[2].buttons[1])
+            for i, column in ipairs(columns) do
+                for j, button in ipairs(column.buttons) do
+                    link(button, directions.UP, column.buttons[j - 1] or (i == 1 and open or tour))
+                    link(button, directions.DOWN, column.buttons[j + 1])
+                    link(button, directions.LEFT, columns[i - 1] and columns[i - 1].buttons[j])
+                    link(button, directions.RIGHT, columns[i + 1] and columns[i + 1].buttons[j])
+                end
+            end
+        end
+        hooksecurefunc(SettingsPanel, "FocusContainer", function()
+            if frame:IsVisible() and not InCombatLockdown() then
+                setNeighbours()
+                SmartNavigation:RefreshButtonGroups(SettingsPanel)
+                SmartNavigation:SetTargetButtonForFrame(SettingsPanel, open)
+            end
+        end)
+    end
+
     if Settings and Settings.RegisterCanvasLayoutCategory then
         local category = Settings.RegisterCanvasLayoutCategory(frame, name)
         -- AceConfigDialog finds the parent of the Profiles category by this ID
