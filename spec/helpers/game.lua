@@ -246,6 +246,98 @@ function M.Install(world)
         end
     end)
 
+    -- Blizzard's encounter timeline (EncounterTimelineDocumentation.lua), driven by specs through world.encounterTimeline:
+    -- Add fires ENCOUNTER_TIMELINE_EVENT_ADDED with the event's EncounterTimelineEventInfo, its time runs on the
+    -- world's clock, SetTrack fires ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED and Remove ENCOUNTER_TIMELINE_EVENT_REMOVED.
+    -- The API returns nothing for an event that is gone, as the plugin's own log expects.
+    if world.api.has("C_EncounterTimeline.GetEventInfo") then
+        local timeline = { events = {}, trackTypes = {}, nextID = 1000 }
+        world.encounterTimeline = timeline
+        local function elapsed(event)
+            return event.pausedElapsed or (world.clock.now - event.start)
+        end
+        function timeline.Add(info)
+            timeline.nextID = timeline.nextID + 1
+            local event = {
+                info = {
+                    id = timeline.nextID, source = info.source or Enum.EncounterTimelineEventSource.Encounter,
+                    spellName = info.spellName or "Spell", spellID = info.spellID or 1, iconFileID = info.iconFileID or 134400,
+                    duration = info.duration or 30, maxQueueDuration = info.maxQueueDuration or 0, icons = info.icons or 0,
+                    severity = info.severity or 1, isApproximate = info.isApproximate or false,
+                },
+                start = world.clock.now,
+                track = info.track or Enum.EncounterTimelineTrack.Medium,
+                pausedElapsed = info.paused and 0 or nil,
+                blocked = false,
+            }
+            timeline.events[event.info.id] = event
+            world.fireEvent("ENCOUNTER_TIMELINE_EVENT_ADDED", world.api.call("C_EncounterTimeline.GetEventInfo", event.info.id))
+            return event.info.id
+        end
+        function timeline.SetTrack(id, track)
+            timeline.events[id].track = track
+            world.fireEvent("ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED", id)
+        end
+        function timeline.Pause(id)
+            local event = timeline.events[id]
+            event.pausedElapsed = elapsed(event)
+            world.fireEvent("ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED", id)
+        end
+        function timeline.Resume(id)
+            local event = timeline.events[id]
+            event.start, event.pausedElapsed = world.clock.now - event.pausedElapsed, nil
+            world.fireEvent("ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED", id)
+        end
+        function timeline.Remove(id)
+            timeline.events[id] = nil
+            world.fireEvent("ENCOUNTER_TIMELINE_EVENT_REMOVED", id)
+        end
+        local function event(id) return timeline.events[id] end
+        set("C_EncounterTimeline.GetEventInfo", function(id)
+            local e = event(id)
+            if not e then return end
+            local copy = {}
+            for key, value in pairs(e.info) do copy[key] = value end
+            return copy
+        end)
+        set("C_EncounterTimeline.GetEventState", function(id)
+            local e = event(id)
+            if not e then return end
+            if e.pausedElapsed then return Enum.EncounterTimelineEventState.Paused end
+            if elapsed(e) >= e.info.duration + e.info.maxQueueDuration then return Enum.EncounterTimelineEventState.Finished end
+            return Enum.EncounterTimelineEventState.Active
+        end)
+        set("C_EncounterTimeline.GetEventTimeRemaining", function(id)
+            local e = event(id)
+            if e then return math.max(e.info.duration - elapsed(e), 0) end
+        end)
+        set("C_EncounterTimeline.GetEventTimeElapsed", function(id)
+            local e = event(id)
+            if e then return math.min(elapsed(e), e.info.duration) end
+        end)
+        set("C_EncounterTimeline.GetEventTrack", function(id)
+            local e = event(id)
+            if e then return e.track, 1 end
+        end)
+        set("C_EncounterTimeline.GetTrackType", function(track)
+            return timeline.trackTypes[track] or Enum.EncounterTimelineTrackType.Linear
+        end)
+        set("C_EncounterTimeline.IsEventBlocked", function(id)
+            local e = event(id)
+            if e then return e.blocked end
+        end)
+        set("C_EncounterTimeline.GetEventColor", function(id)
+            local e = event(id)
+            return e and e.color
+        end)
+        set("C_EncounterTimeline.SetEventIconTextures", function(id, mask, textures)
+            local e = event(id)
+            if e then e.iconTextures = { mask = mask, textures = textures } end
+        end)
+        set("C_EncounterTimeline.IsFeatureAvailable", function() return true end)
+        set("C_EncounterTimeline.IsFeatureEnabled", function() return true end)
+    end
+
     -- issecretvalue (FrameScriptDocumentation.lua; API_issecretvalue): true for a secret
     set("issecretvalue", function(value) return world.secrets.IsSecret(value) end)
 end
